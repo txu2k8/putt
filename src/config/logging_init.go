@@ -1,23 +1,27 @@
 package config
 
 import (
+	"io"
 	"os"
 
 	"github.com/op/go-logging"
 )
 
-// format define
+// define string format
+// time:2006-01-02T15:04:05.999Z-07:00
 const (
-	logLevel    = logging.DEBUG
+	logLevel    = logging.INFO
 	InfoFormat  = `%{color}%{time:2006-01-02T15:04:05} %{module} %{level:.4s}: %{color:reset}%{message}`
 	DebugFormat = `%{color}%{time:2006-01-02T15:04:05} %{module} %{level:.4s}: (%{shortfile}) %{color:reset}%{message}`
 )
 
-// Example format string. Everything except the message has a custom color
-// which is dependent on the log level. Many fields have a custom output
-// formatting too, eg. the time returns the hour down to the milli second.
-// time:2006-01-02T15:04:05.999Z-07:00
 func init() {
+	file, err := os.OpenFile("logfile",
+		os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic(err)
+	}
+
 	// string format: DebugFormat if level>=DEBUG, else InfoFormat
 	strformat := InfoFormat
 	if logLevel >= logging.DEBUG {
@@ -25,40 +29,28 @@ func init() {
 	}
 	var format = logging.MustStringFormatter(strformat)
 
-	backend1 := logging.NewLogBackend(os.Stderr, "", 0)
-	backend2 := logging.NewLogBackend(os.Stdout, "", 0)
-	backend2Formatter := logging.NewBackendFormatter(backend2, format)
+	// backend-1 output to Console
+	consoleBackend := logging.NewLogBackend(os.Stdout, "C", 0)
+	consoleBackendFormator := logging.NewBackendFormatter(consoleBackend, format)
+	consoleBackendLeveled := logging.AddModuleLevel(consoleBackendFormator)
+	consoleBackendLeveled.SetLevel(logLevel, "")
 
-	// Only errors and more severe messages should be sent to backend1
-	backend1Leveled := logging.AddModuleLevel(backend1)
-	backend1Leveled.SetLevel(logging.ERROR, "")
+	// backend-2 output to log file && Console
+	fileBackend := logging.NewLogBackend(io.MultiWriter(file, os.Stderr), "F", 0)
+	fileBackendFormator := logging.NewBackendFormatter(fileBackend, format)
+	fileBackendLeveled := logging.AddModuleLevel(fileBackendFormator)
+	fileBackendLeveled.SetLevel(logging.ERROR, "")
 
 	// Set the backends to be used.
-	logging.SetBackend(backend1Leveled, backend2Formatter)
+	logging.SetBackend(consoleBackendLeveled, fileBackendLeveled)
+}
 
+func test() {
 	var log = logging.MustGetLogger("test")
-	log.Info("logging initialized ...")
 
-}
-
-// is file exists
-func FileExists(name string) bool {
-	if _, err := os.Stat(name); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
-}
-
-// create file
-func CreateFile(name string) error {
-	fo, err := os.Create(name)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		fo.Close()
-	}()
-	return nil
+	log.Info("info")
+	log.Notice("notice")
+	log.Warning("warning")
+	log.Error("err")
+	log.Critical("crit")
 }
