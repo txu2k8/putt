@@ -16,11 +16,6 @@ const (
 )
 
 func init() {
-	file, err := os.OpenFile("logfile",
-		os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		panic(err)
-	}
 
 	// string format: DebugFormat if level>=DEBUG, else InfoFormat
 	strformat := InfoFormat
@@ -36,10 +31,15 @@ func init() {
 	consoleBackendLeveled.SetLevel(logLevel, "")
 
 	// backend-2 output to log file && Console
-	fileBackend := logging.NewLogBackend(io.MultiWriter(file, os.Stderr), "F", 0)
+	file, err := os.OpenFile("logfile",
+		os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic(err)
+	}
+	fileBackend := logging.NewLogBackend(io.Writer(file), "F", 0)
 	fileBackendFormator := logging.NewBackendFormatter(fileBackend, format)
 	fileBackendLeveled := logging.AddModuleLevel(fileBackendFormator)
-	fileBackendLeveled.SetLevel(logging.ERROR, "")
+	fileBackendLeveled.SetLevel(logLevel, "")
 
 	// Set the backends to be used.
 	logging.SetBackend(consoleBackendLeveled, fileBackendLeveled)

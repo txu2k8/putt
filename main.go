@@ -8,14 +8,8 @@ import (
 
 var log = logging.MustGetLogger("test")
 
-func test(a int) int {
-	b := a * 2
-	log.Info("--------test")
-	return b
-}
-
 func main() {
-	test(4)
+	// db.test(4)
 	log.Info("------info")
 	log.Notice("------notice")
 	log.Warning("------warning")
