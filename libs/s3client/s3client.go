@@ -72,14 +72,14 @@ func byteCountDecimal(b int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "kMGTPE"[exp])
 }
 
-func getFileSize(s3Client *s3.S3, bucket string, prefix string) (filesize int64, error error) {
+func getFileSize(svc *s3.S3, bucket string, prefix string) (filesize int64, error error) {
 	params := &s3.HeadObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(prefix),
 	}
 
 	fmt.Println(params)
-	resp, err := s3Client.HeadObject(params)
+	resp, err := svc.HeadObject(params)
 	if err != nil {
 		return 0, err
 	}
@@ -158,11 +158,9 @@ func GetObject(config *S3Config, s3Bucket string, s3Path string, localFilePath s
 }
 
 // DownloadFile ...
-func DownloadFile(s3Client *s3.S3, s3Bucket string, s3Path string, localFilePath string) bool {
-
+func DownloadFile(svc *s3.S3, s3Bucket string, s3Path string, localFilePath string) bool {
 	filename := parseFilename(s3Path)
-	downloader := s3manager.NewDownloader(session.Must(session.NewSession(&s3Client.Config)))
-	size, err := getFileSize(s3Client, s3Bucket, s3Path)
+	size, err := getFileSize(svc, s3Bucket, s3Path)
 	if err != nil {
 		panic(err)
 	}
@@ -180,6 +178,7 @@ func DownloadFile(s3Client *s3.S3, s3Bucket string, s3Path string, localFilePath
 		Key:    aws.String(s3Path),
 	}
 
+	downloader := s3manager.NewDownloader(session.Must(session.NewSession(&svc.Config)))
 	if _, err := downloader.Download(writer, params); err != nil {
 		logger.Errorf("Download failed! Deleting tempfile: %s", tempfileName)
 		os.Remove(tempfileName)
