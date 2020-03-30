@@ -1,0 +1,17 @@
+Time:
+	259 seconds total
+	133 seconds of transactions (37 per second)
+
+Files:
+	7529 created (29 per second)
+		Creation alone: 5000 files (42 per second)
+		Mixed with transactions: 2529 files (19 per second)
+	2451 read (18 per second)
+	2549 appended (19 per second)
+	7529 deleted (29 per second)
+		Deletion alone: 5058 files (562 per second)
+		Mixed with transactions: 2471 files (18 per second)
+
+Data:
+	13071.39 megabytes read (50.47 megabytes per second)
+	41763.60 megabytes written (161.25 megabytes per second)
