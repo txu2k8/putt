@@ -1,0 +1,5 @@
+F2020-03-30T08:40:42 test INFO: (main.go:13) ------info
+F2020-03-30T08:40:42 test NOTI: (main.go:14) ------notice
+F2020-03-30T08:40:42 test WARN: (main.go:15) ------warning
+F2020-03-30T08:40:42 test ERRO: (main.go:16) ------err
+F2020-03-30T08:40:42 test CRIT: (main.go:17) ------crit

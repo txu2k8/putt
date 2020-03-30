@@ -10,7 +10,7 @@ import (
 // define string format
 // time:2006-01-02T15:04:05.999Z-07:00
 const (
-	logLevel    = logging.INFO
+	logLevel    = logging.DEBUG
 	InfoFormat  = `%{color}%{time:2006-01-02T15:04:05} %{module} %{level:.4s}: %{color:reset}%{message}`
 	DebugFormat = `%{color}%{time:2006-01-02T15:04:05} %{module} %{level:.4s}: (%{shortfile}) %{color:reset}%{message}`
 )
@@ -31,7 +31,7 @@ func init() {
 	consoleBackendLeveled.SetLevel(logLevel, "")
 
 	// backend-2 output to log file && Console
-	file, err := os.OpenFile("logfile",
+	file, err := os.OpenFile("test.log",
 		os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		panic(err)
