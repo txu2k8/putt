@@ -3,3 +3,8 @@ F2020-03-30T08:40:42 test NOTI: (main.go:14) ------notice
 F2020-03-30T08:40:42 test WARN: (main.go:15) ------warning
 F2020-03-30T08:40:42 test ERRO: (main.go:16) ------err
 F2020-03-30T08:40:42 test CRIT: (main.go:17) ------crit
+F2020-03-30T11:19:55 test INFO: (main.go:15) ------info
+F2020-03-30T11:19:55 test NOTI: (main.go:16) ------notice
+F2020-03-30T11:19:55 test WARN: (main.go:17) ------warning
+F2020-03-30T11:19:55 test ERRO: (main.go:18) ------err
+F2020-03-30T11:19:55 test CRIT: (main.go:19) ------crit

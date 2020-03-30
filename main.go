@@ -1,7 +1,8 @@
 package main
 
 import (
-	_ "config"
+	// "gtest/config"
+	_ "gtest/testinit"
 
 	"github.com/op/go-logging"
 )
@@ -9,6 +10,7 @@ import (
 var log = logging.MustGetLogger("test")
 
 func main() {
+	// config.LoadConfig()
 	// db.test(4)
 	log.Info("------info")
 	log.Notice("------notice")

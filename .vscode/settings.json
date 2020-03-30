@@ -1,7 +1,0 @@
-{
-    // golang配置
-    "go.formatTool": "goreturns",
-    "go.goroot": "C:\\Go",
-    "go.gopath": "${workspaceRoot}",
-    "editor.fontSize": 16
-}

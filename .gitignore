@@ -15,6 +15,3 @@
 # vendor/
 
 # ignore folder
-pkg
-bin
-github.com
