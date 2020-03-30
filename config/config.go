@@ -6,10 +6,16 @@ import (
 	"github.com/jinzhu/configor"
 )
 
-// define const values
+// define global const values
 const (
+	// Log level limited
 	LogLevel = 3
-	Root     = os.Getenv("PWD")
+)
+
+// define global variable values
+var (
+	// Root work dir
+	Root = os.Getenv("PWD")
 )
 
 // Config application all configs
