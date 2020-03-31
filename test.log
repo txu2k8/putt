@@ -33,3 +33,13 @@
 2020-03-31T11:12:29 test INFO: (s3client.go:296) Upload PASS: https://10.25.119.86:443/vset1_s3bucket_17_34/test.log
 2020-03-31T11:12:30 test INFO: (s3client.go:235) Starting download(size:2.4 kB):https://10.25.119.86:443/vset1_s3bucket_17_34/test.log
 2020-03-31T11:12:30 test INFO: (s3client.go:255) Download PASS: https://10.25.119.86:443/vset1_s3bucket_17_34/test.log
+2020-03-31T11:32:08 test INFO: (main.go:15) ------info
+2020-03-31T11:32:08 test NOTI: (main.go:16) ------notice
+2020-03-31T11:32:08 test WARN: (main.go:17) ------warning
+2020-03-31T11:32:08 test ERRO: (main.go:18) ------err
+2020-03-31T11:32:08 test CRIT: (main.go:19) ------crit
+======Test S3 UploadFile Download File========
+2020-03-31T11:32:08 test INFO: (s3client.go:278) Starting upload(size:3.0 kB):./test.log
+2020-03-31T11:32:09 test INFO: (s3client.go:296) Upload PASS: https://10.25.119.86:443/vset1_s3bucket_17_34/test.log
+2020-03-31T11:32:10 test INFO: (s3client.go:235) Starting download(size:3.1 kB):https://10.25.119.86:443/vset1_s3bucket_17_34/test.log
+2020-03-31T11:32:10 test INFO: (s3client.go:255) Download PASS: https://10.25.119.86:443/vset1_s3bucket_17_34/test.log
