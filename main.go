@@ -40,8 +40,17 @@ func testS3Download() {
 	s3client.DownloadFileWithProcess(svc, bucket, s3Path, "./")
 }
 
+func testS3ListObject() {
+	bucket := "vset1_s3bucket_17_34"
+	accounts := []string{"vset1_s3user"}
+	svc := s3client.NewS3Client("https://10.25.119.86:443", "4CKG9PM8MG86LEOD2EPN", "s3OkruYUFuZ6xjskUjJuWU7dSxVcy6455o8xMEeJ")
+
+	s3client.ListObjectsConcurrently(svc, bucket, accounts)
+}
+
 func main() {
-	testLogging()
-	testS3Upload()
-	testS3Download()
+	// testLogging()
+	// testS3Upload()
+	// testS3Download()
+	testS3ListObject()
 }
