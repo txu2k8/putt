@@ -487,11 +487,14 @@ func ListObjectsConcurrently(svc *s3.S3, bucket string, accounts []string) {
 
 	// Receive from the bucket channel printing the information for each bucket
 	//  to the console when the bucketCh channel is drained.
+	fmt.Println(bucketCh)
 	buckets := []*Bucket{}
+	fmt.Println(buckets)
 	for b := range bucketCh {
 		buckets = append(buckets, b)
 		fmt.Println(buckets)
 	}
+	fmt.Println(buckets)
 
 	sortBuckets(buckets)
 	for _, b := range buckets {
