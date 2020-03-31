@@ -1,6 +1,7 @@
 package s3client
 
 import (
+	_ "gtest/testinit"
 	"os"
 	"testing"
 )
@@ -13,7 +14,7 @@ func TestS3UploadFileWithProcess(t *testing.T) {
 		logger.Panicf("ERROR:", err)
 	}
 	file.WriteString("======Test S3 UploadFile Download File========")
-	session := newSession("https://10.25.119.86:443", "4CKG9PM8MG86LEOD2EPN", "s3OkruYUFuZ6xjskUjJuWU7dSxVcy6455o8xMEeJ")
+	session := NewSession("https://10.25.119.86:443", "4CKG9PM8MG86LEOD2EPN", "s3OkruYUFuZ6xjskUjJuWU7dSxVcy6455o8xMEeJ")
 
 	UploadFileWithProcess(session, bucket, localFilePath)
 }
@@ -21,7 +22,7 @@ func TestS3UploadFileWithProcess(t *testing.T) {
 func TestS3DownloadFileWithProcess(t *testing.T) {
 	bucket := "vset1_s3bucket_17_34"
 	s3Path := "a.txt"
-	svc := newS3Client("https://10.25.119.86:443", "4CKG9PM8MG86LEOD2EPN", "s3OkruYUFuZ6xjskUjJuWU7dSxVcy6455o8xMEeJ")
+	svc := NewS3Client("https://10.25.119.86:443", "4CKG9PM8MG86LEOD2EPN", "s3OkruYUFuZ6xjskUjJuWU7dSxVcy6455o8xMEeJ")
 
 	DownloadFileWithProcess(svc, bucket, s3Path, "./")
 }

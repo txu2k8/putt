@@ -1,5 +1,35 @@
-F2020-03-30T16:31:39 test INFO: (main.go:14) ------info
-F2020-03-30T16:31:39 test NOTI: (main.go:15) ------notice
-F2020-03-30T16:31:39 test WARN: (main.go:16) ------warning
-F2020-03-30T16:31:39 test ERRO: (main.go:17) ------err
-F2020-03-30T16:31:39 test CRIT: (main.go:18) ------crit
+2020-03-31T11:06:44 test INFO: (main.go:15) ------info
+2020-03-31T11:06:44 test NOTI: (main.go:16) ------notice
+2020-03-31T11:06:44 test WARN: (main.go:17) ------warning
+2020-03-31T11:06:44 test ERRO: (main.go:18) ------err
+2020-03-31T11:06:44 test CRIT: (main.go:19) ------crit
+2020-03-31T11:06:44 test INFO: (s3client.go:278) Starting upload(size:46 B):./a.txt
+2020-03-31T11:06:45 test INFO: (s3client.go:296) Upload PASS: https://10.25.119.86:443/vset1_s3bucket_17_34/a.txt
+2020-03-31T11:10:59 test INFO: (main.go:15) ------info
+2020-03-31T11:10:59 test NOTI: (main.go:16) ------notice
+2020-03-31T11:10:59 test WARN: (main.go:17) ------warning
+2020-03-31T11:10:59 test ERRO: (main.go:18) ------err
+2020-03-31T11:10:59 test CRIT: (main.go:19) ------crit
+2020-03-31T11:10:59 test INFO: (s3client.go:278) Starting upload(size:46 B):./test.txt
+2020-03-31T11:11:00 test INFO: (s3client.go:296) Upload PASS: https://10.25.119.86:443/vset1_s3bucket_17_34/test.txt
+2020-03-31T11:11:01 test INFO: (s3client.go:235) Starting download(size:46 B):https://10.25.119.86:443/vset1_s3bucket_17_34/test.txt
+2020-03-31T11:11:01 test INFO: (s3client.go:255) Download PASS: https://10.25.119.86:443/vset1_s3bucket_17_34/test.txt
+2020-03-31T11:11:43 test INFO: (main.go:15) ------info
+2020-03-31T11:11:43 test NOTI: (main.go:16) ------notice
+2020-03-31T11:11:43 test WARN: (main.go:17) ------warning
+2020-03-31T11:11:43 test ERRO: (main.go:18) ------err
+2020-03-31T11:11:43 test CRIT: (main.go:19) ------crit
+======Test S3 UploadFile Download File========2020-03-31T11:11:43 test INFO: (s3client.go:278) Starting upload(size:1.5 kB):./test.log
+2020-03-31T11:11:45 test INFO: (s3client.go:296) Upload PASS: https://10.25.119.86:443/vset1_s3bucket_17_34/test.log
+2020-03-31T11:11:45 test INFO: (s3client.go:235) Starting download(size:1.6 kB):https://10.25.119.86:443/vset1_s3bucket_17_34/test.log
+2020-03-31T11:11:46 test INFO: (s3client.go:255) Download PASS: https://10.25.119.86:443/vset1_s3bucket_17_34/test.log
+2020-03-31T11:12:28 test INFO: (main.go:15) ------info
+2020-03-31T11:12:28 test NOTI: (main.go:16) ------notice
+2020-03-31T11:12:28 test WARN: (main.go:17) ------warning
+2020-03-31T11:12:28 test ERRO: (main.go:18) ------err
+2020-03-31T11:12:28 test CRIT: (main.go:19) ------crit
+======Test S3 UploadFile Download File========
+2020-03-31T11:12:28 test INFO: (s3client.go:278) Starting upload(size:2.3 kB):./test.log
+2020-03-31T11:12:29 test INFO: (s3client.go:296) Upload PASS: https://10.25.119.86:443/vset1_s3bucket_17_34/test.log
+2020-03-31T11:12:30 test INFO: (s3client.go:235) Starting download(size:2.4 kB):https://10.25.119.86:443/vset1_s3bucket_17_34/test.log
+2020-03-31T11:12:30 test INFO: (s3client.go:255) Download PASS: https://10.25.119.86:443/vset1_s3bucket_17_34/test.log

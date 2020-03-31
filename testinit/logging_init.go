@@ -25,7 +25,7 @@ func init() {
 	var format = logging.MustStringFormatter(strformat)
 
 	// backend-1 output to Console
-	consoleBackend := logging.NewLogBackend(os.Stdout, "C", 0)
+	consoleBackend := logging.NewLogBackend(os.Stdout, "", 0)
 	consoleBackendFormator := logging.NewBackendFormatter(consoleBackend, format)
 	consoleBackendLeveled := logging.AddModuleLevel(consoleBackendFormator)
 	consoleBackendLeveled.SetLevel(logLevel, "")
@@ -36,7 +36,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	fileBackend := logging.NewLogBackend(io.Writer(file), "F", 0)
+	fileBackend := logging.NewLogBackend(io.Writer(file), "", 0)
 	fileBackendFormator := logging.NewBackendFormatter(fileBackend, format)
 	fileBackendLeveled := logging.AddModuleLevel(fileBackendFormator)
 	fileBackendLeveled.SetLevel(logLevel, "")

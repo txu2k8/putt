@@ -71,13 +71,13 @@ func (pw *progressWriter) WriteAt(p []byte, off int64) (int, error) {
 
 	percentageDownloaded := float32(pw.written*100) / float32(pw.size)
 
-	fmt.Printf("File size:%d downloaded:%d percentage:%.2f%%\r", pw.size, pw.written, percentageDownloaded)
+	log.Printf("File size:%d downloaded:%d percentage:%.2f%%\n", pw.size, pw.written, percentageDownloaded)
 
 	return pw.writer.WriteAt(p, off)
 }
 
 func byteCountDecimal(b int64) string {
-	const unit = 1000
+	const unit = 1024
 	if b < unit {
 		return fmt.Sprintf("%d B", b)
 	}
@@ -95,7 +95,6 @@ func getFileSize(svc *s3.S3, bucket string, prefix string) (filesize int64, erro
 		Key:    aws.String(prefix),
 	}
 
-	fmt.Println(params)
 	resp, err := svc.HeadObject(params)
 	if err != nil {
 		return 0, err
@@ -137,7 +136,8 @@ func (r *CustomReader) Seek(offset int64, whence int) (int64, error) {
 	return r.fp.Seek(offset, whence)
 }
 
-func newSession(endpoint string, accessID string, accessSecret string) *session.Session {
+// NewSession ...
+func NewSession(endpoint string, accessID string, accessSecret string) *session.Session {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -158,7 +158,8 @@ func newSession(endpoint string, accessID string, accessSecret string) *session.
 	return newSession
 }
 
-func newS3Client(endpoint string, accessID string, accessSecret string) *s3.S3 {
+// NewS3Client ...
+func NewS3Client(endpoint string, accessID string, accessSecret string) *s3.S3 {
 	// The purpose of the two judgments is to avoid locking each time.
 	if s3Client, hit := cachedS3Clients[accessID]; hit {
 		return s3Client
@@ -194,7 +195,7 @@ func newS3Client(endpoint string, accessID string, accessSecret string) *s3.S3 {
 // GetObject ...
 func GetObject(config *S3Config, s3Bucket string, s3Path string, localFilePath string) error {
 	logger.Infof("Try to download file from s3bucket: %s, path: %s, local: %s\n", s3Bucket, s3Path, localFilePath)
-	s3Client := newS3Client(config.Endpoint, config.AccessID, config.AccessSecret)
+	s3Client := NewS3Client(config.Endpoint, config.AccessID, config.AccessSecret)
 
 	file, err := os.Create(localFilePath)
 	if err != nil {
@@ -224,13 +225,14 @@ func GetObject(config *S3Config, s3Bucket string, s3Path string, localFilePath s
 
 // DownloadFileWithProcess ...
 func DownloadFileWithProcess(svc *s3.S3, s3Bucket string, s3Path string, locairlDir string) bool {
+	fullPath := *svc.Config.Endpoint + "/" + s3Bucket + "/" + s3Path
 	filename := parseFilename(s3Path)
 	size, err := getFileSize(svc, s3Bucket, s3Path)
 	if err != nil {
 		panic(err)
 	}
 
-	logger.Info("Starting download, size:", byteCountDecimal(size))
+	logger.Infof("Starting download(size:%s):%s", byteCountDecimal(size), fullPath)
 	temp, err := ioutil.TempFile(locairlDir, "download_*_"+filename)
 	if err != nil {
 		panic(err)
@@ -250,7 +252,7 @@ func DownloadFileWithProcess(svc *s3.S3, s3Bucket string, s3Path string, locairl
 		panic(err)
 	}
 
-	logger.Info("Download PASS: " + s3Bucket + "/" + s3Path)
+	logger.Info("Download PASS:", fullPath)
 	return true
 }
 
@@ -273,6 +275,7 @@ func UploadFileWithProcess(sess *session.Session, s3Bucket string, localFilePath
 		size: fileInfo.Size(),
 	}
 
+	logger.Infof("Starting upload(size:%s):%s", byteCountDecimal(reader.size), localFilePath)
 	uploader := s3manager.NewUploader(sess, func(u *s3manager.Uploader) {
 		u.PartSize = 5 * 1024 * 1024
 		u.LeavePartsOnError = true
