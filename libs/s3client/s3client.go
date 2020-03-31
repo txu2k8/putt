@@ -6,8 +6,10 @@ import (
 	"gtest/libs/testErr"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -18,6 +20,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/op/go-logging"
+)
+
+// define const for size unit
+const (
+	KB = 1024
+	MB = 1024 * KB
+	GB = 1024 * MB
+	TB = 1024 * GB
 )
 
 var (
@@ -47,6 +57,13 @@ type progressWriter struct {
 	written int64
 	writer  io.WriterAt
 	size    int64
+}
+
+// CustomReader ...
+type CustomReader struct {
+	fp   *os.File
+	size int64
+	read int64
 }
 
 func (pw *progressWriter) WriteAt(p []byte, off int64) (int, error) {
@@ -93,6 +110,54 @@ func parseFilename(keyString string) (filename string) {
 	return s
 }
 
+func (r *CustomReader) Read(p []byte) (int, error) {
+	return r.fp.Read(p)
+}
+
+// ReadAt ...
+func (r *CustomReader) ReadAt(p []byte, off int64) (int, error) {
+	n, err := r.fp.ReadAt(p, off)
+	if err != nil {
+		return n, err
+	}
+
+	// Got the length have read( or means has uploaded), and you can construct your message
+	atomic.AddInt64(&r.read, int64(n))
+
+	// I have no idea why the read length need to be div 2,
+	// maybe the request read once when Sign and actually send call ReadAt again
+	// It works for me
+	log.Printf("total read:%d    progress:%d%%\n", r.read/2, int(float32(r.read*100/2)/float32(r.size)))
+
+	return n, err
+}
+
+// Seek ...
+func (r *CustomReader) Seek(offset int64, whence int) (int64, error) {
+	return r.fp.Seek(offset, whence)
+}
+
+func newSession(endpoint string, accessID string, accessSecret string) *session.Session {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+	// Configure to use Minio Server
+	s3Config := &aws.Config{
+		Credentials:      credentials.NewStaticCredentials(accessID, accessSecret, ""),
+		Endpoint:         aws.String(endpoint),
+		Region:           aws.String("us-east-1"),
+		DisableSSL:       aws.Bool(true),
+		S3ForcePathStyle: aws.Bool(true),
+		HTTPClient:       client,
+	}
+	newSession, err := session.NewSession(s3Config)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	return newSession
+}
+
 func newS3Client(endpoint string, accessID string, accessSecret string) *s3.S3 {
 	// The purpose of the two judgments is to avoid locking each time.
 	if s3Client, hit := cachedS3Clients[accessID]; hit {
@@ -112,7 +177,7 @@ func newS3Client(endpoint string, accessID string, accessSecret string) *s3.S3 {
 	s3Config := &aws.Config{
 		Credentials:      credentials.NewStaticCredentials(accessID, accessSecret, ""),
 		Endpoint:         aws.String(endpoint),
-		Region:           aws.String("us-west-2"),
+		Region:           aws.String("us-east-1"),
 		DisableSSL:       aws.Bool(true),
 		S3ForcePathStyle: aws.Bool(true),
 		HTTPClient:       client,
@@ -157,8 +222,8 @@ func GetObject(config *S3Config, s3Bucket string, s3Path string, localFilePath s
 	return nil
 }
 
-// DownloadFile ...
-func DownloadFile(svc *s3.S3, s3Bucket string, s3Path string, localFilePath string) bool {
+// DownloadFileWithProcess ...
+func DownloadFileWithProcess(svc *s3.S3, s3Bucket string, s3Path string, locairlDir string) bool {
 	filename := parseFilename(s3Path)
 	size, err := getFileSize(svc, s3Bucket, s3Path)
 	if err != nil {
@@ -166,18 +231,18 @@ func DownloadFile(svc *s3.S3, s3Bucket string, s3Path string, localFilePath stri
 	}
 
 	logger.Info("Starting download, size:", byteCountDecimal(size))
-	temp, err := ioutil.TempFile(localFilePath, "s3-download-tmp-")
+	temp, err := ioutil.TempFile(locairlDir, "download_*_"+filename)
 	if err != nil {
 		panic(err)
 	}
-	tempfileName := temp.Name()
-
+	defer temp.Close()
 	writer := &progressWriter{writer: temp, size: size, written: 0}
 	params := &s3.GetObjectInput{
 		Bucket: aws.String(s3Bucket),
 		Key:    aws.String(s3Path),
 	}
 
+	tempfileName := temp.Name()
 	downloader := s3manager.NewDownloader(session.Must(session.NewSession(&svc.Config)))
 	if _, err := downloader.Download(writer, params); err != nil {
 		logger.Errorf("Download failed! Deleting tempfile: %s", tempfileName)
@@ -185,13 +250,46 @@ func DownloadFile(svc *s3.S3, s3Bucket string, s3Path string, localFilePath stri
 		panic(err)
 	}
 
-	if err := temp.Close(); err != nil {
-		panic(err)
+	logger.Info("Download PASS: " + s3Bucket + "/" + s3Path)
+	return true
+}
+
+// UploadFileWithProcess ...
+func UploadFileWithProcess(sess *session.Session, s3Bucket string, localFilePath string) bool {
+	file, err := os.Open(localFilePath)
+	if err != nil {
+		logger.Errorf("ERROR:", err)
+		return false
 	}
 
-	if err := os.Rename(temp.Name(), filename); err != nil {
-		panic(err)
+	fileInfo, err := file.Stat()
+	if err != nil {
+		logger.Errorf("ERROR:", err)
+		return false
 	}
-	logger.Infof("File downloaded! Avaliable at:", filename)
+
+	reader := &CustomReader{
+		fp:   file,
+		size: fileInfo.Size(),
+	}
+
+	uploader := s3manager.NewUploader(sess, func(u *s3manager.Uploader) {
+		u.PartSize = 5 * 1024 * 1024
+		u.LeavePartsOnError = true
+	})
+
+	_, sBase := path.Split(localFilePath)
+	output, err := uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(s3Bucket),
+		Key:    aws.String(sBase),
+		Body:   reader,
+	})
+
+	if err != nil {
+		logger.Errorf("ERROR:", err)
+		return false
+	}
+
+	logger.Info("Upload PASS: " + output.Location)
 	return true
 }
