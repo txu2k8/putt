@@ -10,25 +10,32 @@ import (
 // define string format
 // time:2006-01-02T15:04:05.999Z-07:00
 const (
-	logLevel    = logging.DEBUG
-	InfoFormat  = `%{color}%{time:2006-01-02T15:04:05} %{module} %{level:.4s}: %{color:reset}%{message}`
-	DebugFormat = `%{color}%{time:2006-01-02T15:04:05} %{module} %{level:.4s}: (%{shortfile}) %{color:reset}%{message}`
+	fileLogLevel    = logging.DEBUG // log level for output to file
+	consoleLogLevel = logging.INFO  // log level for output to console
+	InfoFormat      = `%{color}%{time:2006-01-02T15:04:05} %{module} %{level:.4s}: %{color:reset}%{message}`
+	DebugFormat     = `%{color}%{time:2006-01-02T15:04:05} %{module} %{level:.4s}: (%{shortfile}) %{color:reset}%{message}`
 )
 
 func init() {
-
 	// string format: DebugFormat if level>=DEBUG, else InfoFormat
-	strformat := InfoFormat
-	if logLevel >= logging.DEBUG {
-		strformat = DebugFormat
+	fileStrformat := InfoFormat
+	consoleStrformat := InfoFormat
+	if fileLogLevel >= logging.DEBUG {
+		fileStrformat = DebugFormat
 	}
-	var format = logging.MustStringFormatter(strformat)
+	if consoleLogLevel >= logging.DEBUG {
+		consoleStrformat = DebugFormat
+	}
+	var (
+		fileFormat    = logging.MustStringFormatter(fileStrformat)
+		consoleFormat = logging.MustStringFormatter(consoleStrformat)
+	)
 
 	// backend-1 output to Console
 	consoleBackend := logging.NewLogBackend(os.Stdout, "", 0)
-	consoleBackendFormator := logging.NewBackendFormatter(consoleBackend, format)
+	consoleBackendFormator := logging.NewBackendFormatter(consoleBackend, consoleFormat)
 	consoleBackendLeveled := logging.AddModuleLevel(consoleBackendFormator)
-	consoleBackendLeveled.SetLevel(logLevel, "")
+	consoleBackendLeveled.SetLevel(consoleLogLevel, "")
 
 	// backend-2 output to log file && Console
 	file, err := os.OpenFile("test.log",
@@ -37,9 +44,9 @@ func init() {
 		panic(err)
 	}
 	fileBackend := logging.NewLogBackend(io.Writer(file), "", 0)
-	fileBackendFormator := logging.NewBackendFormatter(fileBackend, format)
+	fileBackendFormator := logging.NewBackendFormatter(fileBackend, fileFormat)
 	fileBackendLeveled := logging.AddModuleLevel(fileBackendFormator)
-	fileBackendLeveled.SetLevel(logLevel, "")
+	fileBackendLeveled.SetLevel(fileLogLevel, "")
 
 	// Set the backends to be used.
 	logging.SetBackend(consoleBackendLeveled, fileBackendLeveled)

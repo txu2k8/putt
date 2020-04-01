@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	_ "gtest/config"
 	s3client "gtest/libs/s3client"
 	_ "gtest/testinit"
@@ -46,8 +45,12 @@ func testS3ListObject() {
 	accounts := []string{"vset1_s3user"}
 	svc := s3client.NewS3Client("https://10.25.119.86:443", "4CKG9PM8MG86LEOD2EPN", "s3OkruYUFuZ6xjskUjJuWU7dSxVcy6455o8xMEeJ")
 
-	fmt.Println(s3client.ListBuckets(svc))
-	s3client.ListObjectsConcurrently(svc, bucket, accounts)
+	bs, _ := s3client.ListBuckets(svc)
+	for _, b := range bs {
+		logger.Info(b.Name)
+		logger.Warning(b.Region)
+	}
+	s3client.ListBucketObjectsConcurrently(svc, bucket, accounts)
 }
 
 func main() {

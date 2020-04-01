@@ -77,6 +77,10 @@ type Bucket struct {
 
 type sortalbeBuckets []*Bucket
 
+// EndlessReader is an io.Reader that will always return
+// that bytes have been read.
+type endlessReader struct{}
+
 // progressWriter tracks the download progress of a file from S3 to a file
 // 2020/03/31 13:54:19 File size:1199 downloaded:1199 percentage:100.00%
 type progressWriter struct {
@@ -132,6 +136,13 @@ func (r *progressReader) Seek(offset int64, whence int) (int64, error) {
 	return r.fp.Seek(offset, whence)
 }
 
+// Read will report that it has read len(p) bytes in p.
+// The content in the []byte will be unmodified.
+// This will never return an error.
+func (e endlessReader) Read(p []byte) (int, error) {
+	return len(p), nil
+}
+
 func parseFilename(keyString string) (filename string) {
 	ss := strings.Split(keyString, "/")
 	s := ss[len(ss)-1]
@@ -175,8 +186,8 @@ func NewSession(endpoint string, accessID string, accessSecret string) *session.
 	s3Config := &aws.Config{
 		Credentials:      credentials.NewStaticCredentials(accessID, accessSecret, ""),
 		Endpoint:         aws.String(endpoint),
-		Region:           aws.String("us-east-1"),
-		DisableSSL:       aws.Bool(true),
+		Region:           aws.String("us-west-2"),
+		DisableSSL:       aws.Bool(false),
 		S3ForcePathStyle: aws.Bool(true),
 		HTTPClient:       client,
 	}
@@ -207,8 +218,8 @@ func NewS3Client(endpoint string, accessID string, accessSecret string) *s3.S3 {
 	s3Config := &aws.Config{
 		Credentials:      credentials.NewStaticCredentials(accessID, accessSecret, ""),
 		Endpoint:         aws.String(endpoint),
-		Region:           aws.String("us-east-1"),
-		DisableSSL:       aws.Bool(true),
+		Region:           aws.String("us-west-2"),
+		DisableSSL:       aws.Bool(false),
 		S3ForcePathStyle: aws.Bool(true),
 		HTTPClient:       client,
 	}
@@ -345,39 +356,6 @@ func (s sortalbeBuckets) Less(a, b int) bool {
 	return false
 }
 
-func bucketDetails(svc *s3.S3, bucket *Bucket) {
-	objs, errObjs, err := ListBucketObjects(svc, bucket.Name)
-	if err != nil {
-		bucket.Error = err
-	} else {
-		bucket.Objects = objs
-		bucket.ErrObjects = errObjs
-	}
-}
-
-func getAccountBuckets(sess *session.Session, bucketCh chan<- *Bucket, owner string) error {
-	svc := s3.New(sess)
-	buckets, err := ListBuckets(svc)
-	if err != nil {
-		return fmt.Errorf("failed to list buckets, %v", err)
-	}
-	for _, bucket := range buckets {
-		bucket.Owner = owner
-		if bucket.Error != nil {
-			continue
-		}
-
-		bckSvc := s3.New(sess, &aws.Config{
-			Region:      aws.String(bucket.Region),
-			Credentials: svc.Config.Credentials,
-		})
-		bucketDetails(bckSvc, bucket)
-		bucketCh <- bucket
-	}
-
-	return nil
-}
-
 func (b *Bucket) encryptedObjects() []Object {
 	encObjs := []Object{}
 	for _, obj := range b.Objects {
@@ -400,28 +378,53 @@ func ListBuckets(svc *s3.S3) ([]*Bucket, error) {
 		buckets[i] = &Bucket{
 			Name:         *b.Name,
 			CreationDate: *b.CreationDate,
+			Region:       "us-west-2",
 		}
+		// locRes, err := svc.GetBucketLocation(&s3.GetBucketLocationInput{
+		// 	Bucket: b.Name,
+		// })
+		// if err != nil {
+		// 	buckets[i].Error = err
+		// 	continue
+		// }
 
-		locRes, err := svc.GetBucketLocation(&s3.GetBucketLocationInput{
-			Bucket: b.Name,
-		})
-		if err != nil {
-			buckets[i].Error = err
-			continue
-		}
-
-		if locRes.LocationConstraint == nil {
-			buckets[i].Region = "us-west-2"
-		} else {
-			buckets[i].Region = *locRes.LocationConstraint
-		}
+		// if locRes.LocationConstraint == nil {
+		// 	buckets[i].Region = "us-west-2"
+		// } else {
+		// 	buckets[i].Region = *locRes.LocationConstraint
+		// }
 	}
 
 	return buckets, nil
 }
 
+// getAccountBucketsDetails: include bucket->objects
+func getAccountBucketsDetails(sess *session.Session, bucketCh chan<- *Bucket, owner string) error {
+	svc := s3.New(sess)
+	buckets, err := ListBuckets(svc)
+	if err != nil {
+		return fmt.Errorf("failed to list buckets, %v", err)
+	}
+	for _, bucket := range buckets {
+		bucket.Owner = owner
+		if bucket.Error != nil {
+			continue
+		}
+
+		bckSvc := s3.New(sess, &aws.Config{
+			Region:      aws.String(bucket.Region),
+			Credentials: svc.Config.Credentials,
+		})
+		bucketDetails(bckSvc, bucket)
+		bucketCh <- bucket
+	}
+
+	return nil
+}
+
 // ListBucketObjects ...
 func ListBucketObjects(svc *s3.S3, bucket string) ([]Object, []ErrObject, error) {
+	logger.Debug("ListBucketObjects:" + bucket)
 	listRes, err := svc.ListObjects(&s3.ListObjectsInput{
 		Bucket: &bucket,
 	})
@@ -443,6 +446,7 @@ func ListBucketObjects(svc *s3.S3, bucket string) ([]Object, []ErrObject, error)
 		}
 
 		obj := Object{Bucket: bucket, Key: *listObj.Key}
+		logger.Debug(obj.Bucket + ":" + obj.Key)
 		if objData.ServerSideEncryption != nil {
 			obj.Encrypted = true
 			obj.EncryptionType = *objData.ServerSideEncryption
@@ -454,8 +458,19 @@ func ListBucketObjects(svc *s3.S3, bucket string) ([]Object, []ErrObject, error)
 	return objs, errObjs, nil
 }
 
-// ListObjectsConcurrently ...
-func ListObjectsConcurrently(svc *s3.S3, bucket string, accounts []string) {
+// get bucket details: objs
+func bucketDetails(svc *s3.S3, bucket *Bucket) {
+	objs, errObjs, err := ListBucketObjects(svc, bucket.Name)
+	if err != nil {
+		bucket.Error = err
+	} else {
+		bucket.Objects = objs
+		bucket.ErrObjects = errObjs
+	}
+}
+
+// ListBucketObjectsConcurrently ...
+func ListBucketObjectsConcurrently(svc *s3.S3, bucket string, accounts []string) {
 	// Spin off a worker for each account to retrieve that account's
 	bucketCh := make(chan *Bucket, 5)
 	var wg sync.WaitGroup
@@ -469,11 +484,12 @@ func ListObjectsConcurrently(svc *s3.S3, bucket string, accounts []string) {
 				Profile: acc,
 			})
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "failed to create session for account, %s, %v\n", acc, err)
+				logger.Errorf("failed to create session for account, %s, %v\n", acc, err)
 				return
 			}
-			if err = getAccountBuckets(sess, bucketCh, acc); err != nil {
-				fmt.Fprintf(os.Stderr, "failed to get account %s's bucket info, %v\n", acc, err)
+			if err = getAccountBucketsDetails(sess, bucketCh, acc); err != nil {
+				logger.Errorf("failed to get account %s's bucket info, %v\n", acc, err)
+				return
 			}
 		}(acc)
 	}
@@ -487,14 +503,10 @@ func ListObjectsConcurrently(svc *s3.S3, bucket string, accounts []string) {
 
 	// Receive from the bucket channel printing the information for each bucket
 	//  to the console when the bucketCh channel is drained.
-	fmt.Println(bucketCh)
 	buckets := []*Bucket{}
-	fmt.Println(buckets)
 	for b := range bucketCh {
 		buckets = append(buckets, b)
-		fmt.Println(buckets)
 	}
-	fmt.Println(buckets)
 
 	sortBuckets(buckets)
 	for _, b := range buckets {
@@ -504,12 +516,65 @@ func ListObjectsConcurrently(svc *s3.S3, bucket string, accounts []string) {
 		}
 
 		encObjs := b.encryptedObjects()
-		fmt.Printf("Bucket: %s, owned by: %s, total objects: %d, failed objects: %d, encrypted objects: %d\n",
+		logger.Infof("Bucket: %s, owned by: %s, total objects: %d, failed objects: %d, encrypted objects: %d\n",
 			b.Name, b.Owner, len(b.Objects), len(b.ErrObjects), len(encObjs))
 		if len(encObjs) > 0 {
 			for _, encObj := range encObjs {
-				fmt.Printf("\t%s %s:%s/%s\n", encObj.EncryptionType, b.Region, b.Name, encObj.Key)
+				logger.Infof("\t%s %s:%s/%s\n", encObj.EncryptionType, b.Region, b.Name, encObj.Key)
 			}
 		}
 	}
+}
+
+// DeleteBucket ...
+func DeleteBucket(svc *s3.S3, bucket string) error {
+	bucketName := &bucket
+
+	objs, err := svc.ListObjects(&s3.ListObjectsInput{Bucket: bucketName})
+	if err != nil {
+		return fmt.Errorf("failed to list bucket %q objects, %v", *bucketName, err)
+	}
+
+	for _, o := range objs.Contents {
+		svc.DeleteObject(&s3.DeleteObjectInput{Bucket: bucketName, Key: o.Key})
+	}
+
+	uploads, err := svc.ListMultipartUploads(&s3.ListMultipartUploadsInput{Bucket: bucketName})
+	if err != nil {
+		return fmt.Errorf("failed to list bucket %q multipart objects, %v", *bucketName, err)
+	}
+
+	for _, u := range uploads.Uploads {
+		svc.AbortMultipartUpload(&s3.AbortMultipartUploadInput{
+			Bucket:   bucketName,
+			Key:      u.Key,
+			UploadId: u.UploadId,
+		})
+	}
+
+	_, err = svc.DeleteBucket(&s3.DeleteBucketInput{Bucket: bucketName})
+	if err != nil {
+		return fmt.Errorf("failed to delete bucket %q, %v", *bucketName, err)
+	}
+
+	return nil
+}
+
+// CreateBucket returns a bucket created for the tests.
+func CreateBucket(svc *s3.S3, bucketName string) (err error) {
+
+	logger.Info("Setup: Creating test bucket,", bucketName)
+	_, err = svc.CreateBucket(&s3.CreateBucketInput{Bucket: &bucketName})
+	if err != nil {
+		return fmt.Errorf("failed to create bucket %s, %v", bucketName, err)
+	}
+
+	fmt.Println("Setup: Waiting for bucket to exist,", bucketName)
+	err = svc.WaitUntilBucketExists(&s3.HeadBucketInput{Bucket: &bucketName})
+	if err != nil {
+		return fmt.Errorf("failed waiting for bucket %s to be created, %v",
+			bucketName, err)
+	}
+
+	return nil
 }
