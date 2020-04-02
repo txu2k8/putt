@@ -18,23 +18,24 @@ var (
 
 // CassConfig config for cassandra
 type CassConfig struct {
-	host     string
-	user     string
-	pwd      string
-	keyspace string
-	port     int
+	Hosts    string
+	Username string
+	Password string
+	Keyspace string
+	Port     int
 }
 
 func connectCluster(cf *CassConfig) *gocql.ClusterConfig {
 	// connect to the cluster
-	cluster := gocql.NewCluster(cf.host)
-	cluster.Port = cf.port
-	cluster.Keyspace = cf.keyspace
+	logger.Infof("Connect cassandra cluster:%+v", *cf)
+	cluster := gocql.NewCluster(cf.Hosts)
+	cluster.Port = cf.Port
+	cluster.Keyspace = cf.Keyspace
 	cluster.Timeout = time.Duration(cassTimeout) * time.Second
 	cluster.ConnectTimeout = time.Duration(cassConnectTimeout) * time.Second
 	cluster.Authenticator = gocql.PasswordAuthenticator{
-		Username: cf.user,
-		Password: cf.pwd,
+		Username: cf.Username,
+		Password: cf.Password,
 	}
 	cluster.Consistency = gocql.LocalQuorum
 	cluster.NumConns = 3 // set connection pool num

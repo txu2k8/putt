@@ -29,35 +29,30 @@ type s3User struct {
 }
 
 // getS3UserRow ...
-func (u *s3User) getS3UserRow(session *gocql.Session) error {
+func (u *s3User) getS3UserRow(session *gocql.Session) ([]s3User, error) {
+	var s3users []s3User
 	stmt, names := qb.Select("s3user").Where(qb.EqLit("name", fmt.Sprintf("'%s'", u.Name))).ToCql()
 	f := gocqlx.Query(session.Query(stmt), names)
 	logger.Infof("%+v", f)
-	return f.Get(u)
-}
-
-// getS3UserRow ...
-func (u *s3User) getS3UserRow2(session *gocql.Session) error {
-	stmt, names := qb.Select("s3user").AllowFiltering().ToCql()
-	f := gocqlx.Query(session.Query(stmt), names)
-	logger.Infof("%+v", f)
-	return f.Get(u)
+	// return f.Get(u)
+	e := f.SelectRelease(&s3users)
+	return s3users, e
 }
 
 func TestDB(t *testing.T) {
 	cassConfig := CassConfig{
-		host:     "10.25.119.84",
-		user:     "caadmin",
-		pwd:      "YFPliyZsejloVVrU",
-		keyspace: "vizion",
-		port:     9042,
+		Hosts:    "10.25.119.84",
+		Username: "caadmin",
+		Password: "YFPliyZsejloVVrU",
+		Keyspace: "vizion",
+		Port:     9042,
 	}
 	session, err := NewSessionWithRetry(&cassConfig)
 	if err != nil {
 		logger.Panic(err)
 	}
 
-	s3user := s3User{}
-	s3user.getS3UserRow2(session)
-	logger.Info(s3user)
+	s3user := s3User{Name: "vset1_s3user"}
+	s3users, _ := s3user.getS3UserRow(session)
+	logger.Infof("%+v", s3users)
 }
