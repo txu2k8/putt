@@ -76,3 +76,18 @@ loop:
 	}
 	return session, err
 }
+
+// Execute ...
+func Execute(session *gocql.Session, cmd string) error {
+	if err := session.Query(cmd).Exec(); err != nil {
+		logger.Error(err)
+		return err
+	}
+	return nil
+}
+
+// TruncateTable ...
+func TruncateTable(session *gocql.Session, table string) error {
+	cmd := "TRUNCATE " + table
+	return Execute(session, cmd)
+}

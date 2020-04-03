@@ -41,6 +41,12 @@ func (c *CassCluster) InitSessionMap(masterConfig *db.CassConfig) {
 	c.sessionMap = master
 }
 
+// DeleteFromTable ... TODO
+func DeleteFromTable(session *gocql.Session, table string) {
+	stmt, _ := qb.Delete(table).Where(qb.EqLit("name", fmt.Sprintf("%s", "vset1_s3user"))).ToCql()
+	logger.Info(stmt)
+}
+
 // =============== select from table ===============
 
 // GetCassandraCluster ...

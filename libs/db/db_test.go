@@ -29,9 +29,9 @@ type s3User struct {
 }
 
 // getS3UserRow ...
-func (u *s3User) getS3UserRow(session *gocql.Session) ([]s3User, error) {
+func getS3UserRow(session *gocql.Session, s3userName string) ([]s3User, error) {
 	var s3users []s3User
-	stmt, names := qb.Select("s3user").Where(qb.EqLit("name", fmt.Sprintf("'%s'", u.Name))).ToCql()
+	stmt, names := qb.Select("s3user").Where(qb.EqLit("name", fmt.Sprintf("'%s'", s3userName))).ToCql()
 	f := gocqlx.Query(session.Query(stmt), names)
 	logger.Infof("%+v", f)
 	// return f.Get(u)
@@ -52,7 +52,6 @@ func TestDB(t *testing.T) {
 		logger.Panic(err)
 	}
 
-	s3user := s3User{Name: "vset1_s3user"}
-	s3users, _ := s3user.getS3UserRow(session)
+	s3users, _ := getS3UserRow(session, "vset1_s3user")
 	logger.Infof("%+v", s3users)
 }

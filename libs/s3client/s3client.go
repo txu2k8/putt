@@ -316,6 +316,7 @@ func UploadFileWithProcess(sess *session.Session, s3Bucket string, localFilePath
 	}
 
 	logger.Infof("Starting upload(size:%s):%s", byteCountDecimal(reader.size), localFilePath)
+	timeStart := time.Now()
 	uploader := s3manager.NewUploader(sess, func(u *s3manager.Uploader) {
 		u.PartSize = 5 * 1024 * 1024
 		u.LeavePartsOnError = true
@@ -332,8 +333,9 @@ func UploadFileWithProcess(sess *session.Session, s3Bucket string, localFilePath
 		logger.Errorf("ERROR:", err)
 		return false
 	}
-
-	logger.Info("Upload PASS: " + output.Location)
+	timeEnd := time.Now()
+	timeDelta := timeEnd.Sub(timeStart)
+	logger.Infof("Upload PASS: %s (Elapsed:%s)", output.Location, timeDelta)
 	return true
 }
 
