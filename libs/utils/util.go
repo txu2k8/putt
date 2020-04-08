@@ -58,15 +58,15 @@ func ByteCountDecimal(b int64) string {
 func SizeCountByte(s string) int64 {
 	const unit = 1024
 	const u = "kMGTPE"
-	div := int64(unit)
+	div := float64(unit)
 
-	re := regexp.MustCompile(`(\d+)\s?(\S+)`)
-	matched := re.FindAllStringSubmatch(s, -1)[0]
-	exp := strings.Index(u, matched[2][:1])
+	reg := regexp.MustCompile(`(^[+-]?(0|([1-9]\d*))(\.\d+)?)\s?(\S+)`)
+	matched := reg.FindStringSubmatch(s)
+	exp := strings.Index(u, strings.ToUpper(matched[len(matched)-1][:1]))
 	for x := 0; x < exp; x++ {
 		div *= unit
 	}
-	n, _ := strconv.ParseInt(matched[1], 10, 64)
-	b := n * div
+	n, _ := strconv.ParseFloat(matched[1], 64)
+	b := int64(n * div)
 	return b
 }
