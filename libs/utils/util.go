@@ -6,6 +6,9 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/op/go-logging"
 )
@@ -36,18 +39,34 @@ func CreateFileOfSize(dir string, fileNamePrefix string, size int64) (*os.File, 
 	return file, nil
 }
 
-// SizeToName returns a human-readable string for the given size bytes
-func SizeToName(size int) string {
-	units := []string{"B", "KB", "MB", "GB"}
-	i := 0
-	for size >= 1024 {
-		size /= 1024
-		i++
+// ByteCountDecimal returns a human-readable string for the given size bytes
+// precision: decimal, 12 * 1024 * 1024 * 1000 --> 11.7GB
+func ByteCountDecimal(b int64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
 	}
-
-	if i > len(units)-1 {
-		i = len(units) - 1
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
 	}
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "kMGTPE"[exp])
+}
 
-	return fmt.Sprintf("%d%s", size, units[i])
+// SizeCountByte Parse a size string to int64 byte
+func SizeCountByte(s string) int64 {
+	const unit = 1024
+	const u = "kMGTPE"
+	div := int64(unit)
+
+	re := regexp.MustCompile(`(\d+)\s?(\S+)`)
+	matched := re.FindAllStringSubmatch(s, -1)[0]
+	exp := strings.Index(u, matched[2][:1])
+	for x := 0; x < exp; x++ {
+		div *= unit
+	}
+	n, _ := strconv.ParseInt(matched[1], 10, 64)
+	b := n * div
+	return b
 }

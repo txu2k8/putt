@@ -6,6 +6,9 @@ import (
 )
 
 func TestUtilFunc(t *testing.T) {
-	logger.Info(SizeToName(12 * 1024 * 1024 * 1024))
-	// 2020-04-01T13:46:29 test INFO: 12GB
+	logger.Info(SizeCountByte(`12 GB`))
+	// 2020-04-08T17:26:53 test INFO: 12884901888
+
+	logger.Info(ByteCountDecimal(12884901888))
+	// 2020-04-08T16:36:08 test INFO: 11.7 GB
 }

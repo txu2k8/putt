@@ -100,11 +100,8 @@ type progressReader struct {
 // WriteAt ...
 func (pw *progressWriter) WriteAt(p []byte, off int64) (int, error) {
 	atomic.AddInt64(&pw.written, int64(len(p)))
-
 	percentageDownloaded := float32(pw.written*100) / float32(pw.size)
-
 	log.Printf("File size:%d downloaded:%d percentage:%.2f%%\n", pw.size, pw.written, percentageDownloaded)
-
 	return pw.writer.WriteAt(p, off)
 }
 
@@ -120,14 +117,13 @@ func (r *progressReader) ReadAt(p []byte, off int64) (int, error) {
 		return n, err
 	}
 
-	// Got the length have read( or means has uploaded), and you can construct your message
+	// Got the length have read( or means has uploaded)
 	atomic.AddInt64(&r.read, int64(n))
 
 	// I have no idea why the read length need to be div 2,
 	// maybe the request read once when Sign and actually send call ReadAt again
 	// It works for me
 	log.Printf("total read:%d    progress:%d%%\n", r.read/2, int(float32(r.read*100/2)/float32(r.size)))
-
 	return n, err
 }
 
