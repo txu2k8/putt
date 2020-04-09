@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/op/go-logging"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var logger = logging.MustGetLogger("test")
@@ -53,9 +54,37 @@ func testS3ListObject() {
 	s3client.ListBucketObjectsConcurrently(svc, bucket, accounts)
 }
 
+func baseApp() *kingpin.Application {
+	app := kingpin.New("gtest", "Vizion Test Project")
+	app.Flag("debug", "Enable debug mode.").Bool()
+	// app.Arg("iteration", "total iteration").Int64()
+	return app
+}
+
+func vizionStressCommand(app *kingpin.Application) *kingpin.CmdClause {
+	stress := app.Command("stress", "Vizion Stress Test")
+	stress.Arg("sys_user", "host login username").Default("root").String()
+	stress.Arg("sys_pwd", "host login password").Default("password").String()
+	stress.Arg("key_file", "host login key files").Default("").String()
+	return stress
+}
+
 func main() {
 	// testLogging()
 	// testS3Upload()
 	// testS3Download()
-	testS3ListObject()
+	// testS3ListObject()
+
+	app := baseApp()
+	stress := vizionStressCommand(app)
+	// var s3args testcases.S3TestArgs
+	// s3Cmd := testcases.S3Command(stress, &s3args)
+
+	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
+	// stress args
+	case stress.FullCommand():
+		println(stress)
+		// case s3Cmd.FullCommand():
+		// 	println(s3Cmd)
+	}
 }
