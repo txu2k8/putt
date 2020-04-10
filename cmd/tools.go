@@ -18,6 +18,4 @@ var toolsCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(toolsCmd)
-	toolsCmd.AddCommand(maintCmd)
-	toolsCmd.AddCommand(deployCmd)
 }

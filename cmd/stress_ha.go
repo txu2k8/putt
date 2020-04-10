@@ -26,6 +26,17 @@ var restartNodeCmd = &cobra.Command{
 	},
 }
 
+// restartServiceCmd represents the restart_service command
+var restartServiceCmd = &cobra.Command{
+	Use:   "restart_service",
+	Short: "Vizion HA: Restart Services",
+	Long:  `Vizion high availability test. --help for detail args.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("ha restart_service called")
+	},
+}
+
 func init() {
-	haCmd.AddCommand(haCmd)
+	stressCmd.AddCommand(haCmd)
+	haCmd.AddCommand(restartNodeCmd)
 }

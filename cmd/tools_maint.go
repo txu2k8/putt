@@ -71,6 +71,7 @@ var makeBinaryCmd = &cobra.Command{
 }
 
 func init() {
+	toolsCmd.AddCommand(maintCmd)
 	maintCmd.AddCommand(stopCmd)
 	maintCmd.AddCommand(startCmd)
 	maintCmd.AddCommand(restartCmd)

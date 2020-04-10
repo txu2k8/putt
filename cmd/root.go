@@ -10,6 +10,8 @@ import (
 
 // var cfgFile string
 
+type customCommand cobra.Command
+
 var sshKey = models.SSHKey{}
 
 // rootCmd represents the base command when called without any subcommands
