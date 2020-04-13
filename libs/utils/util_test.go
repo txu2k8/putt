@@ -6,16 +6,18 @@ import (
 )
 
 func TestUtilFunc(t *testing.T) {
-	// logger.Info(SizeCountToByte(`12.2MB`))
+	// logger.Info(SizeCountToByte("100mb"))
 	// 2020-04-08T17:26:53 test INFO: 12792627
 
 	// logger.Info(ByteCountDecimal(12792627))
 	// 2020-04-08T16:36:08 test INFO: 12.2 MB
 
-	// logger.Info(GetRandomString(10))
+	// logger.Info(GetRandString(10))
+	// SleepProgressBar(10)
+	PrintWithProgressBar("test", 100)
 
 	// md5sum := CreateFile("./a.txt", 2*1024, 128)
 	// logger.Info(md5sum)
 
-	logger.Info(GetRangeRand(10, 1000))
+	// logger.Info(GetRandomInt64(10, 1000))
 }

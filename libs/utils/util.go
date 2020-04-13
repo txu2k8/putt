@@ -9,16 +9,45 @@ import (
 	"io/ioutil"
 	"math"
 	"math/big"
+	mathrand "math/rand"
 	"os"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/op/go-logging"
+	"github.com/qianlnk/pgbar"
+	"github.com/schollz/progressbar"
 )
 
 var logger = logging.MustGetLogger("test")
+
+// SleepProgressBar ...
+func SleepProgressBar(seconds int) {
+	bar := progressbar.New(100)
+	for i := 0; i < seconds; i++ {
+		bar.Add(1)
+		time.Sleep(1 * time.Second)
+	}
+}
+
+// PrintWithProgressBar ...
+func PrintWithProgressBar(prefix string, total int) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	bar := pgbar.NewBar(0, prefix, total)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < total; i++ {
+			bar.Add()
+			time.Sleep(time.Second / 300)
+		}
+	}()
+	wg.Wait()
+}
 
 // UniqueID returns a unique UUID-like identifier.
 func UniqueID() string {
@@ -27,8 +56,8 @@ func UniqueID() string {
 	return fmt.Sprintf("%s", uuid)
 }
 
-// GetRangeRand return rand int64 i range [-m, n]
-func GetRangeRand(min, max int64) int64 {
+// GetRandomInt64 return rand int64 i range [-m, n]
+func GetRandomInt64(min, max int64) int64 {
 	if min > max {
 		logger.Panic("The min is greater than max!")
 	}
@@ -43,14 +72,29 @@ func GetRangeRand(min, max int64) int64 {
 	return min + result.Int64()
 }
 
-// GetRandomString return a random string
-func GetRandomString(strSize int64) string {
+// GetRandString return a random string
+func GetRandString(strSize int64) string {
+	const letterBytes = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	const (
+		letterIdxBits = 6                    // 6 bits to represent a letter index
+		letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
+		letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
+	)
 	b := make([]byte, strSize)
-	if _, err := rand.Read(b); err != nil {
-		panic(err)
+	// A rand.Int63() generates 63 random bits, enough for letterIdxMax letters!
+	for i, cache, remain := strSize-1, mathrand.Int63(), letterIdxMax; i >= 0; {
+		if remain == 0 {
+			cache, remain = mathrand.Int63(), letterIdxMax
+		}
+		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
+			b[i] = letterBytes[idx]
+			i--
+		}
+		cache >>= letterIdxBits
+		remain--
 	}
-	str := fmt.Sprintf("%X", b)
-	return str
+
+	return string(b)
 }
 
 // GetFileMd5sum ...
@@ -61,6 +105,16 @@ func GetFileMd5sum(f *os.File) string {
 	fileMd5 := hex.EncodeToString(md5.Sum(nil))
 	logger.Debug(fileMd5, f.Name())
 	return fileMd5
+}
+
+// GetFileMd5sumWithPath ...
+func GetFileMd5sumWithPath(filePath string) string {
+	file, err := os.OpenFile(filePath, os.O_RDONLY, 0666)
+	if err != nil {
+		logger.Panic(err)
+	}
+	defer file.Close()
+	return GetFileMd5sum(file)
 }
 
 // PathExists use "os.Stat" judge if the file or dir exist
@@ -81,7 +135,7 @@ func PathExists(path string) (bool, error) {
 // CreateFile create original file, each line with line_number, and specified line size
 //
 func CreateFile(filePath string, fileSize int64, lineSize int64) string {
-	logger.Infof(">> Create file: %s", filePath)
+	logger.Infof(">> Create/Write file: %s", filePath)
 	fileDir := path.Dir(filePath)
 	err := os.MkdirAll(fileDir, os.ModePerm)
 	if err != nil {
@@ -99,12 +153,12 @@ func CreateFile(filePath string, fileSize int64, lineSize int64) string {
 
 	var lineNum int64
 	for lineNum = 0; lineNum < lineCount; lineNum++ {
-		randString := GetRandomString(lineSize-int64(2)-int64(len(string(lineNum)))) + "\n"
+		randString := GetRandString(lineSize-int64(2)-int64(len(string(lineNum)))) + "\n"
 		randLineString := fmt.Sprintf("%s:%s", strconv.FormatInt(lineNum, 10), randString)
 		file.WriteString(randLineString)
 	}
 	if unalignedSize > 0 {
-		file.WriteString(GetRandomString(unalignedSize))
+		file.WriteString(GetRandString(unalignedSize))
 	}
 	fileMd5 := GetFileMd5sum(file)
 	return fileMd5
@@ -156,5 +210,6 @@ func SizeCountToByte(s string) int64 {
 	}
 	n, _ := strconv.ParseFloat(matched[1], 64)
 	b := int64(n * div)
+	logger.Warning(b)
 	return b
 }
