@@ -22,11 +22,6 @@ var s3Cmd = &cobra.Command{
 	},
 }
 
-// AddS3Flags ...
-func (s3Cmd *customCommand) AddS3Flags() {
-
-}
-
 func init() {
 	stressCmd.AddCommand(s3Cmd)
 

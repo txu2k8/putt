@@ -10,9 +10,7 @@ import (
 
 // var cfgFile string
 
-type customCommand cobra.Command
-
-var sshKey = models.SSHKey{}
+var vizionBase models.VizionBase
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -21,7 +19,9 @@ var rootCmd = &cobra.Command{
 	Long:  `example: vztest stress --ssh_pwd password`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("Vizion Base Info: %v", vizionBase)
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -41,13 +41,16 @@ func init() {
 	// will be global for your application.
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.vztest.yaml)")
-	rootCmd.PersistentFlags().StringVar(&sshKey.UserName, "ssh_user", "root", "ssh login user")
-	rootCmd.PersistentFlags().StringVar(&sshKey.Password, "ssh_pwd", "password", "ssh login password")
-	rootCmd.PersistentFlags().StringVar(&sshKey.KeyFile, "ssh_key_file", "", "ssh login key file full path")
+	rootCmd.PersistentFlags().StringArrayVar(&vizionBase.MasterIPs, "master_ips", []string{}, "Master nodes IP address Array")
+	rootCmd.PersistentFlags().IntSliceVar(&vizionBase.VsetIDs, "vset_ids", []int{}, "vset IDs array")
+	rootCmd.PersistentFlags().IntSliceVar(&vizionBase.DPLGroupIDs, "dpl_group_ids", []int{1}, "dpl group ids array")
+	rootCmd.PersistentFlags().IntSliceVar(&vizionBase.JDGroupIDs, "jd_group_ids", []int{1}, "jd group ids array")
+	// rootCmd.MarkPersistentFlagRequired("master_ips")
+	// rootCmd.MarkPersistentFlagRequired("vset_ids")
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().StringVar(&vizionBase.SSHKey.UserName, "ssh_user", "root", "ssh login user")
+	rootCmd.PersistentFlags().StringVar(&vizionBase.SSHKey.Password, "ssh_pwd", "password", "ssh login password")
+	rootCmd.PersistentFlags().StringVar(&vizionBase.SSHKey.KeyFile, "ssh_key_file", "", "ssh login key file full path")
 }
 
 // initConfig reads in config file and ENV variables if set.

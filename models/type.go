@@ -6,6 +6,8 @@ import (
 	"path"
 	"strconv"
 	"strings"
+
+	"github.com/gocql/gocql"
 )
 
 // SSHKey ...
@@ -13,6 +15,16 @@ type SSHKey struct {
 	UserName string // login username
 	Password string // loging password
 	KeyFile  string // The login key file full path
+}
+
+// VizionBase ...
+type VizionBase struct {
+	MasterIPs   []string       // Master nodes ips array
+	VsetIDs     []int          // vset ids array
+	DPLGroupIDs []int          // dpl group ids array
+	JDGroupIDs  []int          // jd group ids array
+	SSHKey                     // ssh keys for connect to nodes
+	MasterCass  *gocql.Session // master cassandra session
 }
 
 // S3TestFileInput define s3 test file config
