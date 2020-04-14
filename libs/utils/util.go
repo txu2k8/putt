@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
@@ -11,6 +12,7 @@ import (
 	"math/big"
 	mathrand "math/rand"
 	"os"
+	"os/exec"
 	"path"
 	"regexp"
 	"strconv"
@@ -212,4 +214,21 @@ func SizeCountToByte(s string) int64 {
 	b := int64(n * div)
 	logger.Warning(b)
 	return b
+}
+
+// RunCmd run command at local
+func RunCmd(cmdSpc string) {
+	var stdOut, stdErr bytes.Buffer
+	cmd := exec.Command(cmdSpc)
+	cmd.Stdout = &stdOut
+	cmd.Stderr = &stdErr
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("cmd exec failed: %s : %s", fmt.Sprint(err), stdErr.String())
+	}
+	fmt.Print(stdOut.String())
+	ret, err := strconv.Atoi(strings.Replace(stdOut.String(), "\n", "", -1))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%d, %s\n", ret, stdErr.String())
 }

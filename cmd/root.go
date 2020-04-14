@@ -10,7 +10,7 @@ import (
 
 // var cfgFile string
 
-var vizionBase models.VizionBase
+var vizionBase models.VizionBaseInput
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -50,7 +50,8 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&vizionBase.SSHKey.UserName, "ssh_user", "root", "ssh login user")
 	rootCmd.PersistentFlags().StringVar(&vizionBase.SSHKey.Password, "ssh_pwd", "password", "ssh login password")
-	rootCmd.PersistentFlags().StringVar(&vizionBase.SSHKey.KeyFile, "ssh_key_file", "", "ssh login key file full path")
+	rootCmd.PersistentFlags().IntVar(&vizionBase.SSHKey.Port, "ssh_port", 22, "ssh login port")
+	rootCmd.PersistentFlags().StringVar(&vizionBase.SSHKey.KeyFile, "ssh_key", "", "ssh login PrivateKey file full path")
 }
 
 // initConfig reads in config file and ENV variables if set.

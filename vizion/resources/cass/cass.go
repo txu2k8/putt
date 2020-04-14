@@ -1,4 +1,4 @@
-package resources
+package cass
 
 import (
 	"errors"

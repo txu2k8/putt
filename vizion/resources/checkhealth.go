@@ -4,7 +4,13 @@ Functions for check vizion health
 
 package resources
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/op/go-logging"
+)
+
+var logger = logging.MustGetLogger("test")
 
 // IsPingOK ...
 func IsPingOK(ip string) {
