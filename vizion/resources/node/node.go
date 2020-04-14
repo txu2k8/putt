@@ -18,15 +18,6 @@ type Node struct {
 	Session *ssh.Session // ssh to node session
 }
 
-// SSHConnect connect to node sshd
-func (n *Node) SSHConnect() {
-	var err error
-	n.Session, err = n.NewSessionWithRetry()
-	if err != nil {
-		logger.Fatal(err)
-	}
-}
-
 // ZoolStatus ...
 func (n *Node) ZoolStatus() map[string]string {
 	zpoolStatus := make(map[string]string)
