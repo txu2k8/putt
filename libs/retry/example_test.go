@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"os"
 
-	"retry/backoff"
-	"retry/jitter"
-	"retry/strategy"
+	"gtest/libs/retry/backoff"
+	"gtest/libs/retry/jitter"
+	"gtest/libs/retry/strategy"
 	"time"
 )
 

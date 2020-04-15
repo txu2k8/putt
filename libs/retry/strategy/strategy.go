@@ -6,8 +6,8 @@ package strategy
 import (
 	"time"
 
-	"retry/backoff"
-	"retry/jitter"
+	"gtest/libs/retry/backoff"
+	"gtest/libs/retry/jitter"
 )
 
 // Strategy defines a function that Retry calls before every successive attempt

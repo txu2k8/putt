@@ -4,7 +4,13 @@
 // Copyright © 2016 Trevor N. Suarez (Rican7)
 package retry
 
-import "retry/strategy"
+import (
+	"gtest/libs/retry/strategy"
+
+	"github.com/op/go-logging"
+)
+
+var logger = logging.MustGetLogger("test")
 
 // Action defines a callable function that package retry can handle.
 type Action func(attempt uint) error
@@ -18,6 +24,9 @@ func Retry(action Action, strategies ...strategy.Strategy) error {
 
 	for attempt := uint(0); (0 == attempt || nil != err) && shouldAttempt(attempt, strategies...); attempt++ {
 		err = action(attempt)
+		if attempt > 0 {
+			logger.Warningf("%s Retry :%d", err, attempt)
+		}
 	}
 
 	return err

@@ -1,7 +1,15 @@
 package sshmgr
 
 import (
+	"gtest/libs/retry"
+	"gtest/libs/retry/backoff"
+	"gtest/libs/retry/jitter"
+	"gtest/libs/retry/strategy"
+	"log"
+	"math/rand"
+	"os"
 	"testing"
+	"time"
 )
 
 func aTestRunCmdWithOutput(t *testing.T) {
@@ -18,18 +26,23 @@ func aTestRunCmd(t *testing.T) {
 	logger.Infof("%d, %s\n", rc, output)
 }
 
-
-func TestRetry(t * testing T) {
+func TestRetry(t *testing.T) {
 	const logFilePath = "./myapp.log"
-	var logFile *os.File
 
+	seed := time.Now().UnixNano()
+	random := rand.New(rand.NewSource(seed))
 	err := retry.Retry(func(attempt uint) error {
-		var err error
-		logFile, err = os.Open(logFilePath)
+		_, err := os.Open(logFilePath)
 		return err
-	})
+	},
+		strategy.Limit(5),
+		strategy.BackoffWithJitter(
+			backoff.BinaryExponential(10*time.Millisecond),
+			jitter.Deviation(random, 0.5),
+		),
+	)
 
-	if nil != err {
+	if err != nil {
 		log.Fatalf("Unable to open file %q with error %q", logFilePath, err)
 	}
 }
