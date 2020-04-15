@@ -34,8 +34,8 @@ var (
 	session        *ssh.Session
 )
 
-// NewSession return the cassandra session
-func (conf *SSHInput) NewSession() (*ssh.Session, error) {
+// NewClient return the ssh client
+func (conf *SSHInput) NewClient() (*ssh.Client, error) {
 	// get auth method
 	auth := make([]ssh.AuthMethod, 0)
 	if conf.KeyFile != "" {
@@ -74,6 +74,16 @@ func (conf *SSHInput) NewSession() (*ssh.Session, error) {
 	if err != nil {
 		return nil, err
 	}
+	return client, nil
+}
+
+// NewSession return the cassandra session
+func (conf *SSHInput) NewSession() (*ssh.Session, error) {
+	// connet to ssh
+	client, err := conf.NewClient()
+	if err != nil {
+		return nil, err
+	}
 
 	// create session
 	session, err := client.NewSession()
@@ -86,9 +96,9 @@ func (conf *SSHInput) NewSession() (*ssh.Session, error) {
 
 // NewSessionWithRetry return the cassandra session
 func (conf *SSHInput) NewSessionWithRetry() (*ssh.Session, error) {
-	if session != nil {
-		return session, nil
-	}
+	// if session != nil {
+	// 	return session, nil
+	// }
 	interval := time.Duration(15)
 	timeout := time.NewTimer(30 * time.Minute)
 	var err error
@@ -113,8 +123,8 @@ loop:
 	return session, err
 }
 
-// SessionRun ...
-func SessionRun(session *ssh.Session, cmdSpec string) (int, string) {
+// RunCmdWithOutput ...
+func RunCmdWithOutput(session *ssh.Session, cmdSpec string) (int, string) {
 	var rc int
 	var stdOut, stdErr bytes.Buffer
 
@@ -142,5 +152,5 @@ func (conf *SSHInput) RunCmd(cmdSpec string) (int, string) {
 	}
 	defer session.Close()
 	logger.Infof("Execute: ssh %s@%s# %s", conf.UserName, conf.Host, cmdSpec)
-	return SessionRun(session, cmdSpec)
+	return RunCmdWithOutput(session, cmdSpec)
 }
