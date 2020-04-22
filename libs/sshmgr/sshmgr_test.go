@@ -36,6 +36,7 @@ func TestRetry(t *testing.T) {
 		return err
 	},
 		strategy.Limit(5),
+		strategy.Wait(2*time.Second),
 		strategy.BackoffWithJitter(
 			backoff.BinaryExponential(10*time.Millisecond),
 			jitter.Deviation(random, 0.5),

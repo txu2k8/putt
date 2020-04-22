@@ -23,10 +23,10 @@ func Retry(action Action, strategies ...strategy.Strategy) error {
 	var err error
 
 	for attempt := uint(0); (0 == attempt || nil != err) && shouldAttempt(attempt, strategies...); attempt++ {
-		err = action(attempt)
 		if attempt > 0 {
-			logger.Warningf("%s Retry :%d", err, attempt)
+			logger.Warningf("%s Retry:%d ...", err, attempt)
 		}
+		err = action(attempt)
 	}
 
 	return err

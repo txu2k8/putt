@@ -4,11 +4,29 @@
 package strategy
 
 import (
+	"fmt"
 	"time"
 
 	"gtest/libs/retry/backoff"
 	"gtest/libs/retry/jitter"
+
+	"github.com/op/go-logging"
+	"github.com/schollz/progressbar"
 )
+
+var logger = logging.MustGetLogger("test")
+
+// SleepProgressBar ...
+func SleepProgressBar(d time.Duration) {
+	intSeconds := int(d.Seconds())
+	bar := progressbar.New(intSeconds)
+	bar.Describe(fmt.Sprintf("Sleep %s before retry -", d))
+	for i := 0; i < intSeconds; i++ {
+		bar.Add(1)
+		time.Sleep(1 * time.Second)
+	}
+	fmt.Println()
+}
 
 // Strategy defines a function that Retry calls before every successive attempt
 // to determine whether it should make the next attempt or not. Returning `true`
@@ -23,6 +41,7 @@ type Strategy func(attempt uint) bool
 // Limit creates a Strategy that limits the number of attempts that Retry will
 // make.
 func Limit(attemptLimit uint) Strategy {
+	logger.Infof("Retry Limit: %d", attemptLimit)
 	return func(attempt uint) bool {
 		return (attempt <= attemptLimit)
 	}
@@ -51,8 +70,8 @@ func Wait(durations ...time.Duration) Strategy {
 			if len(durations) <= durationIndex {
 				durationIndex = len(durations) - 1
 			}
-
-			time.Sleep(durations[durationIndex])
+			SleepProgressBar(durations[durationIndex])
+			// time.Sleep(durations[durationIndex])
 		}
 
 		return true

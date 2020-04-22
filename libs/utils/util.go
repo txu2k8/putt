@@ -28,12 +28,15 @@ import (
 var logger = logging.MustGetLogger("test")
 
 // SleepProgressBar ...
-func SleepProgressBar(seconds int) {
-	bar := progressbar.New(100)
-	for i := 0; i < seconds; i++ {
+func SleepProgressBar(d time.Duration) {
+	intSeconds := int(d.Seconds())
+	bar := progressbar.New(intSeconds)
+	bar.Describe(fmt.Sprintf("Sleep %s -", d))
+	for i := 0; i < intSeconds; i++ {
 		bar.Add(1)
 		time.Sleep(1 * time.Second)
 	}
+	fmt.Println()
 }
 
 // PrintWithProgressBar ...

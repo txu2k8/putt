@@ -3,21 +3,33 @@ package main
 import (
 	"gtest/cmd"
 	_ "gtest/config"
+	"gtest/libs/retry"
+	"gtest/libs/retry/backoff"
+	"gtest/libs/retry/jitter"
+	"gtest/libs/retry/strategy"
 	s3client "gtest/libs/s3client"
 	_ "gtest/testinit"
+	"log"
+	"math/rand"
 	"os"
+	"time"
 
 	"github.com/op/go-logging"
 )
 
 var logger = logging.MustGetLogger("test")
 
-func testLogging() {
-	logger.Info("------info")
-	logger.Notice("------notice")
-	logger.Warning("------warning")
-	logger.Error("------err")
-	logger.Critical("------crit")
+func testLogging(filePath string) error {
+	logger.Infof("Open logFile: %s...", filePath)
+	_, err := os.Open(filePath)
+	if err == nil {
+		logger.Info("------info")
+		logger.Notice("------notice")
+		logger.Warning("------warning")
+		logger.Error("------err")
+		logger.Critical("------crit")
+	}
+	return err
 }
 
 func testS3Upload() {
@@ -54,10 +66,33 @@ func testS3ListObject() {
 	s3client.ListBucketObjectsConcurrently(svc, bucket, accounts)
 }
 
+func testRetry() {
+	const logFilePath = "./test.log1"
+
+	seed := time.Now().UnixNano()
+	random := rand.New(rand.NewSource(seed))
+	err := retry.Retry(func(attempt uint) error {
+		return testLogging(logFilePath)
+	},
+		strategy.Limit(3),
+		strategy.Wait(2*time.Second),
+		strategy.BackoffWithJitter(
+			backoff.BinaryExponential(10*time.Millisecond),
+			jitter.Deviation(random, 0.5),
+		),
+	)
+
+	if err != nil {
+		log.Fatalf("Unable to open file %q with error %q", logFilePath, err)
+	}
+}
+
 func main() {
 	// testLogging()
 	// testS3Upload()
 	// testS3Download()
 	// testS3ListObject()
+	// utils.SleepProgressBar(2)
+	testRetry()
 	cmd.Execute()
 }
