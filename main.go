@@ -12,12 +12,38 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"testing"
 	"time"
 
 	"github.com/op/go-logging"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 var logger = logging.MustGetLogger("test")
+
+func runCase(t *testing.T, testCase func(*testing.T)) {
+	Before()
+	defer After()
+
+	testCase(t)
+}
+
+func SetUp() {
+
+}
+
+func TearDown() {
+
+}
+
+// TestRunSuite ...
+func TestRunSuite(t *testing.T) {
+	SetUp()
+	defer TearDown()
+	Convey("初始化", t, nil)
+
+	runCase(t, TestRetry)
+}
 
 func testLogging(filePath string) error {
 	logger.Infof("Open logFile: %s...", filePath)
@@ -66,7 +92,7 @@ func testS3ListObject() {
 	s3client.ListBucketObjectsConcurrently(svc, bucket, accounts)
 }
 
-func testRetry() {
+func testRetry() bool {
 	const logFilePath = "./test.log1"
 
 	seed := time.Now().UnixNano()
@@ -85,6 +111,13 @@ func testRetry() {
 	if err != nil {
 		log.Fatalf("Unable to open file %q with error %q", logFilePath, err)
 	}
+	return true
+}
+
+func TestRetry(t *testing.T) {
+	Convey("Test Retry", t, func() {
+		So(testRetry(), ShouldEqual, true)
+	})
 }
 
 func main() {
@@ -93,6 +126,6 @@ func main() {
 	// testS3Download()
 	// testS3ListObject()
 	// utils.SleepProgressBar(2)
-	testRetry()
+	// testRetry()
 	cmd.Execute()
 }

@@ -10,9 +10,11 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
-func aTestRunCmdWithOutput(t *testing.T) {
+func TestRunCmdWithOutput(t *testing.T) {
 	sshInput := SSHInput{"10.25.119.1", "root", "password", 22, ""}
 	session, _ := sshInput.NewSessionWithRetry()
 	defer session.Close()
@@ -20,13 +22,13 @@ func aTestRunCmdWithOutput(t *testing.T) {
 	logger.Infof("%d, %s\n", rc, output)
 }
 
-func aTestRunCmd(t *testing.T) {
+func TestRunCmd(t *testing.T) {
 	sshInput := SSHInput{"10.25.119.1", "root", "password", 22, ""}
 	rc, output := sshInput.RunCmd("pwd; ls")
 	logger.Infof("%d, %s\n", rc, output)
 }
 
-func TestRetry(t *testing.T) {
+func testRetry() bool {
 	const logFilePath = "./myapp.log"
 
 	seed := time.Now().UnixNano()
@@ -46,4 +48,10 @@ func TestRetry(t *testing.T) {
 	if err != nil {
 		log.Fatalf("Unable to open file %q with error %q", logFilePath, err)
 	}
+	return true
+}
+func TestRetry(t *testing.T) {
+	Convey("Test Retry", t, func() {
+		So(testRetry(), ShouldEqual, true)
+	})
 }
