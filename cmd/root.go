@@ -14,7 +14,7 @@ var vizionBase models.VizionBaseInput
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "vztest",
+	Use:   "gtest",
 	Short: "The rootCmd of this test project",
 	Long:  `example: vztest stress --ssh_pwd password`,
 	// Uncomment the following line if your bare application

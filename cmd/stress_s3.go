@@ -9,7 +9,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var s3TestConf = models.S3TestInput{}
+var (
+	caseList   []string
+	s3TestConf = models.S3TestInput{}
+)
 
 // s3Cmd represents the s3 command
 var s3Cmd = &cobra.Command{
@@ -18,13 +21,19 @@ var s3Cmd = &cobra.Command{
 	Long:  `Vizion S3 upload/download files. --help for detail args.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("s3 called", s3TestConf)
-		resources.S3UploadFiles(s3TestConf)
+		for _, tc := range caseList {
+			switch tc {
+			case "upload":
+				resources.S3UploadFiles(s3TestConf)
+			}
+		}
 	},
 }
 
 func init() {
 	stressCmd.AddCommand(s3Cmd)
 
+	s3Cmd.PersistentFlags().StringArrayVar(&caseList, "case", []string{"upload"}, "S3 test case array")
 	s3Cmd.PersistentFlags().StringVar(&s3TestConf.S3Ip, "s3_ip", "", "S3 server IP address")
 	s3Cmd.PersistentFlags().StringVar(&s3TestConf.S3AccessID, "s3_access_id", "", "S3 access ID")
 	s3Cmd.PersistentFlags().StringVar(&s3TestConf.S3SecretKey, "s3_secret_key", "", "S3 access secret key")
