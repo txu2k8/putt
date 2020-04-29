@@ -81,3 +81,15 @@ func initConfig() {
 	}
 }
 */
+
+// CaseMapToString ...
+func CaseMapToString(caseMap map[string]string) string {
+	caseString := fmt.Sprintf("\n  %-3s %-20s  CaseDescription\n", "NO.", "CaseName")
+	idx := 1
+	for k, v := range caseMap {
+		caseString += fmt.Sprintf("  %-3d %-20s  %s\n", idx, k, v)
+		idx++
+	}
+
+	return caseString
+}

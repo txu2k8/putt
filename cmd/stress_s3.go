@@ -14,11 +14,17 @@ var (
 	s3TestConf = models.S3TestInput{}
 )
 
+var s3TestCaseList = map[string]string{
+	"upload":          "s3 upload test",
+	"download":        "s3 download test",
+	"upload_download": "s3 upload/download test (default)",
+}
+
 // s3Cmd represents the s3 command
 var s3Cmd = &cobra.Command{
 	Use:   "s3",
 	Short: "Vizion S3 IO Stress",
-	Long:  `Vizion S3 upload/download files. --help for detail args.`,
+	Long:  fmt.Sprintf(`Vizion S3 upload/download files.%s`, CaseMapToString(s3TestCaseList)),
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("s3 called", s3TestConf)
 		for _, tc := range caseList {
