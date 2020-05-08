@@ -46,7 +46,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().IntVar(&runTimes, "run_times", 3, "Run test case with iteration loop")
+	rootCmd.PersistentFlags().IntVar(&runTimes, "run_times", 10, "Run test case with iteration loop")
 	rootCmd.PersistentFlags().BoolVar(&s3TestConf.RenameFile, "rename", true, "Rename files name each time if true")
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.vztest.yaml)")

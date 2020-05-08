@@ -95,6 +95,8 @@ func (r *runner) runJob(job Job) {
 	forever := job.RunTimes <= 0
 loop:
 	for i := 1; forever || job.RunTimes-i >= 0; i++ {
+		logger.Warning(i, job.RunTimes)
+		time.After(30 * time.Second)
 		select {
 		case ch <- struct{}{}:
 			wg.Add(1)
@@ -102,13 +104,19 @@ loop:
 				start := time.Now()
 				logger.Infof("[START ] - %s - Iteration: %d", job.Name, i)
 				err := job.Fn()
+				if err != nil {
+					logger.Error(err)
+					// r.Stop()
+					r.done <- struct{}{}
+					job.RunTimes = i
+				}
 				end := time.Now()
 				<-ch
 				r.results <- Result{Name: job.Name, Error: err, Start: start, End: end, JobNr: i}
 				wg.Done()
 			}(i)
 		case <-r.done:
-			fmt.Fprintf(r.logWriter, "%s, received done in '%s' job, waiting to finish\n", time.Now().String(), job.Name)
+			logger.Warningf("Received done in '%s' job, waiting to finish\n", job.Name)
 			break loop
 		}
 	}

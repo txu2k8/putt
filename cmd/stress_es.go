@@ -26,19 +26,53 @@ var esCmd = &cobra.Command{
 		// fmt.Println("es called")
 		// fmt.Println(caseList)
 		logger.Infof("es: %s", caseList)
+		testJobs := []stress.Job{}
 		for _, tc := range caseList {
+			logger.Warning(tc)
+			jobs := []stress.Job{}
 			switch tc {
 			case "index":
-				jobs := []stress.Job{
+				jobs = []stress.Job{
 					{
 						Fn:       resources.ESIndex,
 						Name:     "ES Index",
 						RunTimes: runTimes,
 					},
 				}
-				stress.Run(jobs)
+			case "search":
+				jobs = []stress.Job{
+					{
+						Fn:       resources.ESSearch,
+						Name:     "ES Search",
+						RunTimes: runTimes,
+					},
+				}
+			case "stress":
+				jobs = []stress.Job{
+					{
+						Fn:       resources.ESIndex,
+						Name:     "ES Index",
+						RunTimes: runTimes,
+					},
+					{
+						Fn:       resources.ESSearch,
+						Name:     "ES Search",
+						RunTimes: runTimes,
+					},
+				}
+			case "cleanup":
+				jobs = []stress.Job{
+					{
+						Fn:       resources.ESCleanup,
+						Name:     "Cleanup ES Index",
+						RunTimes: runTimes,
+					},
+				}
 			}
+
+			testJobs = append(testJobs, jobs...)
 		}
+		stress.Run(testJobs)
 	},
 }
 
