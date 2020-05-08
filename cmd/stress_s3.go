@@ -9,12 +9,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	caseList   []string
-	s3TestConf = models.S3TestInput{}
-)
+var s3TestConf = models.S3TestInput{}
 
-var s3TestCaseList = map[string]string{
+var s3TestCaseArray = map[string]string{
 	"upload":          "s3 upload test",
 	"download":        "s3 download test",
 	"upload_download": "s3 upload/download test (default)",
@@ -24,7 +21,7 @@ var s3TestCaseList = map[string]string{
 var s3Cmd = &cobra.Command{
 	Use:   "s3",
 	Short: "Vizion S3 IO Stress",
-	Long:  fmt.Sprintf(`Vizion S3 upload/download files.%s`, CaseMapToString(s3TestCaseList)),
+	Long:  fmt.Sprintf(`Vizion S3 upload/download files.%s`, CaseMapToString(s3TestCaseArray)),
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("s3 called", s3TestConf)
 		for _, tc := range caseList {
@@ -39,7 +36,7 @@ var s3Cmd = &cobra.Command{
 func init() {
 	stressCmd.AddCommand(s3Cmd)
 
-	s3Cmd.PersistentFlags().StringArrayVar(&caseList, "case", []string{"upload"}, "S3 test case array")
+	s3Cmd.PersistentFlags().StringArrayVar(&caseList, "case", []string{}, "S3 test case array")
 	s3Cmd.PersistentFlags().StringVar(&s3TestConf.S3Ip, "s3_ip", "", "S3 server IP address")
 	s3Cmd.PersistentFlags().StringVar(&s3TestConf.S3AccessID, "s3_access_id", "", "S3 access ID")
 	s3Cmd.PersistentFlags().StringVar(&s3TestConf.S3SecretKey, "s3_secret_key", "", "S3 access secret key")

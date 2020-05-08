@@ -5,12 +5,18 @@ import (
 	"gtest/models"
 	"os"
 
+	"github.com/op/go-logging"
 	"github.com/spf13/cobra"
 )
 
-// var cfgFile string
-
-var vizionBase models.VizionBaseInput
+var (
+	logger   = logging.MustGetLogger("test")
+	runTimes int  // runTimes
+	debug    bool // debug modle
+	// var cfgFile string
+	caseList   []string // Case List
+	vizionBase models.VizionBaseInput
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -39,6 +45,9 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
+
+	rootCmd.PersistentFlags().IntVar(&runTimes, "run_times", 3, "Run test case with iteration loop")
+	rootCmd.PersistentFlags().BoolVar(&s3TestConf.RenameFile, "rename", true, "Rename files name each time if true")
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.vztest.yaml)")
 	rootCmd.PersistentFlags().StringArrayVar(&vizionBase.MasterIPs, "master_ips", []string{}, "Master nodes IP address Array")
