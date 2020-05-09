@@ -33,7 +33,8 @@ var s3Cmd = &cobra.Command{
 			switch tc {
 			case "upload":
 				upload := func() error {
-					return resources.S3UploadFiles(s3TestConf)
+					_, err := resources.S3UploadFiles(s3TestConf)
+					return err
 				}
 				jobs = []stress.Job{
 					{

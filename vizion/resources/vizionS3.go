@@ -64,7 +64,7 @@ func CreateUploadFiles(conf models.S3TestInput) []UploadFile {
 }
 
 // S3UploadFiles ...
-func S3UploadFiles(conf models.S3TestInput) error {
+func S3UploadFiles(conf models.S3TestInput) ([]UploadFile, error) {
 	logger.Info(">> Upload: Vizion S3 upload test start ...")
 	conf.ParseS3Input()
 	logger.Info(conf)
@@ -81,11 +81,11 @@ func S3UploadFiles(conf models.S3TestInput) error {
 			strategy.Backoff(backoff.Fibonacci(10*time.Millisecond)),
 		)
 		if err != nil {
-			return err
+			return []UploadFile{}, err
 		}
 	}
 	logger.Info(">> Upload: Vizion S3 upload test complete ...")
-	return nil
+	return localFiles, nil
 }
 
 // CreateDownloadDir ...
@@ -154,7 +154,8 @@ func S3DeleteBucketFiles(conf models.S3TestInput, uploadFiles []UploadFile) erro
 
 // S3UploadDownloadListDeleteFiles ...
 func S3UploadDownloadListDeleteFiles(conf models.S3TestInput) error {
-	if err := S3UploadFiles(conf); err != nil {
+	uploadFiles, err := S3UploadFiles(conf)
+	if err != nil {
 		return err
 	}
 
@@ -162,11 +163,11 @@ func S3UploadDownloadListDeleteFiles(conf models.S3TestInput) error {
 		return err
 	}
 
-	if err := S3DownloadFiles(conf, []UploadFile{}); err != nil {
+	if err := S3DownloadFiles(conf, uploadFiles); err != nil {
 		return err
 	}
 
-	if err := S3DeleteBucketFiles(conf, []UploadFile{}); err != nil {
+	if err := S3DeleteBucketFiles(conf, uploadFiles); err != nil {
 		return err
 	}
 
