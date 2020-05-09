@@ -23,8 +23,9 @@ var esCmd = &cobra.Command{
 	Short: "Vizion ES Index/Search",
 	Long:  fmt.Sprintf(`Vizion ES Index/Search(multi progress).%s`, CaseMapToString(esTestCaseArray)),
 	Run: func(cmd *cobra.Command, args []string) {
-		// fmt.Println("es called")
-		// fmt.Println(caseList)
+		if len(caseList) == 0 {
+			caseList = []string{"index"}
+		}
 		logger.Infof("Case List(es): %s", caseList)
 		testJobs := []stress.Job{}
 		for _, tc := range caseList {
@@ -78,8 +79,6 @@ var esCmd = &cobra.Command{
 
 func init() {
 	stressCmd.AddCommand(esCmd)
-
-	esCmd.PersistentFlags().StringArrayVar(&caseList, "case", []string{}, "ES test case array")
 	// esCmd.PersistentFlags().String("foo", "", "A help for foo")
 	// esCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

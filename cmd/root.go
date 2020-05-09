@@ -47,7 +47,7 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().IntVar(&runTimes, "run_times", 10, "Run test case with iteration loop")
-	rootCmd.PersistentFlags().BoolVar(&s3TestConf.RenameFile, "rename", true, "Rename files name each time if true")
+	rootCmd.PersistentFlags().StringArrayVar(&caseList, "case", []string{}, "Test Case Array")
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.vztest.yaml)")
 	rootCmd.PersistentFlags().StringArrayVar(&vizionBase.MasterIPs, "master_ips", []string{}, "Master nodes IP address Array")

@@ -66,7 +66,6 @@ var s3Cmd = &cobra.Command{
 func init() {
 	stressCmd.AddCommand(s3Cmd)
 
-	s3Cmd.PersistentFlags().StringArrayVar(&caseList, "case", []string{}, "S3 test case array")
 	s3Cmd.PersistentFlags().StringVar(&s3TestConf.S3Ip, "s3_ip", "", "S3 server IP address")
 	s3Cmd.PersistentFlags().StringVar(&s3TestConf.S3AccessID, "s3_access_id", "", "S3 access ID")
 	s3Cmd.PersistentFlags().StringVar(&s3TestConf.S3SecretKey, "s3_secret_key", "", "S3 access secret key")
