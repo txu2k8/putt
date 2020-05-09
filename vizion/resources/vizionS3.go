@@ -68,7 +68,7 @@ func CreateUploadFiles(conf models.S3TestInput) []UploadFile {
 func S3UploadFiles(conf models.S3TestInput) ([]UploadFile, error) {
 	logger.Info(">> Upload: Vizion S3 upload test start ...")
 	conf.ParseS3Input()
-	logger.Info(conf)
+	logger.Infof("S3TestInput:%s", conf)
 	localFiles := CreateUploadFiles(conf)
 	endpoint := fmt.Sprintf("https://%s:%d", conf.S3Ip, conf.S3Port)
 	session := s3client.NewSession(endpoint, conf.S3AccessID, conf.S3SecretKey)
@@ -110,7 +110,7 @@ func CreateDownloadDir(conf models.S3TestInput) string {
 func S3DownloadFiles(conf models.S3TestInput, downloadFiles []UploadFile) error {
 	logger.Info(">> Download: Vizion S3 download test start ...")
 	conf.ParseS3Input()
-	logger.Info(conf)
+	logger.Infof("S3TestInput:%s", conf)
 	downloadDir := CreateDownloadDir(conf)
 	endpoint := fmt.Sprintf("https://%s:%d", conf.S3Ip, conf.S3Port)
 	svc := s3client.NewS3Client(endpoint, conf.S3AccessID, conf.S3SecretKey)
@@ -141,7 +141,7 @@ func S3ListBucketObjects(conf models.S3TestInput) error {
 func S3DeleteBucketFiles(conf models.S3TestInput, uploadFiles []UploadFile) error {
 	logger.Info(">> Delete: Vizion S3 delete test start ...")
 	conf.ParseS3Input()
-	logger.Info(conf)
+	logger.Infof("S3TestInput:%s", conf)
 	endpoint := fmt.Sprintf("https://%s:%d", conf.S3Ip, conf.S3Port)
 	svc := s3client.NewS3Client(endpoint, conf.S3AccessID, conf.S3SecretKey)
 
