@@ -24,7 +24,9 @@ var s3Cmd = &cobra.Command{
 	Short: "Vizion S3 IO Stress",
 	Long:  fmt.Sprintf(`Vizion S3 upload/download files.%s`, CaseMapToString(s3TestCaseArray)),
 	Run: func(cmd *cobra.Command, args []string) {
-
+		if len(caseList) == 0 {
+			caseList = []string{"upload_download"}
+		}
 		logger.Infof("Case List(s3): %s", caseList)
 		testJobs := []stress.Job{}
 		for _, tc := range caseList {

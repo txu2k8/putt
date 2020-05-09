@@ -8,6 +8,7 @@ import (
 	"gtest/libs/s3client"
 	"gtest/libs/utils"
 	"gtest/models"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -93,6 +94,15 @@ func CreateDownloadDir(conf models.S3TestInput) string {
 	strS3ip := strings.ReplaceAll(conf.S3Ip, ".", "")
 	strTime := time.Now().Format("20060102150405")
 	dPath := path.Join(conf.LocalDataDir, fmt.Sprintf("download_%s", strS3ip), conf.S3Bucket, strTime)
+
+	_, err := os.Stat(dPath)
+	if os.IsNotExist(err) {
+		err := os.MkdirAll(dPath, os.ModePerm)
+		if err != nil {
+			logger.Panicf("mkdir failed![%v]", err)
+		}
+	}
+
 	return dPath
 }
 
