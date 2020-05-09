@@ -14,7 +14,7 @@ var s3TestConf = models.S3TestInput{}
 
 var s3TestCaseArray = map[string]string{
 	"upload":          "s3 upload test",
-	"download":        "s3 download test",
+	"download":        "s3 download test:TODO",
 	"upload_download": "s3 upload/download test (default)",
 }
 
@@ -42,14 +42,14 @@ var s3Cmd = &cobra.Command{
 						RunTimes: runTimes,
 					},
 				}
-			case "download":
-				download := func() error {
-					return resources.S3DownloadFiles(s3TestConf)
+			case "upload_download":
+				updownload := func() error {
+					return resources.S3UploadDownloadListDeleteFiles(s3TestConf)
 				}
 				jobs = []stress.Job{
 					{
-						Fn:       download,
-						Name:     "S3 Download",
+						Fn:       updownload,
+						Name:     "S3 Upload/List/Download/Delete",
 						RunTimes: runTimes,
 					},
 				}

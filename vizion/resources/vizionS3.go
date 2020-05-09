@@ -9,6 +9,7 @@ import (
 	"gtest/libs/utils"
 	"gtest/models"
 	"path"
+	"strings"
 	"time"
 )
 
@@ -87,17 +88,26 @@ func S3UploadFiles(conf models.S3TestInput) error {
 	return nil
 }
 
+// CreateDownloadDir ...
+func CreateDownloadDir(conf models.S3TestInput) string {
+	strS3ip := strings.ReplaceAll(conf.S3Ip, ".", "")
+	strTime := time.Now().Format("20060102150405")
+	dPath := path.Join(conf.LocalDataDir, fmt.Sprintf("download_%s", strS3ip), conf.S3Bucket, strTime)
+	return dPath
+}
+
 // S3DownloadFiles ...
-func S3DownloadFiles(conf models.S3TestInput) error {
-	logger.Info(">> Upload: Vizion S3 upload test start ...")
+func S3DownloadFiles(conf models.S3TestInput, downloadFiles []UploadFile) error {
+	logger.Info(">> Download: Vizion S3 download test start ...")
 	conf.ParseS3Input()
 	logger.Info(conf)
-	localFiles := CreateUploadFiles(conf)
+	downloadDir := CreateDownloadDir(conf)
 	endpoint := fmt.Sprintf("https://%s:%d", conf.S3Ip, conf.S3Port)
-	session := s3client.NewSession(endpoint, conf.S3AccessID, conf.S3SecretKey)
-	for _, file := range localFiles {
+	svc := s3client.NewS3Client(endpoint, conf.S3AccessID, conf.S3SecretKey)
+
+	for _, file := range downloadFiles {
 		action := func(attempt uint) error {
-			return s3client.UploadFileWithProcess(session, conf.S3Bucket, file.FileFullPath)
+			return s3client.DownloadFileWithProcess(svc, conf.S3Bucket, file.FileName, downloadDir)
 		}
 		err := retry.Retry(
 			action,
@@ -108,6 +118,57 @@ func S3DownloadFiles(conf models.S3TestInput) error {
 			return err
 		}
 	}
-	logger.Info(">> Upload: Vizion S3 upload test complete ...")
+	logger.Info(">> Download: Vizion S3 download test complete ...")
+	return nil
+}
+
+// S3ListBucketObjects ...
+func S3ListBucketObjects(conf models.S3TestInput) error {
+	return nil
+}
+
+// S3DeleteBucketFiles ...
+func S3DeleteBucketFiles(conf models.S3TestInput, uploadFiles []UploadFile) error {
+	logger.Info(">> Delete: Vizion S3 delete test start ...")
+	conf.ParseS3Input()
+	logger.Info(conf)
+	endpoint := fmt.Sprintf("https://%s:%d", conf.S3Ip, conf.S3Port)
+	svc := s3client.NewS3Client(endpoint, conf.S3AccessID, conf.S3SecretKey)
+
+	for _, file := range uploadFiles {
+		action := func(attempt uint) error {
+			return s3client.DeleteBucketFile(svc, conf.S3Bucket, file.FileName)
+		}
+		err := retry.Retry(
+			action,
+			strategy.Limit(5),
+			strategy.Backoff(backoff.Fibonacci(10*time.Millisecond)),
+		)
+		if err != nil {
+			return err
+		}
+	}
+	logger.Info(">> Delete: Vizion S3 delete test complete ...")
+	return nil
+}
+
+// S3UploadDownloadListDeleteFiles ...
+func S3UploadDownloadListDeleteFiles(conf models.S3TestInput) error {
+	if err := S3UploadFiles(conf); err != nil {
+		return err
+	}
+
+	if err := S3ListBucketObjects(conf); err != nil {
+		return err
+	}
+
+	if err := S3DownloadFiles(conf, []UploadFile{}); err != nil {
+		return err
+	}
+
+	if err := S3DeleteBucketFiles(conf, []UploadFile{}); err != nil {
+		return err
+	}
+
 	return nil
 }
