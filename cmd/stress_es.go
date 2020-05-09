@@ -25,7 +25,7 @@ var esCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		// fmt.Println("es called")
 		// fmt.Println(caseList)
-		logger.Infof("es: %s", caseList)
+		logger.Infof("Case List(es): %s", caseList)
 		testJobs := []stress.Job{}
 		for _, tc := range caseList {
 			logger.Warning(tc)

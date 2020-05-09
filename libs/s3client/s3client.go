@@ -87,14 +87,16 @@ type progressWriter struct {
 	written int64
 	writer  io.WriterAt
 	size    int64
+	fname   string
 }
 
 // progressReader tracks the upload progress of a file to S3
 // 2020/03/31 13:54:18 total read:1199    progress:100%
 type progressReader struct {
-	fp   *os.File
-	size int64
-	read int64
+	fp    *os.File
+	size  int64
+	read  int64
+	fname string
 }
 
 // WriteAt ...
@@ -123,7 +125,7 @@ func (r *progressReader) ReadAt(p []byte, off int64) (int, error) {
 	// I have no idea why the read length need to be div 2,
 	// maybe the request read once when Sign and actually send call ReadAt again
 	// It works for me
-	log.Printf("total read:%d    progress:%d%%\n", r.read/2, int(float32(r.read*100/2)/float32(r.size)))
+	log.Printf("file:%s read:%d  progress:%d%%\n", r.fname, r.read/2, int(float32(r.read*100/2)/float32(r.size)))
 	return n, err
 }
 
@@ -228,7 +230,7 @@ func NewS3Client(endpoint string, accessID string, accessSecret string) *s3.S3 {
 	return s3Client
 }
 
-// GetObject ...
+// GetObject :DownloadFile ...
 func GetObject(config *S3Config, s3Bucket string, s3Path string, localFilePath string) error {
 	logger.Infof("Try to download file from s3bucket: %s, path: %s, local: %s\n", s3Bucket, s3Path, localFilePath)
 	s3Client := NewS3Client(config.Endpoint, config.AccessID, config.AccessSecret)
@@ -259,22 +261,89 @@ func GetObject(config *S3Config, s3Bucket string, s3Path string, localFilePath s
 	return nil
 }
 
+// UploadFile ...
+func UploadFile(sess *session.Session, s3Bucket string, localFilePath string) error {
+	file, err := os.Open(localFilePath)
+	if err != nil {
+		logger.Errorf("ERROR:", err)
+		return err
+	}
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		logger.Errorf("ERROR:", err)
+		return err
+	}
+
+	logger.Infof("Starting upload(size:%s):%s", byteCountDecimal(fileInfo.Size()), localFilePath)
+	timeStart := time.Now()
+	uploader := s3manager.NewUploader(sess, func(u *s3manager.Uploader) {
+		u.PartSize = 5 * MB
+		u.LeavePartsOnError = true
+	})
+
+	_, sBase := path.Split(localFilePath)
+	output, err := uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(s3Bucket),
+		Key:    aws.String(sBase),
+		Body:   file,
+	})
+
+	if err != nil {
+		logger.Errorf("ERROR:", err)
+		return err
+	}
+	timeEnd := time.Now()
+	timeDelta := timeEnd.Sub(timeStart)
+	logger.Infof("Upload PASS: %s (Elapsed:%s)", output.Location, timeDelta)
+	return nil
+}
+
+// DownloadFile ...
+func DownloadFile(svc *s3.S3, s3Bucket string, s3Path string, locairlDir string) error {
+	fullPath := *svc.Config.Endpoint + "/" + s3Bucket + "/" + s3Path
+	filename := parseFilename(s3Path)
+	logger.Infof("Starting download file:%s", fullPath)
+	tempfile, err := ioutil.TempFile(locairlDir, "download_*_"+filename)
+	if err != nil {
+		return err
+	}
+	defer tempfile.Close()
+	params := &s3.GetObjectInput{
+		Bucket: aws.String(s3Bucket),
+		Key:    aws.String(s3Path),
+	}
+
+	tempfileName := tempfile.Name()
+	downloader := s3manager.NewDownloader(session.Must(session.NewSession(&svc.Config)))
+	if _, err := downloader.Download(tempfile, params); err != nil {
+		logger.Errorf("Download failed! Deleting tempfile: %s", tempfileName)
+		os.Remove(tempfileName)
+		return err
+	}
+
+	logger.Info("Download PASS:", fullPath)
+	return nil
+}
+
 // DownloadFileWithProcess ...
-func DownloadFileWithProcess(svc *s3.S3, s3Bucket string, s3Path string, locairlDir string) bool {
+func DownloadFileWithProcess(svc *s3.S3, s3Bucket string, s3Path string, locairlDir string) error {
 	fullPath := *svc.Config.Endpoint + "/" + s3Bucket + "/" + s3Path
 	filename := parseFilename(s3Path)
 	size, err := getFileSize(svc, s3Bucket, s3Path)
 	if err != nil {
-		panic(err)
+		// panic(err)
+		return err
 	}
 
 	logger.Infof("Starting download(size:%s):%s", byteCountDecimal(size), fullPath)
 	temp, err := ioutil.TempFile(locairlDir, "download_*_"+filename)
 	if err != nil {
-		panic(err)
+		// panic(err)
+		return err
 	}
 	defer temp.Close()
-	writer := &progressWriter{writer: temp, size: size, written: 0}
+	writer := &progressWriter{writer: temp, size: size, written: 0, fname: filename}
 	params := &s3.GetObjectInput{
 		Bucket: aws.String(s3Bucket),
 		Key:    aws.String(s3Path),
@@ -285,36 +354,38 @@ func DownloadFileWithProcess(svc *s3.S3, s3Bucket string, s3Path string, locairl
 	if _, err := downloader.Download(writer, params); err != nil {
 		logger.Errorf("Download failed! Deleting tempfile: %s", tempfileName)
 		os.Remove(tempfileName)
-		panic(err)
+		// panic(err)
+		return err
 	}
 
 	logger.Info("Download PASS:", fullPath)
-	return true
+	return nil
 }
 
 // UploadFileWithProcess ...
-func UploadFileWithProcess(sess *session.Session, s3Bucket string, localFilePath string) bool {
+func UploadFileWithProcess(sess *session.Session, s3Bucket string, localFilePath string) error {
 	file, err := os.Open(localFilePath)
 	if err != nil {
 		logger.Errorf("ERROR:", err)
-		return false
+		return err
 	}
 
 	fileInfo, err := file.Stat()
 	if err != nil {
 		logger.Errorf("ERROR:", err)
-		return false
+		return err
 	}
 
 	reader := &progressReader{
-		fp:   file,
-		size: fileInfo.Size(),
+		fp:    file,
+		size:  fileInfo.Size(),
+		fname: fileInfo.Name(),
 	}
 
 	logger.Infof("Starting upload(size:%s):%s", byteCountDecimal(reader.size), localFilePath)
 	timeStart := time.Now()
 	uploader := s3manager.NewUploader(sess, func(u *s3manager.Uploader) {
-		u.PartSize = 5 * 1024 * 1024
+		u.PartSize = 5 * MB
 		u.LeavePartsOnError = true
 	})
 
@@ -327,12 +398,12 @@ func UploadFileWithProcess(sess *session.Session, s3Bucket string, localFilePath
 
 	if err != nil {
 		logger.Errorf("ERROR:", err)
-		return false
+		return err
 	}
 	timeEnd := time.Now()
 	timeDelta := timeEnd.Sub(timeStart)
 	logger.Infof("Upload PASS: %s (Elapsed:%s)", output.Location, timeDelta)
-	return true
+	return nil
 }
 
 func sortBuckets(buckets []*Bucket) {
@@ -559,10 +630,10 @@ func DeleteBucket(svc *s3.S3, bucket string) error {
 }
 
 // CreateBucket returns a bucket created for the tests.
-func CreateBucket(svc *s3.S3, bucketName string) (err error) {
+func CreateBucket(svc *s3.S3, bucketName string) error {
 
 	logger.Info("Setup: Creating test bucket,", bucketName)
-	_, err = svc.CreateBucket(&s3.CreateBucketInput{Bucket: &bucketName})
+	_, err := svc.CreateBucket(&s3.CreateBucketInput{Bucket: &bucketName})
 	if err != nil {
 		return fmt.Errorf("failed to create bucket %s, %v", bucketName, err)
 	}
@@ -570,8 +641,7 @@ func CreateBucket(svc *s3.S3, bucketName string) (err error) {
 	fmt.Println("Setup: Waiting for bucket to exist,", bucketName)
 	err = svc.WaitUntilBucketExists(&s3.HeadBucketInput{Bucket: &bucketName})
 	if err != nil {
-		return fmt.Errorf("failed waiting for bucket %s to be created, %v",
-			bucketName, err)
+		return fmt.Errorf("failed waiting for bucket %s to be created, %v", bucketName, err)
 	}
 
 	return nil

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"gtest/libs/runner/stress"
 	"gtest/models"
 	"gtest/vizion/resources"
 
@@ -23,13 +24,39 @@ var s3Cmd = &cobra.Command{
 	Short: "Vizion S3 IO Stress",
 	Long:  fmt.Sprintf(`Vizion S3 upload/download files.%s`, CaseMapToString(s3TestCaseArray)),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("s3 called", s3TestConf)
+
+		logger.Infof("Case List(s3): %s", caseList)
+		testJobs := []stress.Job{}
 		for _, tc := range caseList {
+			logger.Warning(tc)
+			jobs := []stress.Job{}
 			switch tc {
 			case "upload":
-				resources.S3UploadFiles(s3TestConf)
+				upload := func() error {
+					return resources.S3UploadFiles(s3TestConf)
+				}
+				jobs = []stress.Job{
+					{
+						Fn:       upload,
+						Name:     "S3 Upload",
+						RunTimes: runTimes,
+					},
+				}
+			case "download":
+				download := func() error {
+					return resources.S3DownloadFiles(s3TestConf)
+				}
+				jobs = []stress.Job{
+					{
+						Fn:       download,
+						Name:     "S3 Download",
+						RunTimes: runTimes,
+					},
+				}
 			}
+			testJobs = append(testJobs, jobs...)
 		}
+		stress.Run(testJobs)
 	},
 }
 

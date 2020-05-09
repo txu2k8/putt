@@ -2,6 +2,9 @@ package resources
 
 import (
 	"fmt"
+	"gtest/libs/retry"
+	"gtest/libs/retry/backoff"
+	"gtest/libs/retry/strategy"
 	"gtest/libs/s3client"
 	"gtest/libs/utils"
 	"gtest/models"
@@ -60,14 +63,51 @@ func CreateUploadFiles(conf models.S3TestInput) []UploadFile {
 }
 
 // S3UploadFiles ...
-func S3UploadFiles(conf models.S3TestInput) {
-	logger.Info(">> Upload: Vizion S3 upload test ...")
+func S3UploadFiles(conf models.S3TestInput) error {
+	logger.Info(">> Upload: Vizion S3 upload test start ...")
 	conf.ParseS3Input()
 	logger.Info(conf)
 	localFiles := CreateUploadFiles(conf)
 	endpoint := fmt.Sprintf("https://%s:%d", conf.S3Ip, conf.S3Port)
 	session := s3client.NewSession(endpoint, conf.S3AccessID, conf.S3SecretKey)
 	for _, file := range localFiles {
-		s3client.UploadFileWithProcess(session, conf.S3Bucket, file.FileFullPath)
+		action := func(attempt uint) error {
+			return s3client.UploadFileWithProcess(session, conf.S3Bucket, file.FileFullPath)
+		}
+		err := retry.Retry(
+			action,
+			strategy.Limit(5),
+			strategy.Backoff(backoff.Fibonacci(10*time.Millisecond)),
+		)
+		if err != nil {
+			return err
+		}
 	}
+	logger.Info(">> Upload: Vizion S3 upload test complete ...")
+	return nil
+}
+
+// S3DownloadFiles ...
+func S3DownloadFiles(conf models.S3TestInput) error {
+	logger.Info(">> Upload: Vizion S3 upload test start ...")
+	conf.ParseS3Input()
+	logger.Info(conf)
+	localFiles := CreateUploadFiles(conf)
+	endpoint := fmt.Sprintf("https://%s:%d", conf.S3Ip, conf.S3Port)
+	session := s3client.NewSession(endpoint, conf.S3AccessID, conf.S3SecretKey)
+	for _, file := range localFiles {
+		action := func(attempt uint) error {
+			return s3client.UploadFileWithProcess(session, conf.S3Bucket, file.FileFullPath)
+		}
+		err := retry.Retry(
+			action,
+			strategy.Limit(5),
+			strategy.Backoff(backoff.Fibonacci(10*time.Millisecond)),
+		)
+		if err != nil {
+			return err
+		}
+	}
+	logger.Info(">> Upload: Vizion S3 upload test complete ...")
+	return nil
 }

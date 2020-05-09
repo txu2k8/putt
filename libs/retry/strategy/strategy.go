@@ -41,7 +41,7 @@ type Strategy func(attempt uint) bool
 // Limit creates a Strategy that limits the number of attempts that Retry will
 // make.
 func Limit(attemptLimit uint) Strategy {
-	logger.Infof("Retry Limit: %d", attemptLimit)
+	// logger.Infof("Retry Limit: %d", attemptLimit)
 	return func(attempt uint) bool {
 		return (attempt <= attemptLimit)
 	}
