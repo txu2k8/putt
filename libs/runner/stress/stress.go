@@ -104,9 +104,9 @@ loop:
 				logger.Infof("[START ] - %s - Iteration: %d", job.Name, i)
 				err := job.Fn()
 				if err != nil {
-					// logger.Error(err)
 					// r.Stop()
-					r.done <- struct{}{}
+					logger.Error(err)
+					// r.done <- struct{}{}
 					job.RunTimes = i
 				}
 				end := time.Now()

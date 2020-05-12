@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"crypto/rand"
+	"encoding/gob"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -141,7 +142,7 @@ func PathExists(path string) (bool, error) {
 // CreateFile create original file, each line with line_number, and specified line size
 //
 func CreateFile(filePath string, fileSize int64, lineSize int64) string {
-	logger.Infof(">> Create/Write file: %s", filePath)
+	// logger.Infof(">> Create/Write file: %s", filePath)
 	fileDir := path.Dir(filePath)
 	err := os.MkdirAll(fileDir, os.ModePerm)
 	if err != nil {
@@ -338,4 +339,13 @@ func prettify(v reflect.Value, indent int, buf *bytes.Buffer) {
 		}
 		fmt.Fprintf(buf, format, v.Interface())
 	}
+}
+
+// DeepCopy ...
+func DeepCopy(dst, src interface{}) error {
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(src); err != nil {
+		return err
+	}
+	return gob.NewDecoder(bytes.NewBuffer(buf.Bytes())).Decode(dst)
 }

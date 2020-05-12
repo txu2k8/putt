@@ -8,7 +8,6 @@ import (
 	"gtest/libs/retry/strategy"
 	"gtest/libs/testErr"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -383,11 +382,13 @@ func UploadFileWithProcessRetry(sess *session.Session, s3Bucket string, localFil
 }
 
 // DownloadFile ...
-func DownloadFile(svc *s3.S3, s3Bucket string, s3Path string, locairlDir string) error {
+func DownloadFile(svc *s3.S3, s3Bucket string, s3Path string, localDir string) error {
 	fullPath := *svc.Config.Endpoint + "/" + s3Bucket + "/" + s3Path
 	filename := parseFilename(s3Path)
+	localFilePath := path.Join(localDir, filename)
 	logger.Infof("Starting download file:%s", fullPath)
-	tempfile, err := ioutil.TempFile(locairlDir, "download_*_"+filename)
+	// tempfile, err := ioutil.TempFile(localDir, "download_*_"+filename)
+	tempfile, err := os.OpenFile(localFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return err
 	}
@@ -410,9 +411,9 @@ func DownloadFile(svc *s3.S3, s3Bucket string, s3Path string, locairlDir string)
 }
 
 // DownloadFileRetry ...
-func DownloadFileRetry(svc *s3.S3, s3Bucket string, s3Path string, locairlDir string) error {
+func DownloadFileRetry(svc *s3.S3, s3Bucket string, s3Path string, localDir string) error {
 	action := func(attempt uint) error {
-		return DownloadFile(svc, s3Bucket, s3Path, locairlDir)
+		return DownloadFile(svc, s3Bucket, s3Path, localDir)
 	}
 	err := retry.Retry(
 		action,
@@ -423,34 +424,33 @@ func DownloadFileRetry(svc *s3.S3, s3Bucket string, s3Path string, locairlDir st
 }
 
 // DownloadFileWithProcess ...
-func DownloadFileWithProcess(svc *s3.S3, s3Bucket string, s3Path string, locairlDir string) error {
+func DownloadFileWithProcess(svc *s3.S3, s3Bucket string, s3Path string, localDir string) error {
 	fullPath := *svc.Config.Endpoint + "/" + s3Bucket + "/" + s3Path
 	filename := parseFilename(s3Path)
+	localFilePath := path.Join(localDir, filename)
 	size, err := getFileSize(svc, s3Bucket, s3Path)
 	if err != nil {
-		// panic(err)
 		return err
 	}
 
 	logger.Infof("Starting download(size:%s):%s", byteCountDecimal(size), fullPath)
-	temp, err := ioutil.TempFile(locairlDir, "download_*_"+filename)
+	// tempfile, err := ioutil.TempFile(localDir, "download_*_"+filename)
+	tempfile, err := os.OpenFile(localFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
-		// panic(err)
 		return err
 	}
-	defer temp.Close()
-	writer := &progressWriter{writer: temp, size: size, written: 0, fname: filename}
+	defer tempfile.Close()
+	writer := &progressWriter{writer: tempfile, size: size, written: 0, fname: filename}
 	params := &s3.GetObjectInput{
 		Bucket: aws.String(s3Bucket),
 		Key:    aws.String(s3Path),
 	}
 
-	tempfileName := temp.Name()
+	tempfileName := tempfile.Name()
 	downloader := s3manager.NewDownloader(session.Must(session.NewSession(&svc.Config)))
 	if _, err := downloader.Download(writer, params); err != nil {
 		logger.Errorf("Download failed! Deleting tempfile: %s", tempfileName)
 		os.Remove(tempfileName)
-		// panic(err)
 		return err
 	}
 
@@ -459,9 +459,9 @@ func DownloadFileWithProcess(svc *s3.S3, s3Bucket string, s3Path string, locairl
 }
 
 // DownloadFileWithProcessRetry ...
-func DownloadFileWithProcessRetry(svc *s3.S3, s3Bucket string, s3Path string, locairlDir string) error {
+func DownloadFileWithProcessRetry(svc *s3.S3, s3Bucket string, s3Path string, localDir string) error {
 	action := func(attempt uint) error {
-		return DownloadFileWithProcess(svc, s3Bucket, s3Path, locairlDir)
+		return DownloadFileWithProcess(svc, s3Bucket, s3Path, localDir)
 	}
 	err := retry.Retry(
 		action,
