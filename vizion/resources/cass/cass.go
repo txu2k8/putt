@@ -3,7 +3,7 @@ package cass
 import (
 	"errors"
 	"fmt"
-	"gtest/libs/db"
+	"pzatest/libs/db"
 
 	"github.com/gocql/gocql"
 	"github.com/op/go-logging"

@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"gtest/libs/runner/stress"
-	"gtest/models"
-	"gtest/vizion/resources"
+	"pzatest/libs/runner/stress"
+	"pzatest/models"
+	"pzatest/vizion/resources"
 
 	"github.com/spf13/cobra"
 )

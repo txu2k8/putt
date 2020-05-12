@@ -13,7 +13,7 @@ set GOPATH=%cd%
 
 gofmt -w src
 
-go install gtest
+go install pzatest
 
 set GOPATH=OLDGOPATH
 

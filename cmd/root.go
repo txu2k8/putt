@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"gtest/models"
 	"os"
+	"pzatest/models"
 
 	"github.com/op/go-logging"
 	"github.com/spf13/cobra"
@@ -20,7 +20,7 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "gtest",
+	Use:   "pzatest",
 	Short: "The rootCmd of this test project",
 	Long:  `example: vztest stress --ssh_pwd password`,
 	// Uncomment the following line if your bare application

@@ -2,7 +2,7 @@ package s3client
 
 import (
 	"fmt"
-	_ "gtest/testinit"
+	_ "pzatest/testinit"
 	"os"
 	"strings"
 	"testing"

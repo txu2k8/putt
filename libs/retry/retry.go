@@ -5,7 +5,7 @@
 package retry
 
 import (
-	"gtest/libs/retry/strategy"
+	"pzatest/libs/retry/strategy"
 
 	"github.com/op/go-logging"
 )

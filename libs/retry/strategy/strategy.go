@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"gtest/libs/retry/backoff"
-	"gtest/libs/retry/jitter"
+	"pzatest/libs/retry/backoff"
+	"pzatest/libs/retry/jitter"
 
 	"github.com/op/go-logging"
 	"github.com/schollz/progressbar"

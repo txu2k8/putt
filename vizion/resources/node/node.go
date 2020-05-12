@@ -3,7 +3,7 @@ package node
 // Define OP on vizion node, by ssh to node and then run commands
 
 import (
-	"gtest/libs/sshmgr"
+	"pzatest/libs/sshmgr"
 	"strings"
 
 	"github.com/op/go-logging"

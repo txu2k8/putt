@@ -1,7 +1,7 @@
 package utils
 
 import (
-	_ "gtest/testinit"
+	_ "pzatest/testinit"
 	"testing"
 )
 

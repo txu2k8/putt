@@ -3,15 +3,15 @@ package retry_test
 import (
 	"errors"
 	"fmt"
-	"gtest/libs/retry"
+	"pzatest/libs/retry"
 	"log"
 	"math/rand"
 	"net/http"
 	"os"
 
-	"gtest/libs/retry/backoff"
-	"gtest/libs/retry/jitter"
-	"gtest/libs/retry/strategy"
+	"pzatest/libs/retry/backoff"
+	"pzatest/libs/retry/jitter"
+	"pzatest/libs/retry/strategy"
 	"time"
 )
 

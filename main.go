@@ -1,13 +1,13 @@
 package main
 
 import (
-	"gtest/cmd"
-	_ "gtest/config"
-	"gtest/libs/retry"
-	"gtest/libs/retry/backoff"
-	"gtest/libs/retry/jitter"
-	"gtest/libs/retry/strategy"
-	_ "gtest/testinit"
+	"pzatest/cmd"
+	_ "pzatest/config"
+	"pzatest/libs/retry"
+	"pzatest/libs/retry/backoff"
+	"pzatest/libs/retry/jitter"
+	"pzatest/libs/retry/strategy"
+	_ "pzatest/testinit"
 	"log"
 	"math/rand"
 	"os"
@@ -71,6 +71,6 @@ func main() {
 	// utils.SleepProgressBar(2)
 	// testRetry()
 	// fmt.Printf("  %-3s %-12s  CaseDescription", "NO.", "CaseName")
-	logger.Infof("Args: gtest %s", strings.Join(os.Args[1:], " "))
+	logger.Infof("Args: pzatest %s", strings.Join(os.Args[1:], " "))
 	cmd.Execute()
 }

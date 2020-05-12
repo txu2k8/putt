@@ -1,7 +1,7 @@
 package es
 
 import (
-	"gtest/config"
+	"pzatest/config"
 	"index/utils"
 	"strings"
 	"sync"

@@ -1,10 +1,10 @@
 package sshmgr
 
 import (
-	"gtest/libs/retry"
-	"gtest/libs/retry/backoff"
-	"gtest/libs/retry/jitter"
-	"gtest/libs/retry/strategy"
+	"pzatest/libs/retry"
+	"pzatest/libs/retry/backoff"
+	"pzatest/libs/retry/jitter"
+	"pzatest/libs/retry/strategy"
 	"log"
 	"math/rand"
 	"os"

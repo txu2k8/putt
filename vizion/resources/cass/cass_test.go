@@ -1,7 +1,7 @@
 package cass
 
 import (
-	"gtest/libs/db"
+	"pzatest/libs/db"
 	"testing"
 )
 

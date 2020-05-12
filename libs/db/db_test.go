@@ -2,7 +2,7 @@ package db
 
 import (
 	"fmt"
-	_ "gtest/testinit"
+	_ "pzatest/testinit"
 	"testing"
 	"time"
 

@@ -2,7 +2,7 @@ package resources
 
 import (
 	"errors"
-	"gtest/libs/utils"
+	"pzatest/libs/utils"
 	"math/rand"
 	"time"
 )
