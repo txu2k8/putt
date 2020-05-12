@@ -1,9 +1,9 @@
-package resources
+package testcase
 
 import (
 	"errors"
-	"pzatest/libs/utils"
 	"math/rand"
+	"pzatest/libs/utils"
 	"time"
 )
 

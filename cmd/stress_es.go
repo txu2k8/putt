@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"pzatest/libs/runner/stress"
 	"pzatest/models"
-	"pzatest/vizion/resources"
+	"pzatest/vizion/testcase"
 
 	"github.com/spf13/cobra"
 )
@@ -35,7 +35,7 @@ var esCmd = &cobra.Command{
 			case "index":
 				jobs = []stress.Job{
 					{
-						Fn:       resources.ESIndex,
+						Fn:       testcase.ESIndex,
 						Name:     "ES Index",
 						RunTimes: runTimes,
 					},
@@ -43,7 +43,7 @@ var esCmd = &cobra.Command{
 			case "search":
 				jobs = []stress.Job{
 					{
-						Fn:       resources.ESSearch,
+						Fn:       testcase.ESSearch,
 						Name:     "ES Search",
 						RunTimes: runTimes,
 					},
@@ -51,12 +51,12 @@ var esCmd = &cobra.Command{
 			case "stress":
 				jobs = []stress.Job{
 					{
-						Fn:       resources.ESIndex,
+						Fn:       testcase.ESIndex,
 						Name:     "ES Index",
 						RunTimes: runTimes,
 					},
 					{
-						Fn:       resources.ESSearch,
+						Fn:       testcase.ESSearch,
 						Name:     "ES Search",
 						RunTimes: runTimes,
 					},
@@ -64,7 +64,7 @@ var esCmd = &cobra.Command{
 			case "cleanup":
 				jobs = []stress.Job{
 					{
-						Fn:       resources.ESCleanup,
+						Fn:       testcase.ESCleanup,
 						Name:     "Cleanup ES Index",
 						RunTimes: runTimes,
 					},

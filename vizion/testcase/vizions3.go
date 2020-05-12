@@ -1,8 +1,10 @@
-package resources
+package testcase
 
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path"
 	"pzatest/libs/prettytable"
 	"pzatest/libs/retry"
 	"pzatest/libs/retry/backoff"
@@ -10,8 +12,6 @@ import (
 	"pzatest/libs/s3client"
 	"pzatest/libs/utils"
 	"pzatest/models"
-	"os"
-	"path"
 	"strings"
 	"sync"
 	"time"

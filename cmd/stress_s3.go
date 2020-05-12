@@ -5,7 +5,7 @@ import (
 
 	"pzatest/libs/runner/stress"
 	"pzatest/models"
-	"pzatest/vizion/resources"
+	"pzatest/vizion/testcase"
 
 	"github.com/spf13/cobra"
 )
@@ -34,7 +34,7 @@ var s3Cmd = &cobra.Command{
 			switch tc {
 			case "upload":
 				upload := func() error {
-					_, err := resources.MultiS3UploadFiles(s3TestConf)
+					_, err := testcase.MultiS3UploadFiles(s3TestConf)
 					return err
 				}
 				jobs = []stress.Job{
@@ -46,7 +46,7 @@ var s3Cmd = &cobra.Command{
 				}
 			case "upload_download":
 				updownload := func() error {
-					return resources.MultiS3UploadDownloadListDeleteFiles(s3TestConf)
+					return testcase.MultiS3UploadDownloadListDeleteFiles(s3TestConf)
 				}
 				jobs = []stress.Job{
 					{
