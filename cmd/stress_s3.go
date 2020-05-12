@@ -30,12 +30,11 @@ var s3Cmd = &cobra.Command{
 		logger.Infof("Case List(s3): %s", caseList)
 		testJobs := []stress.Job{}
 		for _, tc := range caseList {
-			logger.Warning(tc)
 			jobs := []stress.Job{}
 			switch tc {
 			case "upload":
 				upload := func() error {
-					_, err := resources.S3UploadFiles(s3TestConf)
+					_, err := resources.MultiS3UploadFiles(s3TestConf)
 					return err
 				}
 				jobs = []stress.Job{
@@ -47,7 +46,7 @@ var s3Cmd = &cobra.Command{
 				}
 			case "upload_download":
 				updownload := func() error {
-					return resources.S3UploadDownloadListDeleteFiles(s3TestConf)
+					return resources.MultiS3UploadDownloadListDeleteFiles(s3TestConf)
 				}
 				jobs = []stress.Job{
 					{
@@ -74,8 +73,8 @@ func init() {
 	s3Cmd.PersistentFlags().StringVar(&s3TestConf.LocalDataDir, "local_dir", "/tmp/", "Local dir for store S3 test files")
 	s3Cmd.PersistentFlags().IntVar(&s3TestConf.RandomPercent, "random_percent", 100, "Percent of S3 test files with random data")
 	s3Cmd.PersistentFlags().IntVar(&s3TestConf.EmptyPercent, "empty_percent", 0, "Percent of S3 test files with empty data")
-	s3Cmd.PersistentFlags().BoolVar(&s3TestConf.RenameFile, "rename", true, "Rename files name each time if true")
-	s3Cmd.PersistentFlags().BoolVar(&s3TestConf.DeleteFile, "delete", true, "Delete files from s3 bucket after test if true")
+	s3Cmd.PersistentFlags().BoolVar(&s3TestConf.RenameFile, "rename", false, "Rename files name each time if true")
+	s3Cmd.PersistentFlags().BoolVar(&s3TestConf.DeleteFile, "delete", false, "Delete files from s3 bucket after test if true")
 	s3Cmd.PersistentFlags().IntVar(&s3TestConf.Clients, "client", 1, "S3 Client number for test at the same time")
 	s3Cmd.PersistentFlags().StringArrayVar(&s3TestConf.FileInputs, "files", []string{"txt:20:1k-10k", "dd:1:100mb"}, "S3 files config array")
 

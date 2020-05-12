@@ -95,7 +95,7 @@ func (r *runner) runJob(job Job) {
 	forever := job.RunTimes <= 0
 loop:
 	for i := 1; forever || job.RunTimes-i >= 0; i++ {
-		time.After(10 * time.Second)
+		// time.Sleep(10 * time.Second)
 		select {
 		case ch <- struct{}{}:
 			wg.Add(1)

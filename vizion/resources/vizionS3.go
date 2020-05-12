@@ -58,35 +58,11 @@ func CreateUploadFiles(conf models.S3TestInput) []UploadFile {
 			uploadFile.FileFullPath = filePath
 			uploadFile.FileSize = randomSize
 			uploadFile.FileMd5sum = fileMd5
+			logger.Infof("Create local file(md5:%s):%s", fileMd5, filePath)
 			fileArr = append(fileArr, uploadFile)
 		}
 	}
 	return fileArr
-}
-
-// S3UploadFiles ...
-func S3UploadFiles(conf models.S3TestInput) ([]UploadFile, error) {
-	logger.Info(">> Upload: Vizion S3 upload test start ...")
-	conf.ParseS3Input()
-	logger.Infof("S3TestInput:%s", conf)
-	localFiles := CreateUploadFiles(conf)
-	endpoint := fmt.Sprintf("https://%s:%d", conf.S3Ip, conf.S3Port)
-	session := s3client.NewSession(endpoint, conf.S3AccessID, conf.S3SecretKey)
-	for _, file := range localFiles {
-		action := func(attempt uint) error {
-			return s3client.UploadFileWithProcess(session, conf.S3Bucket, file.FileFullPath)
-		}
-		err := retry.Retry(
-			action,
-			strategy.Limit(5),
-			strategy.Backoff(backoff.Fibonacci(10*time.Millisecond)),
-		)
-		if err != nil {
-			return []UploadFile{}, err
-		}
-	}
-	logger.Info(">> Upload: Vizion S3 upload test complete ...")
-	return localFiles, nil
 }
 
 // CreateDownloadDir ...
@@ -106,25 +82,30 @@ func CreateDownloadDir(conf models.S3TestInput) string {
 	return dPath
 }
 
+// S3UploadFiles ...
+func S3UploadFiles(conf models.S3TestInput) ([]UploadFile, error) {
+	logger.Info(">> Upload: Vizion S3 upload test start ...")
+	conf.ParseS3Input()
+	localFiles := CreateUploadFiles(conf)
+	session := s3client.NewSession(conf.Endpoint, conf.S3AccessID, conf.S3SecretKey)
+	for _, file := range localFiles {
+		if err := s3client.UploadFileWithProcessRetry(session, conf.S3Bucket, file.FileFullPath); err != nil {
+			return []UploadFile{}, err
+		}
+	}
+	logger.Info(">> Upload: Vizion S3 upload test complete ...")
+	return localFiles, nil
+}
+
 // S3DownloadFiles ...
 func S3DownloadFiles(conf models.S3TestInput, downloadFiles []UploadFile) error {
 	logger.Info(">> Download: Vizion S3 download test start ...")
 	conf.ParseS3Input()
-	logger.Infof("S3TestInput:%s", conf)
 	downloadDir := CreateDownloadDir(conf)
-	endpoint := fmt.Sprintf("https://%s:%d", conf.S3Ip, conf.S3Port)
-	svc := s3client.NewS3Client(endpoint, conf.S3AccessID, conf.S3SecretKey)
+	svc := s3client.NewS3Client(conf.Endpoint, conf.S3AccessID, conf.S3SecretKey)
 
 	for _, file := range downloadFiles {
-		action := func(attempt uint) error {
-			return s3client.DownloadFileWithProcess(svc, conf.S3Bucket, file.FileName, downloadDir)
-		}
-		err := retry.Retry(
-			action,
-			strategy.Limit(5),
-			strategy.Backoff(backoff.Fibonacci(10*time.Millisecond)),
-		)
-		if err != nil {
+		if err := s3client.DownloadFileWithProcessRetry(svc, conf.S3Bucket, file.FileName, downloadDir); err != nil {
 			return err
 		}
 	}
@@ -141,9 +122,7 @@ func S3ListBucketObjects(conf models.S3TestInput) error {
 func S3DeleteBucketFiles(conf models.S3TestInput, uploadFiles []UploadFile) error {
 	logger.Info(">> Delete: Vizion S3 delete test start ...")
 	conf.ParseS3Input()
-	logger.Infof("S3TestInput:%s", conf)
-	endpoint := fmt.Sprintf("https://%s:%d", conf.S3Ip, conf.S3Port)
-	svc := s3client.NewS3Client(endpoint, conf.S3AccessID, conf.S3SecretKey)
+	svc := s3client.NewS3Client(conf.Endpoint, conf.S3AccessID, conf.S3SecretKey)
 
 	for _, file := range uploadFiles {
 		action := func(attempt uint) error {
@@ -178,6 +157,101 @@ func S3UploadDownloadListDeleteFiles(conf models.S3TestInput) error {
 	}
 
 	if err := S3DeleteBucketFiles(conf, uploadFiles); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ================ Multi ================
+
+// MultiS3UploadFiles ...
+func MultiS3UploadFiles(conf models.S3TestInput) ([]UploadFile, error) {
+	logger.Info(">> Multi-Upload: Vizion S3 upload test start ...")
+	conf.ParseS3Input()
+	localFiles := CreateUploadFiles(conf)
+	session := s3client.NewSession(conf.Endpoint, conf.S3AccessID, conf.S3SecretKey)
+	ch := make(chan int, 10)
+	for _, file := range localFiles {
+		fileFullPath := file.FileFullPath
+		go func() {
+			err := s3client.UploadFileRetry(session, conf.S3Bucket, fileFullPath)
+			if err != nil {
+				<-ch
+			}
+			ch <- 0
+		}()
+
+	}
+	<-ch
+	logger.Info(">> Multi-Upload: Vizion S3 upload test complete ...")
+	return localFiles, nil
+}
+
+// MultiS3DownloadFiles ...
+func MultiS3DownloadFiles(conf models.S3TestInput, downloadFiles []UploadFile) error {
+	logger.Info(">> Multi-Download: Vizion S3 download test start ...")
+	conf.ParseS3Input()
+	downloadDir := CreateDownloadDir(conf)
+	svc := s3client.NewS3Client(conf.Endpoint, conf.S3AccessID, conf.S3SecretKey)
+	ch := make(chan int, 10)
+	for _, file := range downloadFiles {
+		fileName := file.FileName
+		go func() {
+			err := s3client.DownloadFileRetry(svc, conf.S3Bucket, fileName, downloadDir)
+			if err != nil {
+				<-ch
+			}
+			ch <- 0
+		}()
+	}
+	<-ch
+	logger.Info(">> Multi-Download: Vizion S3 download test complete ...")
+	return nil
+}
+
+// MultiS3ListBucketObjects ...
+func MultiS3ListBucketObjects(conf models.S3TestInput) error {
+	return nil
+}
+
+// MultiS3DeleteBucketFiles ...
+func MultiS3DeleteBucketFiles(conf models.S3TestInput, uploadFiles []UploadFile) error {
+	logger.Info(">> Multi-Delete: Vizion S3 delete test start ...")
+	conf.ParseS3Input()
+	svc := s3client.NewS3Client(conf.Endpoint, conf.S3AccessID, conf.S3SecretKey)
+	ch := make(chan int, 10)
+	for _, file := range uploadFiles {
+		fileName := file.FileName
+		go func() {
+			err := s3client.DeleteBucketFile(svc, conf.S3Bucket, fileName)
+			if err != nil {
+				<-ch
+			}
+			ch <- 0
+		}()
+	}
+	<-ch
+	logger.Info(">> Multi-Delete: Vizion S3 delete test complete ...")
+	return nil
+}
+
+// MultiS3UploadDownloadListDeleteFiles ...
+func MultiS3UploadDownloadListDeleteFiles(conf models.S3TestInput) error {
+	uploadFiles, err := MultiS3UploadFiles(conf)
+	if err != nil {
+		return err
+	}
+
+	if err := MultiS3ListBucketObjects(conf); err != nil {
+		return err
+	}
+
+	if err := MultiS3DownloadFiles(conf, uploadFiles); err != nil {
+		return err
+	}
+
+	if err := MultiS3DeleteBucketFiles(conf, uploadFiles); err != nil {
 		return err
 	}
 

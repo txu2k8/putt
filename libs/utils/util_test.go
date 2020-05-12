@@ -3,7 +3,6 @@ package utils
 import (
 	_ "gtest/testinit"
 	"testing"
-	"time"
 )
 
 func TestUtilFunc(t *testing.T) {
@@ -14,11 +13,16 @@ func TestUtilFunc(t *testing.T) {
 	// 2020-04-08T16:36:08 test INFO: 12.2 MB
 
 	// logger.Info(GetRandString(10))
-	SleepProgressBar(10 * time.Second)
+	// SleepProgressBar(10 * time.Second)
 	// PrintWithProgressBar("test", 100)
 
 	// md5sum := CreateFile("./a.txt", 2*1024, 128)
 	// logger.Info(md5sum)
 
 	// logger.Info(GetRandomInt64(10, 1000))
+
+	// s := map[string]int{"aa": 1, "bb": 2}
+	d := []string{"sssa", "adada"}
+	logger.Info(d)
+	logger.Info(Prettify(d))
 }

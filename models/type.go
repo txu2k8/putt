@@ -8,7 +8,10 @@ import (
 	"strings"
 
 	"github.com/gocql/gocql"
+	"github.com/op/go-logging"
 )
+
+var logger = logging.MustGetLogger("test")
 
 // SSHKey ...
 type SSHKey struct {
@@ -53,16 +56,19 @@ type S3TestInput struct {
 	DeleteFile       bool              // delete files from s3 bucket after test if true
 	Clients          int               // S3 Client number for test at the same time
 	S3TestFileInputs []S3TestFileInput // Parse(FileInputs) --> S3TestFileInputs
+	Endpoint         string            // Parse(S3Ip,S3Port) --> Endpoint
 }
 
 // ParseS3Input ...
 func (conf *S3TestInput) ParseS3Input() {
+	// Parse S3Ip S3Port to conf.endpoint
+	conf.Endpoint = fmt.Sprintf("https://%s:%d", conf.S3Ip, conf.S3Port)
 	// Parse FileInputs to conf.S3TestFileInputs
 	strS3Ip := strings.Replace(conf.S3Ip, ".", "", -1)
-	conf.S3TestFileInputs = make([]S3TestFileInput, len(conf.FileInputs)+1)
+	conf.S3TestFileInputs = make([]S3TestFileInput, len(conf.FileInputs))
 	for i, v := range conf.FileInputs {
 		fArr := strings.Split(v, ":")
-		fmt.Println(fArr)
+		// fmt.Println(fArr)
 		conf.S3TestFileInputs[i].FileType = fArr[0]
 		conf.S3TestFileInputs[i].FileNum, _ = strconv.Atoi(fArr[1])
 		nArr := strings.Split(fArr[2], "-")
@@ -75,4 +81,5 @@ func (conf *S3TestInput) ParseS3Input() {
 		conf.S3TestFileInputs[i].FileNamePrefix = fmt.Sprintf("s3stress_%s", strS3Ip)
 		conf.S3TestFileInputs[i].FileDir = path.Join(conf.LocalDataDir, strS3Ip)
 	}
+	logger.Debugf("S3TestInput:%v", utils.Prettify(conf))
 }

@@ -11,6 +11,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -70,5 +71,6 @@ func main() {
 	// utils.SleepProgressBar(2)
 	// testRetry()
 	// fmt.Printf("  %-3s %-12s  CaseDescription", "NO.", "CaseName")
+	logger.Infof("Args: gtest %s", strings.Join(os.Args[1:], " "))
 	cmd.Execute()
 }

@@ -3,6 +3,9 @@ package s3client
 import (
 	"crypto/tls"
 	"fmt"
+	"gtest/libs/retry"
+	"gtest/libs/retry/backoff"
+	"gtest/libs/retry/strategy"
 	"gtest/libs/testErr"
 	"io"
 	"io/ioutil"
@@ -23,6 +26,17 @@ import (
 	"github.com/op/go-logging"
 	"github.com/schollz/progressbar"
 )
+
+/*
+Base Function:
+1. 查看S3中包含的bucket
+2. bucket中的文件/文件夹
+3. bucket的删除
+4. bucket的创建
+5. bucket的文件上传
+6. bucket的文件下载
+7. bucket的文件删除
+*/
 
 // define const for size unit
 const (
@@ -223,24 +237,8 @@ func NewS3Client(endpoint string, accessID string, accessSecret string) *s3.S3 {
 		return s3Client
 	}
 
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: tr}
-	// Configure to use Minio Server
-	s3Config := &aws.Config{
-		Credentials:      credentials.NewStaticCredentials(accessID, accessSecret, ""),
-		Endpoint:         aws.String(endpoint),
-		Region:           aws.String("us-west-2"),
-		DisableSSL:       aws.Bool(false),
-		S3ForcePathStyle: aws.Bool(true),
-		HTTPClient:       client,
-	}
-	newSession, err := session.NewSession(s3Config)
-	if err != nil {
-		logger.Error(err)
-	}
-	s3Client := s3.New(newSession, s3Config)
+	newSession := NewSession(endpoint, accessID, accessSecret)
+	s3Client := s3.New(newSession, newSession.Config)
 
 	return s3Client
 }
@@ -314,6 +312,19 @@ func UploadFile(sess *session.Session, s3Bucket string, localFilePath string) er
 	return nil
 }
 
+// UploadFileRetry ...
+func UploadFileRetry(sess *session.Session, s3Bucket string, localFilePath string) error {
+	action := func(attempt uint) error {
+		return UploadFile(sess, s3Bucket, localFilePath)
+	}
+	err := retry.Retry(
+		action,
+		strategy.Limit(25),
+		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+	)
+	return err
+}
+
 // UploadFileWithProcess ...
 func UploadFileWithProcess(sess *session.Session, s3Bucket string, localFilePath string) error {
 	file, err := os.Open(localFilePath)
@@ -358,6 +369,19 @@ func UploadFileWithProcess(sess *session.Session, s3Bucket string, localFilePath
 	return nil
 }
 
+// UploadFileWithProcessRetry ...
+func UploadFileWithProcessRetry(sess *session.Session, s3Bucket string, localFilePath string) error {
+	action := func(attempt uint) error {
+		return UploadFileWithProcess(sess, s3Bucket, localFilePath)
+	}
+	err := retry.Retry(
+		action,
+		strategy.Limit(5),
+		strategy.Backoff(backoff.Fibonacci(30*time.Microsecond)),
+	)
+	return err
+}
+
 // DownloadFile ...
 func DownloadFile(svc *s3.S3, s3Bucket string, s3Path string, locairlDir string) error {
 	fullPath := *svc.Config.Endpoint + "/" + s3Bucket + "/" + s3Path
@@ -383,6 +407,19 @@ func DownloadFile(svc *s3.S3, s3Bucket string, s3Path string, locairlDir string)
 
 	logger.Info("Download PASS:", fullPath)
 	return nil
+}
+
+// DownloadFileRetry ...
+func DownloadFileRetry(svc *s3.S3, s3Bucket string, s3Path string, locairlDir string) error {
+	action := func(attempt uint) error {
+		return DownloadFile(svc, s3Bucket, s3Path, locairlDir)
+	}
+	err := retry.Retry(
+		action,
+		strategy.Limit(25),
+		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+	)
+	return err
 }
 
 // DownloadFileWithProcess ...
@@ -419,6 +456,19 @@ func DownloadFileWithProcess(svc *s3.S3, s3Bucket string, s3Path string, locairl
 
 	logger.Info("Download PASS:", fullPath)
 	return nil
+}
+
+// DownloadFileWithProcessRetry ...
+func DownloadFileWithProcessRetry(svc *s3.S3, s3Bucket string, s3Path string, locairlDir string) error {
+	action := func(attempt uint) error {
+		return DownloadFileWithProcess(svc, s3Bucket, s3Path, locairlDir)
+	}
+	err := retry.Retry(
+		action,
+		strategy.Limit(25),
+		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+	)
+	return err
 }
 
 func sortBuckets(buckets []*Bucket) {
@@ -664,5 +714,27 @@ func DeleteBucket(svc *s3.S3, bucket string) error {
 
 // DeleteBucketFile ...
 func DeleteBucketFile(svc *s3.S3, s3Bucket string, s3Path string) error {
+	fullPath := *svc.Config.Endpoint + "/" + s3Bucket + "/" + s3Path
+	deleteInput := s3.DeleteObjectInput{
+		Bucket: &s3Bucket,
+		Key:    aws.String(s3Path),
+	}
+	_, err := svc.DeleteObject(&deleteInput)
+	if err != nil {
+		logger.Errorf("Unable to delete object %s, %v", fullPath, err)
+		return err
+	}
+
+	err = svc.WaitUntilObjectNotExists(&s3.HeadObjectInput{
+		Bucket: aws.String(s3Bucket),
+		Key:    aws.String(s3Path),
+	})
+
+	if err != nil {
+		logger.Errorf("Deleted object still exist:%s, %v", fullPath, err)
+		return err
+	}
+
+	logger.Info("Deleted PASS:", fullPath)
 	return nil
 }
