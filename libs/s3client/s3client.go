@@ -3,14 +3,14 @@ package s3client
 import (
 	"crypto/tls"
 	"fmt"
-	"pzatest/libs/retry"
-	"pzatest/libs/retry/backoff"
-	"pzatest/libs/retry/strategy"
-	"pzatest/libs/testErr"
 	"io"
 	"net/http"
 	"os"
 	"path"
+	"pzatest/libs/retry"
+	"pzatest/libs/retry/backoff"
+	"pzatest/libs/retry/strategy"
+	"pzatest/libs/testErr"
 	"sort"
 	"strings"
 	"sync"
@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/op/go-logging"
-	"github.com/schollz/progressbar"
+	"github.com/schollz/progressbar/v3"
 )
 
 /*

@@ -24,7 +24,7 @@ import (
 
 	"github.com/op/go-logging"
 	"github.com/qianlnk/pgbar"
-	"github.com/schollz/progressbar"
+	"github.com/schollz/progressbar/v3"
 )
 
 var logger = logging.MustGetLogger("test")

@@ -11,7 +11,7 @@ import (
 	"pzatest/libs/retry/jitter"
 
 	"github.com/op/go-logging"
-	"github.com/schollz/progressbar"
+	"github.com/schollz/progressbar/v3"
 )
 
 var logger = logging.MustGetLogger("test")
