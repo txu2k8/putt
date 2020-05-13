@@ -1,4 +1,4 @@
-# pzatest - A golang project for "Stress | DevOps | Maintenance | ..."
+# pzatest - A golang project for Stress | DevOps | Maintenance
 
 If you have any questions or requirements, please let me know.
 [tao.xu2008@outlook.com -- Tao.Xu](tao.xu2008@outlook.com)
