@@ -22,7 +22,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "pzatest",
 	Short: "The rootCmd of this test project",
-	Long:  `example: vztest stress --ssh_pwd password`,
+	Long:  `pzatest project for "Stress | DevOps | Maintenance | ..."`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
