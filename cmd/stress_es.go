@@ -79,6 +79,7 @@ var esCmd = &cobra.Command{
 
 func init() {
 	stressCmd.AddCommand(esCmd)
+	suite = "es"
 	// esCmd.PersistentFlags().String("foo", "", "A help for foo")
 	// esCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

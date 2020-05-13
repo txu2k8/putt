@@ -38,5 +38,6 @@ var restartServiceCmd = &cobra.Command{
 
 func init() {
 	stressCmd.AddCommand(haCmd)
+	suite = "ha"
 	haCmd.AddCommand(restartNodeCmd)
 }

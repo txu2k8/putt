@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -54,6 +55,13 @@ func PrintWithProgressBar(prefix string, total int) {
 		}
 	}()
 	wg.Wait()
+}
+
+// GetCurDir ...
+func GetCurDir() string {
+	dir, _ := os.Executable()
+	exPath := filepath.Dir(dir)
+	return exPath
 }
 
 // UniqueID returns a unique UUID-like identifier.

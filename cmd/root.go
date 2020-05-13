@@ -3,17 +3,22 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path"
+	"pzatest/libs/tlog"
 	"pzatest/models"
+	"strings"
+	"time"
 
 	"github.com/op/go-logging"
 	"github.com/spf13/cobra"
 )
 
 var (
-	logger   = logging.MustGetLogger("test")
-	runTimes int  // runTimes
-	debug    bool // debug modle
-	// var cfgFile string
+	logger     = logging.MustGetLogger("test")
+	runTimes   int  // runTimes
+	debug      bool // debug modle
+	module     string
+	suite      string
 	caseList   []string // Case List
 	vizionBase models.VizionBaseInput
 )
@@ -33,6 +38,7 @@ var rootCmd = &cobra.Command{
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	initLogging()
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -41,7 +47,6 @@ func Execute() {
 
 func init() {
 	// cobra.OnInitialize(initConfig)
-
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
@@ -91,6 +96,28 @@ func initConfig() {
 }
 */
 
+// initLogging initialize the logging configs
+func initLogging() {
+	dir, _ := os.Getwd()
+	fileLogName := "vizion"
+	fileLogPath := path.Join(dir, "log")
+	timeStr := time.Now().Format("20060102150405")
+	for _, v := range stripCommands() {
+		fileLogName = fmt.Sprintf("%s-%s", fileLogName, v)
+		fileLogPath = path.Join(fileLogPath, v)
+	}
+	fileLogName = fmt.Sprintf("%s-%s.log", fileLogName, timeStr)
+	fileLogPath = path.Join(fileLogPath, fileLogName)
+
+	conf := tlog.NewOptions(
+		tlog.OptionSetFileLogPath(fileLogPath),
+	)
+	conf.InitLogging()
+	logger.Infof("Args: pzatest %s", strings.Join(os.Args[1:], " "))
+}
+
+// ==========
+
 // CaseMapToString ...
 func CaseMapToString(caseMap map[string]string) string {
 	caseString := fmt.Sprintf("\n  %-3s %-20s  CaseDescription\n", "NO.", "CaseName")
@@ -101,4 +128,37 @@ func CaseMapToString(caseMap map[string]string) string {
 	}
 
 	return caseString
+}
+
+func stripCommands() []string {
+	commands := []string{}
+	args := os.Args[1:]
+	ps := ""
+	for len(args) > 0 {
+		s := args[0]
+		args = args[1:]
+		switch {
+		case s == "--":
+			// "--" terminates the flags
+			break
+		case strings.HasPrefix(s, "--") && !strings.Contains(s, "="):
+			// If '--flag arg' then
+			// delete arg from args.
+			fallthrough // (do the same as below)
+		case strings.HasPrefix(s, "-") && !strings.Contains(s, "=") && len(s) == 2:
+			// If '-f arg' then
+			// delete 'arg' from args or break the loop if len(args) <= 1.
+			if len(args) <= 1 {
+				break
+			} else {
+				args = args[1:]
+				continue
+			}
+		case s != "" && !strings.HasPrefix(s, "-") && !strings.HasPrefix(ps, "-"):
+			commands = append(commands, s)
+		}
+		ps = s
+	}
+
+	return commands
 }
