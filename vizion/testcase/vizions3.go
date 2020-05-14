@@ -3,6 +3,7 @@ package testcase
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"pzatest/libs/prettytable"
@@ -12,6 +13,7 @@ import (
 	"pzatest/libs/s3client"
 	"pzatest/libs/utils"
 	"pzatest/models"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -41,17 +43,42 @@ func CreateUploadFiles(conf models.S3TestInput) []UploadFile {
 	var fileMd5 string
 
 	for _, fileConf := range conf.S3TestFileInputs {
-		fileUploadDir := path.Join(fileConf.FileDir, "upload")
-		if conf.RenameFile == true {
-			timeStr := time.Now().Format("20060102150405")
-			fileConf.FileNamePrefix = fileConf.FileNamePrefix + "_" + timeStr
-		}
+		fileUploadNamePrefix := fileConf.FileNamePrefix
+		patternPrefix := fileConf.FileNamePrefix
 		emptyIdx := fileConf.FileNum * conf.EmptyPercent / 100
 		randomIdx := fileConf.FileNum * conf.RandomPercent / 100
+		fileUploadDir := path.Join(fileConf.FileDir, "upload")
+
+		// Get the exist files list
+		existFileInfoList, err := ioutil.ReadDir(fileUploadDir)
+		if err != nil {
+			logger.Panicf("List local files fail: %s", err)
+		}
+
+		if conf.RenameFile == true {
+			timeStr := time.Now().Format("20060102150405")
+			fileUploadNamePrefix += "_" + timeStr
+			patternPrefix += "_\\d{14}"
+		}
+
 		for i := 0; i < fileConf.FileNum; i++ {
 			uploadFile := UploadFile{}
-			fileName := fmt.Sprintf("%s_%d.%s", fileConf.FileNamePrefix, i, fileConf.FileType)
+			fileName := fmt.Sprintf("%s_%d.%s", fileUploadNamePrefix, i, fileConf.FileType)
 			filePath := path.Join(fileUploadDir, fileName)
+			// os.Rename the exist file with diff timeStr
+			if conf.RenameFile == true {
+				pattern := fmt.Sprintf("%s_%d.%s", patternPrefix, i, fileConf.FileType)
+				for _, existFile := range existFileInfoList {
+					existFileName := existFile.Name()
+					matched, _ := regexp.MatchString(pattern, existFileName)
+					if matched {
+						existFilePath := path.Join(fileUploadDir, existFileName)
+						logger.Infof("os.Rename: %s -> %s", existFilePath, filePath)
+						os.Rename(existFilePath, filePath)
+						break
+					}
+				}
+			}
 
 			if i < emptyIdx {
 				randomSize = 0
@@ -75,6 +102,7 @@ func CreateUploadFiles(conf models.S3TestInput) []UploadFile {
 			fileArr = append(fileArr, uploadFile)
 		}
 	}
+	logger.Panic()
 	return fileArr
 }
 
