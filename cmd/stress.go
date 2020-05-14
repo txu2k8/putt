@@ -9,8 +9,8 @@ import (
 // stressCmd represents the stress command
 var stressCmd = &cobra.Command{
 	Use:   "stress",
-	Short: "Vizion Stress test",
-	Long:  `Vizion Stress test include S3/ES/HA ...`,
+	Short: "Stress test",
+	Long:  `Stress test cases S3/ES/HA ...`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("stress called")
 	},

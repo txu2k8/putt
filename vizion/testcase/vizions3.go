@@ -37,11 +37,13 @@ func CreateUploadFiles(conf models.S3TestInput) []UploadFile {
 	logger.Info("> Prepare upload data ...")
 	var fileArr []UploadFile
 	var randomSize int64
+	var mode string = "a+"
 	var fileMd5 string
-	timeStr := time.Now().Format("20060102150405")
 
 	for _, fileConf := range conf.S3TestFileInputs {
+		fileUploadDir := path.Join(fileConf.FileDir, "upload")
 		if conf.RenameFile == true {
+			timeStr := time.Now().Format("20060102150405")
 			fileConf.FileNamePrefix = fileConf.FileNamePrefix + "_" + timeStr
 		}
 		emptyIdx := fileConf.FileNum * conf.EmptyPercent / 100
@@ -49,10 +51,11 @@ func CreateUploadFiles(conf models.S3TestInput) []UploadFile {
 		for i := 0; i < fileConf.FileNum; i++ {
 			uploadFile := UploadFile{}
 			fileName := fmt.Sprintf("%s_%d.%s", fileConf.FileNamePrefix, i, fileConf.FileType)
-			filePath := path.Join(fileConf.FileDir, "upload", fileName)
+			filePath := path.Join(fileUploadDir, fileName)
 
 			if i < emptyIdx {
 				randomSize = 0
+				mode = "w+"
 			} else {
 				randomSize = utils.GetRandomInt64(fileConf.FileSizeMin, fileConf.FileSizeMax)
 			}
@@ -61,7 +64,7 @@ func CreateUploadFiles(conf models.S3TestInput) []UploadFile {
 			if (i < randomIdx) && (fExist == true) {
 				fileMd5 = utils.GetFileMd5sumWithPath(filePath)
 			} else {
-				fileMd5 = utils.CreateFile(filePath, randomSize, 128)
+				fileMd5 = utils.CreateFile(filePath, randomSize, 128, mode)
 			}
 
 			uploadFile.FileName = fileName
@@ -173,9 +176,26 @@ func S3DownloadFiles(conf models.S3TestInput, downloadFiles []UploadFile) error 
 	return nil
 }
 
+// S3ListBuckets ...
+func S3ListBuckets(conf models.S3TestInput) error {
+	var err error
+	logger.Info(">> Multi-ListBuckets: Vizion S3 ListBuckets test start ...")
+	conf.ParseS3Input()
+	svc := s3client.NewS3Client(conf.Endpoint, conf.S3AccessID, conf.S3SecretKey)
+	err = s3client.ListBuckets(svc)
+	logger.Info(">> Multi-ListBuckets: Vizion S3 ListBuckets test complete ...")
+	return err
+}
+
 // S3ListBucketObjects ...
 func S3ListBucketObjects(conf models.S3TestInput) error {
-	return nil
+	var err error
+	logger.Info(">> Multi-ListBucketFiles: Vizion S3 ListBucketFiles test start ...")
+	conf.ParseS3Input()
+	svc := s3client.NewS3Client(conf.Endpoint, conf.S3AccessID, conf.S3SecretKey)
+	err = s3client.ListBucketFiles(svc, conf.S3Bucket)
+	logger.Info(">> Multi-ListBucketFiles: Vizion S3 ListBucketFiles test complete ...")
+	return err
 }
 
 // S3DeleteBucketFiles ...
@@ -186,7 +206,7 @@ func S3DeleteBucketFiles(conf models.S3TestInput, uploadFiles []UploadFile) erro
 
 	for _, file := range uploadFiles {
 		action := func(attempt uint) error {
-			return s3client.DeleteBucketFile(svc, conf.S3Bucket, file.FileName)
+			return s3client.DeleteBucketFileRetry(svc, conf.S3Bucket, file.FileName)
 		}
 		err := retry.Retry(
 			action,
@@ -205,6 +225,10 @@ func S3DeleteBucketFiles(conf models.S3TestInput, uploadFiles []UploadFile) erro
 func S3UploadDownloadListDeleteFiles(conf models.S3TestInput) error {
 	uploadFiles, err := S3UploadFiles(conf)
 	if err != nil {
+		return err
+	}
+
+	if err := S3ListBuckets(conf); err != nil {
 		return err
 	}
 
@@ -303,11 +327,6 @@ func MultiS3DownloadFiles(conf models.S3TestInput, downloadFiles []UploadFile) e
 	return err
 }
 
-// MultiS3ListBucketObjects ...
-func MultiS3ListBucketObjects(conf models.S3TestInput) error {
-	return nil
-}
-
 // MultiS3DeleteBucketFiles ...
 func MultiS3DeleteBucketFiles(conf models.S3TestInput, uploadFiles []UploadFile) error {
 	var err error
@@ -323,7 +342,7 @@ func MultiS3DeleteBucketFiles(conf models.S3TestInput, uploadFiles []UploadFile)
 		case ch <- struct{}{}:
 			w.wg.Add(1)
 			go func() {
-				err = s3client.DeleteBucketFile(svc, conf.S3Bucket, fileName)
+				err = s3client.DeleteBucketFileRetry(svc, conf.S3Bucket, fileName)
 				if err != nil {
 					w.done <- struct{}{}
 				}
@@ -346,7 +365,11 @@ func MultiS3UploadDownloadListDeleteFiles(conf models.S3TestInput) error {
 		return err
 	}
 
-	if err := MultiS3ListBucketObjects(conf); err != nil {
+	if err := S3ListBuckets(conf); err != nil {
+		return err
+	}
+
+	if err := S3ListBucketObjects(conf); err != nil {
 		return err
 	}
 
@@ -359,4 +382,34 @@ func MultiS3UploadDownloadListDeleteFiles(conf models.S3TestInput) error {
 	}
 
 	return nil
+}
+
+// MultiUserS3UploadDownloadListDeleteFiles ... TODO
+func MultiUserS3UploadDownloadListDeleteFiles(conf models.S3TestInput) error {
+	var err error
+	logger.Info(">> Multi-Users: Vizion S3 UploadDownloadListDeleteFiles test start ...")
+
+	w := Worker{maxParallel: 100}
+	ch := make(chan struct{}, w.maxParallel)
+	for i := 0; i < conf.Clients; i++ {
+		time.Sleep(2 * time.Second)
+		select {
+		case ch <- struct{}{}:
+			w.wg.Add(1)
+			go func() {
+				err = S3UploadDownloadListDeleteFiles(conf)
+				if err != nil {
+					w.wg.Done()
+					w.done <- struct{}{}
+				}
+				<-ch
+				w.wg.Done()
+			}()
+		case <-w.done:
+			break
+		}
+	}
+	w.wg.Wait()
+	logger.Info(">> Multi-Users: Vizion S3 UploadDownloadListDeleteFiles test complete ...")
+	return err
 }

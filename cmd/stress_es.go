@@ -21,7 +21,7 @@ var esTestCaseArray = map[string]string{
 var esCmd = &cobra.Command{
 	Use:   "es",
 	Short: "Vizion ES Index/Search",
-	Long:  fmt.Sprintf(`Vizion ES Index/Search(multi progress).%s`, CaseMapToString(esTestCaseArray)),
+	Long:  fmt.Sprintf(`Vizion ES Index/Search(multi progress).%s`, caseMapToString(esTestCaseArray)),
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(caseList) == 0 {
 			caseList = []string{"index"}
@@ -79,7 +79,7 @@ var esCmd = &cobra.Command{
 
 func init() {
 	stressCmd.AddCommand(esCmd)
-	suite = "es"
+
 	// esCmd.PersistentFlags().String("foo", "", "A help for foo")
 	// esCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

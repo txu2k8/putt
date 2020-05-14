@@ -1,4 +1,4 @@
-# pzatest - A golang project for Stress | DevOps | Maintenance
+# pzatest(Golang) - A project for Stress | DevOps | Maintenance
 
 If you have any questions or requirements, please let me know.
 [tao.xu2008@outlook.com -- Tao.Xu](tao.xu2008@outlook.com)
@@ -6,7 +6,7 @@ If you have any questions or requirements, please let me know.
 ## Install
 
 ```shell
-go get -u gitlab.panzura.com/stress/pzatest
+go get -u gitlab.xxx.com/stress/pzatest
 ```
 
 ## Usage
@@ -50,8 +50,8 @@ Usage:
 
 Available Commands:
   deploy      Deploy test env
-  stress      Vizion Stress test
-  tools       Vizion ops tools
+  stress      Stress test
+  tools       DevOps tools
   help        Help about any command
 
 Flags:

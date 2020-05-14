@@ -9,8 +9,8 @@ import (
 // toolsCmd represents the tools command
 var toolsCmd = &cobra.Command{
 	Use:   "tools",
-	Short: "Vizion ops tools",
-	Long:  `Vizion tools include deploy/maint/check ...`,
+	Short: "DevOps tools",
+	Long:  `DevOps tools include deploy/maint/check ...`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("tools called")
 	},

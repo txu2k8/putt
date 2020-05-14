@@ -102,7 +102,7 @@ func initLogging() {
 	fileLogName := "vizion"
 	fileLogPath := path.Join(dir, "log")
 	timeStr := time.Now().Format("20060102150405")
-	for _, v := range stripCommands() {
+	for _, v := range stripArgs() {
 		fileLogName = fmt.Sprintf("%s-%s", fileLogName, v)
 		fileLogPath = path.Join(fileLogPath, v)
 	}
@@ -116,10 +116,10 @@ func initLogging() {
 	logger.Infof("Args: pzatest %s", strings.Join(os.Args[1:], " "))
 }
 
-// ==========
+// ========== Common functions ==========
 
 // CaseMapToString ...
-func CaseMapToString(caseMap map[string]string) string {
+func caseMapToString(caseMap map[string]string) string {
 	caseString := fmt.Sprintf("\n  %-3s %-20s  CaseDescription\n", "NO.", "CaseName")
 	idx := 1
 	for k, v := range caseMap {
@@ -130,7 +130,7 @@ func CaseMapToString(caseMap map[string]string) string {
 	return caseString
 }
 
-func stripCommands() []string {
+func stripArgs() []string {
 	commands := []string{}
 	args := os.Args[1:]
 	ps := ""

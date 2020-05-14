@@ -11,6 +11,7 @@ import (
 	"pzatest/libs/retry/backoff"
 	"pzatest/libs/retry/strategy"
 	"pzatest/libs/testErr"
+	"pzatest/libs/utils"
 	"sort"
 	"strings"
 	"sync"
@@ -400,7 +401,7 @@ func DownloadFile(svc *s3.S3, s3Bucket string, s3Path string, localDir string) e
 
 	tempfileName := tempfile.Name()
 	downloader := s3manager.NewDownloader(session.Must(session.NewSession(&svc.Config)))
-	if _, err := downloader.Download(tempfile, params); err != nil {
+	if n, err := downloader.Download(tempfile, params); n != 0 && err != nil {
 		logger.Errorf("Download failed! Deleting tempfile: %s", tempfileName)
 		os.Remove(tempfileName)
 		return err
@@ -448,7 +449,7 @@ func DownloadFileWithProcess(svc *s3.S3, s3Bucket string, s3Path string, localDi
 
 	tempfileName := tempfile.Name()
 	downloader := s3manager.NewDownloader(session.Must(session.NewSession(&svc.Config)))
-	if _, err := downloader.Download(writer, params); err != nil {
+	if n, err := downloader.Download(writer, params); n != 0 && err != nil {
 		logger.Errorf("Download failed! Deleting tempfile: %s", tempfileName)
 		os.Remove(tempfileName)
 		return err
@@ -471,6 +472,157 @@ func DownloadFileWithProcessRetry(svc *s3.S3, s3Bucket string, s3Path string, lo
 	return err
 }
 
+// ListBuckets ...
+func ListBuckets(svc *s3.S3) error {
+	buckets, err := getBuckets(svc)
+	if err != nil {
+		logger.Errorf("ListBuckets failed, %v", err)
+		return err
+	}
+	logger.Infof("Bucket list:\n%s", utils.Prettify(buckets))
+	return err
+}
+
+// ListBucketsRetry ...
+func ListBucketsRetry(svc *s3.S3) error {
+	action := func(attempt uint) error {
+		return ListBuckets(svc)
+	}
+	err := retry.Retry(
+		action,
+		strategy.Limit(25),
+		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+	)
+	return err
+}
+
+// ListBucketFiles ...
+func ListBucketFiles(svc *s3.S3, s3Bucket string) error {
+	objs, errObjs, err := getBucketObjects(svc, s3Bucket)
+	if err != nil {
+		logger.Errorf("ListBucketFiles failed, %v", err)
+		return err
+	}
+	fileArry := []string{}
+	errFileArry := []string{}
+	for _, obj := range objs {
+		fileArry = append(fileArry, obj.Key)
+	}
+	for _, errObj := range errObjs {
+		errFileArry = append(errFileArry, errObj.Key)
+	}
+	logger.Infof("Bucket Files:\n%s", utils.Prettify(fileArry))
+	if len(errFileArry) > 0 {
+		logger.Warningf("Bucket Err Files:\n%s", utils.Prettify(errFileArry))
+	}
+	return err
+}
+
+// ListBucketFilesRetry ...
+func ListBucketFilesRetry(svc *s3.S3, s3Bucket string) error {
+	action := func(attempt uint) error {
+		return ListBucketFiles(svc, s3Bucket)
+	}
+	err := retry.Retry(
+		action,
+		strategy.Limit(25),
+		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+	)
+	return err
+}
+
+// DeleteBucketFile ...
+func DeleteBucketFile(svc *s3.S3, s3Bucket string, s3Path string) error {
+	fullPath := *svc.Config.Endpoint + "/" + s3Bucket + "/" + s3Path
+	deleteInput := s3.DeleteObjectInput{
+		Bucket: &s3Bucket,
+		Key:    aws.String(s3Path),
+	}
+	_, err := svc.DeleteObject(&deleteInput)
+	if err != nil {
+		logger.Errorf("Unable to delete object %s, %v", fullPath, err)
+		return err
+	}
+
+	err = svc.WaitUntilObjectNotExists(&s3.HeadObjectInput{
+		Bucket: aws.String(s3Bucket),
+		Key:    aws.String(s3Path),
+	})
+
+	if err != nil {
+		logger.Errorf("Deleted object still exist:%s, %v", fullPath, err)
+		return err
+	}
+
+	logger.Info("Deleted PASS:", fullPath)
+	return nil
+}
+
+// DeleteBucketFileRetry ...
+func DeleteBucketFileRetry(svc *s3.S3, s3Bucket string, s3Path string) error {
+	action := func(attempt uint) error {
+		return DeleteBucketFile(svc, s3Bucket, s3Path)
+	}
+	err := retry.Retry(
+		action,
+		strategy.Limit(25),
+		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+	)
+	return err
+}
+
+// CreateBucket returns a bucket created for the tests.
+func CreateBucket(svc *s3.S3, bucketName string) error {
+	logger.Info("Setup: Creating test bucket,", bucketName)
+	_, err := svc.CreateBucket(&s3.CreateBucketInput{Bucket: &bucketName})
+	if err != nil {
+		return fmt.Errorf("failed to create bucket %s, %v", bucketName, err)
+	}
+
+	fmt.Println("Setup: Waiting for bucket to exist,", bucketName)
+	err = svc.WaitUntilBucketExists(&s3.HeadBucketInput{Bucket: &bucketName})
+	if err != nil {
+		return fmt.Errorf("failed waiting for bucket %s to be created, %v", bucketName, err)
+	}
+
+	return nil
+}
+
+// DeleteBucket ...
+func DeleteBucket(svc *s3.S3, bucket string) error {
+	bucketName := &bucket
+
+	objs, err := svc.ListObjects(&s3.ListObjectsInput{Bucket: bucketName})
+	if err != nil {
+		return fmt.Errorf("failed to list bucket %q objects, %v", *bucketName, err)
+	}
+
+	for _, o := range objs.Contents {
+		svc.DeleteObject(&s3.DeleteObjectInput{Bucket: bucketName, Key: o.Key})
+	}
+
+	uploads, err := svc.ListMultipartUploads(&s3.ListMultipartUploadsInput{Bucket: bucketName})
+	if err != nil {
+		return fmt.Errorf("failed to list bucket %q multipart objects, %v", *bucketName, err)
+	}
+
+	for _, u := range uploads.Uploads {
+		svc.AbortMultipartUpload(&s3.AbortMultipartUploadInput{
+			Bucket:   bucketName,
+			Key:      u.Key,
+			UploadId: u.UploadId,
+		})
+	}
+
+	_, err = svc.DeleteBucket(&s3.DeleteBucketInput{Bucket: bucketName})
+	if err != nil {
+		return fmt.Errorf("failed to delete bucket %q, %v", *bucketName, err)
+	}
+
+	return nil
+}
+
+// ============= ListBucketObjectsConcurrently =============
 func sortBuckets(buckets []*Bucket) {
 	s := sortalbeBuckets(buckets)
 	sort.Sort(s)
@@ -500,8 +652,8 @@ func (b *Bucket) encryptedObjects() []Object {
 	return encObjs
 }
 
-// ListBuckets ...
-func ListBuckets(svc *s3.S3) ([]*Bucket, error) {
+// getBuckets ...
+func getBuckets(svc *s3.S3) ([]*Bucket, error) {
 	res, err := svc.ListBuckets(&s3.ListBucketsInput{})
 	if err != nil {
 		return nil, err
@@ -532,9 +684,9 @@ func ListBuckets(svc *s3.S3) ([]*Bucket, error) {
 	return buckets, nil
 }
 
-// ListBucketObjects : return objs
-func ListBucketObjects(svc *s3.S3, bucket string) ([]Object, []ErrObject, error) {
-	logger.Debug("ListBucketObjects:" + bucket)
+// getBucketObjects : return objs
+func getBucketObjects(svc *s3.S3, bucket string) ([]Object, []ErrObject, error) {
+	logger.Infof("getBucketObjects:%s", bucket)
 	listRes, err := svc.ListObjects(&s3.ListObjectsInput{
 		Bucket: &bucket,
 	})
@@ -570,7 +722,7 @@ func ListBucketObjects(svc *s3.S3, bucket string) ([]Object, []ErrObject, error)
 
 // get bucket details: return bucket:objs
 func bucketDetails(svc *s3.S3, bucket *Bucket) {
-	objs, errObjs, err := ListBucketObjects(svc, bucket.Name)
+	objs, errObjs, err := getBucketObjects(svc, bucket.Name)
 	if err != nil {
 		bucket.Error = err
 	} else {
@@ -582,7 +734,7 @@ func bucketDetails(svc *s3.S3, bucket *Bucket) {
 // getAccountBucketsDetails: return Account -> buckets:objects
 func getAccountBucketsDetails(sess *session.Session, bucketCh chan<- *Bucket, owner string) error {
 	svc := s3.New(sess)
-	buckets, err := ListBuckets(svc)
+	buckets, err := getBuckets(svc)
 	if err != nil {
 		return fmt.Errorf("failed to list buckets, %v", err)
 	}
@@ -658,83 +810,4 @@ func ListBucketObjectsConcurrently(svc *s3.S3, bucket string, accounts []string)
 			}
 		}
 	}
-}
-
-// CreateBucket returns a bucket created for the tests.
-func CreateBucket(svc *s3.S3, bucketName string) error {
-
-	logger.Info("Setup: Creating test bucket,", bucketName)
-	_, err := svc.CreateBucket(&s3.CreateBucketInput{Bucket: &bucketName})
-	if err != nil {
-		return fmt.Errorf("failed to create bucket %s, %v", bucketName, err)
-	}
-
-	fmt.Println("Setup: Waiting for bucket to exist,", bucketName)
-	err = svc.WaitUntilBucketExists(&s3.HeadBucketInput{Bucket: &bucketName})
-	if err != nil {
-		return fmt.Errorf("failed waiting for bucket %s to be created, %v", bucketName, err)
-	}
-
-	return nil
-}
-
-// DeleteBucket ...
-func DeleteBucket(svc *s3.S3, bucket string) error {
-	bucketName := &bucket
-
-	objs, err := svc.ListObjects(&s3.ListObjectsInput{Bucket: bucketName})
-	if err != nil {
-		return fmt.Errorf("failed to list bucket %q objects, %v", *bucketName, err)
-	}
-
-	for _, o := range objs.Contents {
-		svc.DeleteObject(&s3.DeleteObjectInput{Bucket: bucketName, Key: o.Key})
-	}
-
-	uploads, err := svc.ListMultipartUploads(&s3.ListMultipartUploadsInput{Bucket: bucketName})
-	if err != nil {
-		return fmt.Errorf("failed to list bucket %q multipart objects, %v", *bucketName, err)
-	}
-
-	for _, u := range uploads.Uploads {
-		svc.AbortMultipartUpload(&s3.AbortMultipartUploadInput{
-			Bucket:   bucketName,
-			Key:      u.Key,
-			UploadId: u.UploadId,
-		})
-	}
-
-	_, err = svc.DeleteBucket(&s3.DeleteBucketInput{Bucket: bucketName})
-	if err != nil {
-		return fmt.Errorf("failed to delete bucket %q, %v", *bucketName, err)
-	}
-
-	return nil
-}
-
-// DeleteBucketFile ...
-func DeleteBucketFile(svc *s3.S3, s3Bucket string, s3Path string) error {
-	fullPath := *svc.Config.Endpoint + "/" + s3Bucket + "/" + s3Path
-	deleteInput := s3.DeleteObjectInput{
-		Bucket: &s3Bucket,
-		Key:    aws.String(s3Path),
-	}
-	_, err := svc.DeleteObject(&deleteInput)
-	if err != nil {
-		logger.Errorf("Unable to delete object %s, %v", fullPath, err)
-		return err
-	}
-
-	err = svc.WaitUntilObjectNotExists(&s3.HeadObjectInput{
-		Bucket: aws.String(s3Bucket),
-		Key:    aws.String(s3Path),
-	})
-
-	if err != nil {
-		logger.Errorf("Deleted object still exist:%s, %v", fullPath, err)
-		return err
-	}
-
-	logger.Info("Deleted PASS:", fullPath)
-	return nil
 }

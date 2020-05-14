@@ -1,7 +1,6 @@
 package utils
 
 import (
-	_ "pzatest/testinit"
 	"testing"
 )
 
@@ -12,7 +11,9 @@ func TestUtilFunc(t *testing.T) {
 	// logger.Info(ByteCountDecimal(12792627))
 	// 2020-04-08T16:36:08 test INFO: 12.2 MB
 
-	// logger.Info(GetRandString(10))
+	logger.Infof("%v", GetRandomString(13))
+	// SleepProgressBar(1 * time.Second)
+	logger.Infof("%v", GetRandomString(13))
 	// SleepProgressBar(10 * time.Second)
 	// PrintWithProgressBar("test", 100)
 

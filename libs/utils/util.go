@@ -87,7 +87,7 @@ func GetRandomInt64(min, max int64) int64 {
 	return min + result.Int64()
 }
 
-// GetRandString return a random string
+// GetRandString return a random string -- ERROR
 func GetRandString(strSize int64) string {
 	const letterBytes = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	const (
@@ -110,6 +110,19 @@ func GetRandString(strSize int64) string {
 	}
 
 	return string(b)
+}
+
+// GetRandomString return a random string
+func GetRandomString(strSize int64) string {
+	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	bytes := []byte(str)
+	result := []byte{}
+	r := mathrand.New(mathrand.NewSource(time.Now().UnixNano()))
+	time.Sleep(1 * time.Nanosecond)
+	for i := int64(0); i < strSize; i++ {
+		result = append(result, bytes[r.Intn(len(bytes))])
+	}
+	return string(result)
 }
 
 // GetFileMd5sum ...
@@ -148,9 +161,10 @@ func PathExists(path string) (bool, error) {
 }
 
 // CreateFile create original file, each line with line_number, and specified line size
-//
-func CreateFile(filePath string, fileSize int64, lineSize int64) string {
-	// logger.Infof(">> Create/Write file: %s", filePath)
+// mode: w 只能写 覆盖整个文件 不存在则创建; a 只能写 从文件底部添加内容 不存在则创建
+func CreateFile(filePath string, fileSize int64, lineSize int64, mode string) string {
+	logger.Debugf(">> Create/Write file: %s", filePath)
+	var flag int
 	fileDir := path.Dir(filePath)
 	err := os.MkdirAll(fileDir, os.ModePerm)
 	if err != nil {
@@ -160,7 +174,24 @@ func CreateFile(filePath string, fileSize int64, lineSize int64) string {
 	lineCount := fileSize / lineSize
 	unalignedSize := fileSize % lineSize
 
-	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	switch mode {
+	case "r": // 只能读
+		flag = os.O_RDONLY
+	case "r+": // 可读可写 不会创建不存在的文件 从顶部开始写 会覆盖之前此位置的内容
+		flag = os.O_RDONLY | os.O_TRUNC
+	case "w": // 只能写 覆盖整个文件 不存在则创建
+		flag = os.O_CREATE | os.O_WRONLY | os.O_TRUNC
+	case "w+": // 可读可写 如果文件存在 则覆盖整个文件不存在则创建
+		flag = os.O_CREATE | os.O_RDWR | os.O_TRUNC
+	case "a": // 只能写 从文件底部添加内容 不存在则创建
+		flag = os.O_CREATE | os.O_WRONLY | os.O_APPEND
+	case "a+": // 可读可写 从文件顶部读取内容 从文件底部添加内容 不存在则创建
+		flag = os.O_CREATE | os.O_RDWR | os.O_APPEND
+	default: // "a"
+		flag = os.O_CREATE | os.O_WRONLY | os.O_APPEND
+
+	}
+	file, err := os.OpenFile(filePath, flag, 0666)
 	if err != nil {
 		logger.Panic(err)
 	}
@@ -168,14 +199,14 @@ func CreateFile(filePath string, fileSize int64, lineSize int64) string {
 
 	var lineNum int64
 	for lineNum = 0; lineNum < lineCount; lineNum++ {
-		randString := GetRandString(lineSize-int64(2)-int64(len(string(lineNum)))) + "\n"
+		randString := GetRandomString(lineSize-int64(2)-int64(len(string(lineNum)))) + "\n"
 		randLineString := fmt.Sprintf("%s:%s", strconv.FormatInt(lineNum, 10), randString)
 		file.WriteString(randLineString)
 	}
 	if unalignedSize > 0 {
-		file.WriteString(GetRandString(unalignedSize))
+		file.WriteString(GetRandomString(unalignedSize))
 	}
-	fileMd5 := GetFileMd5sum(file)
+	fileMd5 := GetFileMd5sumWithPath(filePath)
 	return fileMd5
 }
 
