@@ -2,8 +2,8 @@ package models
 
 import (
 	"fmt"
-	"pzatest/libs/utils"
 	"path"
+	"pzatest/libs/utils"
 	"strconv"
 	"strings"
 
@@ -82,4 +82,24 @@ func (conf *S3TestInput) ParseS3Input() {
 		conf.S3TestFileInputs[i].FileDir = path.Join(conf.LocalDataDir, strS3Ip)
 	}
 	logger.Debugf("S3TestInput:%v", utils.Prettify(conf))
+}
+
+// ESTestInput ...
+type ESTestInput struct {
+	IP              string
+	UserName        string
+	Password        string
+	Port            int
+	URL             string // Parse(IP,Port) --> URL
+	IndexNamePrefix string // index name prefix
+	Indices         int    // Number of indices to write
+	Documents       int    // Number of template documents that hold the same mapping
+	BulkSize        int    // How many documents each bulk request should contain
+}
+
+// ParseESInput ...
+func (conf *ESTestInput) ParseESInput() {
+	// Parse ES Ip Port to conf.URL
+	conf.URL = fmt.Sprintf("http://%s:%d", conf.IP, conf.Port)
+	logger.Debugf("ESTestInput:%v", utils.Prettify(conf))
 }

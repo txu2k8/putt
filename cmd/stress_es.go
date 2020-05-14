@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var esTestConf = models.S3TestInput{}
+var esTestConf = models.ESTestInput{}
 var esTestCaseArray = map[string]string{
 	"index":   "es index test (default)",
 	"search":  "es search test",
@@ -80,6 +80,15 @@ var esCmd = &cobra.Command{
 func init() {
 	stressCmd.AddCommand(esCmd)
 
-	// esCmd.PersistentFlags().String("foo", "", "A help for foo")
-	// esCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	esCmd.PersistentFlags().StringVar(&esTestConf.IP, "es_ip", "", "ES server IP address")
+	esCmd.PersistentFlags().StringVar(&esTestConf.UserName, "es_user", "root", "ES login username")
+	esCmd.PersistentFlags().StringVar(&esTestConf.Password, "es_pwd", "password", "ES login password")
+	esCmd.PersistentFlags().IntVar(&esTestConf.Port, "es_port", 9211, "ES server access port")
+	esCmd.PersistentFlags().StringVar(&esTestConf.IndexNamePrefix, "index_name", "pzatest", "index name prefix")
+	esCmd.PersistentFlags().IntVar(&esTestConf.Indices, "indice", 50, "Number of indices to write")
+	esCmd.PersistentFlags().IntVar(&esTestConf.Documents, "document", 100000, "Number of template documents that hold the same mapping")
+	esCmd.PersistentFlags().IntVar(&esTestConf.BulkSize, "bulk_size", 1000, "How many documents each bulk request should contain")
+
+	esCmd.MarkPersistentFlagRequired("es_ip")
+	esCmd.MarkPersistentFlagRequired("es_port")
 }

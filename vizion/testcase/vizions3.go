@@ -102,7 +102,6 @@ func CreateUploadFiles(conf models.S3TestInput) []UploadFile {
 			fileArr = append(fileArr, uploadFile)
 		}
 	}
-	logger.Panic()
 	return fileArr
 }
 

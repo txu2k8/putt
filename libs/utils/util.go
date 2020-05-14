@@ -388,3 +388,34 @@ func DeepCopy(dst, src interface{}) error {
 	}
 	return gob.NewDecoder(bytes.NewBuffer(buf.Bytes())).Decode(dst)
 }
+
+// DedupStringList ...
+func DedupStringList(list []string) (output []string) {
+	tempMap := make(map[string]bool)
+	for _, value := range list {
+		if _, ok := tempMap[value]; !ok {
+			tempMap[value] = true
+			output = append(output, value)
+		}
+	}
+	return
+}
+
+// EscapeString ...
+func EscapeString(s string) string {
+	var signEscapeMap = map[string]string{
+		"\\": "\\\\",
+	}
+
+	for source := range signEscapeMap {
+		s = strings.Replace(s, source, signEscapeMap[source], -1)
+	}
+
+	return s
+}
+
+// TimeTrack ...
+func TimeTrack(start time.Time, name string) {
+	elapsed := time.Since(start)
+	logger.Infof("function %s finishes after %s", name, elapsed)
+}
