@@ -13,7 +13,7 @@ func TestUtilFunc(t *testing.T) {
 
 	logger.Infof("%v", GetRandomString(13))
 	// SleepProgressBar(1 * time.Second)
-	logger.Infof("%v", GetRandomString(13))
+	logger.Infof("%v", string(UniqueID()))
 	// SleepProgressBar(10 * time.Second)
 	// PrintWithProgressBar("test", 100)
 

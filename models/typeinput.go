@@ -95,6 +95,7 @@ type ESTestInput struct {
 	Indices         int    // Number of indices to write
 	Documents       int    // Number of template documents that hold the same mapping
 	BulkSize        int    // How many documents each bulk request should contain
+	Workers         int    // Number of workers.
 }
 
 // ParseESInput ...

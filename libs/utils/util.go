@@ -25,6 +25,7 @@ import (
 
 	"github.com/op/go-logging"
 	"github.com/qianlnk/pgbar"
+	uuid "github.com/satori/go.uuid"
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -66,9 +67,27 @@ func GetCurDir() string {
 
 // UniqueID returns a unique UUID-like identifier.
 func UniqueID() string {
-	uuid := make([]byte, 16)
-	io.ReadFull(rand.Reader, uuid)
-	return fmt.Sprintf("%s", uuid)
+	u := make([]byte, 16)
+	io.ReadFull(rand.Reader, u)
+	return fmt.Sprintf("%s", u)
+}
+
+// GetUUID ...
+func GetUUID() string {
+	return uuid.NewV4().String()
+}
+
+// GetCurrentTimeUnix ...
+func GetCurrentTimeUnix() int64 {
+	return time.Now().Unix()
+}
+
+// GetRandomInt ...
+func GetRandomInt(min int, max int) int {
+	r := mathrand.New(mathrand.NewSource(time.Now().UnixNano()))
+	time.Sleep(1 * time.Nanosecond)
+	p := r.Perm(max - min + 1)
+	return p[min]
 }
 
 // GetRandomInt64 return rand int64 i range [-m, n]
@@ -121,6 +140,24 @@ func GetRandomString(strSize int64) string {
 	time.Sleep(1 * time.Nanosecond)
 	for i := int64(0); i < strSize; i++ {
 		result = append(result, bytes[r.Intn(len(bytes))])
+	}
+	return string(result)
+}
+
+// GetRandomDigit return a random Digit
+func GetRandomDigit(strSize int64) string {
+	str := "0123456789"
+	bytes := []byte(str)
+	result := []byte{}
+	r := mathrand.New(mathrand.NewSource(time.Now().UnixNano()))
+	time.Sleep(1 * time.Nanosecond)
+	for i := int64(0); i < strSize; i++ {
+		if i == 0 {
+			bytes9 := bytes[1:]
+			result = append(result, bytes9[r.Intn(len(bytes9))])
+		} else {
+			result = append(result, bytes[r.Intn(len(bytes))])
+		}
 	}
 	return string(result)
 }
