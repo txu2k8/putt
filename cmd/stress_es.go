@@ -31,11 +31,14 @@ var esCmd = &cobra.Command{
 		for _, tc := range caseList {
 			logger.Warning(tc)
 			jobs := []stress.Job{}
+			esIndex := func() error {
+				return testcase.ESIndex(esTestConf)
+			}
 			switch tc {
 			case "index":
 				jobs = []stress.Job{
 					{
-						Fn:       testcase.ESIndex,
+						Fn:       esIndex,
 						Name:     "ES Index",
 						RunTimes: runTimes,
 					},
@@ -51,7 +54,7 @@ var esCmd = &cobra.Command{
 			case "stress":
 				jobs = []stress.Job{
 					{
-						Fn:       testcase.ESIndex,
+						Fn:       esIndex,
 						Name:     "ES Index",
 						RunTimes: runTimes,
 					},
