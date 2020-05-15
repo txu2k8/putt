@@ -227,6 +227,18 @@ type StorageDc struct {
 	Version             int               `db:"version"`
 }
 
+// ESCluster ...
+type ESCluster struct {
+	ID       string   `db:"id"`
+	Port     string   `db:"port"`
+	Username string   `db:"user"`
+	Password string   `db:"password"`
+	Service  []string `db:"service"`
+	Status   int      `db:"status"`
+	Type     int      `db:"type"`
+	IPs      []string
+}
+
 // ============== vset sub cassandra tables ==============
 
 // S3Ns ...

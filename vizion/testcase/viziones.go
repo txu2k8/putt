@@ -4,11 +4,12 @@ import (
 	"errors"
 	"math/rand"
 	"pzatest/libs/utils"
+	"pzatest/models"
 	"time"
 )
 
 // ESIndex ...
-func ESIndex() error {
+func ESIndex(conf models.ESTestInput) error {
 	logger.Info("ES Index test start ...")
 	logger.Info("ES Index test complete ...")
 	if rand.Intn(1) == 0 {
@@ -32,6 +33,16 @@ func ESSearch() error {
 func ESCleanup() error {
 	logger.Info("ES Cleanup test start ...")
 	logger.Info("ES Cleanup test complete ...")
+	if rand.Intn(2) == 0 {
+		return errors.New("job error")
+	}
+	return nil
+}
+
+// ESStress : Index && Search
+func ESStress() error {
+	logger.Info("ES Stress(Index && Search) test start ...")
+	logger.Info("ES Stress:(Index && Search) test complete ...")
 	if rand.Intn(2) == 0 {
 		return errors.New("job error")
 	}

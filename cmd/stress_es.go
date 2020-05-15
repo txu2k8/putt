@@ -13,8 +13,8 @@ var esTestConf = models.ESTestInput{}
 var esTestCaseArray = map[string]string{
 	"index":   "es index test (default)",
 	"search":  "es search test",
-	"stress":  "es index stress test: index && search",
 	"cleanup": "cleanup exist es index",
+	"stress":  "es index stress test: index && search",
 }
 
 // esCmd represents the es command
