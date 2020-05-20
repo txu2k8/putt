@@ -3,13 +3,12 @@ package cmd
 import (
 	"fmt"
 	"pzatest/libs/runner/stress"
-	"pzatest/models"
 	"pzatest/vizion/testcase"
 
 	"github.com/spf13/cobra"
 )
 
-var esTestConf = models.ESTestInput{}
+var esTestConf = testcase.ESTestInput{}
 var esTestCaseArray = map[string]string{
 	"index":   "es index test (default)",
 	"search":  "es search test",
@@ -28,17 +27,16 @@ var esCmd = &cobra.Command{
 		}
 		logger.Infof("Case List(es): %s", caseList)
 		testJobs := []stress.Job{}
+		var esTester testcase.ESTester
+		esTester = &esTestConf
 		for _, tc := range caseList {
 			logger.Warning(tc)
 			jobs := []stress.Job{}
-			esIndex := func() error {
-				return testcase.ESIndex(esTestConf)
-			}
 			switch tc {
 			case "index":
 				jobs = []stress.Job{
 					{
-						Fn:       esIndex,
+						Fn:       esTester.ESIndex,
 						Name:     "ES Index",
 						RunTimes: runTimes,
 					},
@@ -46,7 +44,7 @@ var esCmd = &cobra.Command{
 			case "search":
 				jobs = []stress.Job{
 					{
-						Fn:       testcase.ESSearch,
+						Fn:       esTester.ESSearch,
 						Name:     "ES Search",
 						RunTimes: runTimes,
 					},
@@ -54,12 +52,12 @@ var esCmd = &cobra.Command{
 			case "stress":
 				jobs = []stress.Job{
 					{
-						Fn:       esIndex,
+						Fn:       esTester.ESIndex,
 						Name:     "ES Index",
 						RunTimes: runTimes,
 					},
 					{
-						Fn:       testcase.ESSearch,
+						Fn:       esTester.ESSearch,
 						Name:     "ES Search",
 						RunTimes: runTimes,
 					},
@@ -67,7 +65,7 @@ var esCmd = &cobra.Command{
 			case "cleanup":
 				jobs = []stress.Job{
 					{
-						Fn:       testcase.ESCleanup,
+						Fn:       esTester.ESCleanup,
 						Name:     "Cleanup ES Index",
 						RunTimes: runTimes,
 					},

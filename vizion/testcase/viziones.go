@@ -2,14 +2,44 @@ package testcase
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"pzatest/libs/utils"
-	"pzatest/models"
 	"time"
 )
 
+// ESTester ...
+type ESTester interface {
+	ESIndex() error
+	ESSearch() error
+	ESCleanup() error
+	ESStress() error
+}
+
+// ESTestInput ...
+type ESTestInput struct {
+	IP              string
+	UserName        string
+	Password        string
+	Port            int
+	URL             string // Parse(IP,Port) --> URL
+	IndexNamePrefix string // index name prefix
+	Indices         int    // Number of indices to write
+	Documents       int    // Number of template documents that hold the same mapping
+	BulkSize        int    // How many documents each bulk request should contain
+	Workers         int    // Number of workers.
+}
+
+// ParseESInput ...
+func (conf *ESTestInput) ParseESInput() {
+	// Parse ES Ip Port to conf.URL
+	conf.URL = fmt.Sprintf("http://%s:%d", conf.IP, conf.Port)
+	logger.Debugf("ESTestInput:%v", utils.Prettify(conf))
+}
+
 // ESIndex ...
-func ESIndex(conf models.ESTestInput) error {
+func (conf *ESTestInput) ESIndex() error {
+	conf.ParseESInput()
 	logger.Info("ES Index test start ...")
 	logger.Info("ES Index test complete ...")
 	if rand.Intn(1) == 0 {
@@ -20,7 +50,7 @@ func ESIndex(conf models.ESTestInput) error {
 }
 
 // ESSearch ...
-func ESSearch() error {
+func (conf *ESTestInput) ESSearch() error {
 	logger.Info("ES Search test start ...")
 	logger.Info("ES Search test complete ...")
 	if rand.Intn(2) == 0 {
@@ -30,7 +60,7 @@ func ESSearch() error {
 }
 
 // ESCleanup ...
-func ESCleanup() error {
+func (conf *ESTestInput) ESCleanup() error {
 	logger.Info("ES Cleanup test start ...")
 	logger.Info("ES Cleanup test complete ...")
 	if rand.Intn(2) == 0 {
@@ -40,7 +70,7 @@ func ESCleanup() error {
 }
 
 // ESStress : Index && Search
-func ESStress() error {
+func (conf *ESTestInput) ESStress() error {
 	logger.Info("ES Stress(Index && Search) test start ...")
 	logger.Info("ES Stress:(Index && Search) test complete ...")
 	if rand.Intn(2) == 0 {

@@ -4,13 +4,12 @@ import (
 	"fmt"
 
 	"pzatest/libs/runner/stress"
-	"pzatest/models"
 	"pzatest/vizion/testcase"
 
 	"github.com/spf13/cobra"
 )
 
-var s3TestConf = models.S3TestInput{}
+var s3TestConf = testcase.S3TestInput{}
 
 var s3TestCaseArray = map[string]string{
 	"upload":          "s3 upload test",
@@ -30,12 +29,14 @@ var s3Cmd = &cobra.Command{
 		}
 		logger.Infof("Case List(s3): %s", caseList)
 		testJobs := []stress.Job{}
+		var s3Tester testcase.S3Tester
+		s3Tester = &s3TestConf
 		for _, tc := range caseList {
 			jobs := []stress.Job{}
 			switch tc {
 			case "upload":
 				upload := func() error {
-					_, err := testcase.MultiS3UploadFiles(s3TestConf)
+					_, err := s3Tester.MultiS3UploadFiles()
 					return err
 				}
 				jobs = []stress.Job{
@@ -46,23 +47,17 @@ var s3Cmd = &cobra.Command{
 					},
 				}
 			case "upload_download":
-				updownload := func() error {
-					return testcase.MultiS3UploadDownloadListDeleteFiles(s3TestConf)
-				}
 				jobs = []stress.Job{
 					{
-						Fn:       updownload,
+						Fn:       s3Tester.MultiS3UploadDownloadListDeleteFiles,
 						Name:     "Multi S3 Upload/List/Download/Delete",
 						RunTimes: runTimes,
 					},
 				}
 			case "multi_users":
-				updownload := func() error {
-					return testcase.MultiUserS3UploadDownloadListDeleteFiles(s3TestConf)
-				}
 				jobs = []stress.Job{
 					{
-						Fn:       updownload,
+						Fn:       s3Tester.MultiUserS3UploadDownloadListDeleteFiles,
 						Name:     "Multi-Users S3 Upload/List/Download/Delete",
 						RunTimes: runTimes,
 					},
