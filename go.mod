@@ -15,8 +15,9 @@ require (
 	github.com/mattn/go-runewidth v0.0.9
 	github.com/newhook/go-symbols v0.0.0-20151212134530-b75dfefa0d23 // indirect
 	github.com/nsf/gocode v0.0.0-20190302080247-5bee97b48836 // indirect
-	github.com/olivere/elastic v6.2.31+incompatible
-	github.com/olivere/elastic/v7 v7.0.15
+	github.com/olivere/elastic v6.2.31+incompatible // indirect
+	github.com/olivere/elastic/v6 v6.2.1
+	github.com/olivere/elastic/v7 v7.0.15 // indirect
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/qianlnk/pgbar v0.0.0-20190929032005-46c23acad4ed
 	github.com/qianlnk/to v0.0.0-20191230085244-91e712717368 // indirect

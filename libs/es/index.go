@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"math/rand"
+	"pzatest/libs/utils"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/olivere/elastic/v7"
+	"github.com/olivere/elastic/v6"
 )
 
 // Elasticsearch via BulkProcessor.
@@ -22,21 +23,22 @@ type Bulker struct {
 	bulkSize    int    // BulkSize specifies when to flush based on the size (in bytes) of the actions currently added. default:5MB
 	bulkActions int    // BulkActions specifies when to flush based on the number of actions currently added. default:1000
 
-	beforeCalls  int64         // # of calls into before callback
-	afterCalls   int64         // # of calls into after callback
-	failureCalls int64         // # of successful calls into after callback
-	successCalls int64         // # of successful calls into after callback
-	seq          int64         // sequential id
-	stopC        chan struct{} // stop channel for the indexer
-	throttleMu   sync.Mutex    // guards the following block
-	throttle     bool          // throttle (or stop) sending data into bulk processor?
+	beforeCalls  int64          // # of calls into before callback
+	afterCalls   int64          // # of calls into after callback
+	failureCalls int64          // # of successful calls into after callback
+	successCalls int64          // # of successful calls into after callback
+	wg           sync.WaitGroup // WaitGroup
+	seq          int64          // sequential id
+	stopC        chan struct{}  // stop channel for the indexer
+	throttleMu   sync.Mutex     // guards the following block
+	throttle     bool           // throttle (or stop) sending data into bulk processor?
 }
 
 // Run starts the Bulker.
 func (b *Bulker) Run() error {
 	ctx := context.Background()
 	// Recreate Elasticsearch index
-	if err := b.ensureIndex(); err != nil {
+	if err := b.CreateIndex(CreateIndexBody); err != nil {
 		return err
 	}
 
@@ -53,6 +55,8 @@ func (b *Bulker) Run() error {
 	if err != nil {
 		return err
 	}
+
+	defer p.Close()
 
 	b.p = p
 
@@ -93,8 +97,10 @@ func (b *Bulker) indexer() {
 				// 	Seq: atomic.AddInt64(&b.seq, 1),
 				// }
 
+				logger.Info("sssss")
 				doc := randomDoc()
-
+				logger.Info("aaa")
+				logger.Info(utils.Prettify(doc))
 				// Add bulk request.
 				// Notice that we need to set Index and Type here!
 				r := elastic.NewBulkIndexRequest().Index(b.index).Type("doc").Doc(doc)
@@ -106,6 +112,12 @@ func (b *Bulker) indexer() {
 	}
 
 	b.stopC <- struct{}{} // ack stopping
+
+	err := b.p.Start(context.Background())
+
+	if err != nil {
+		panic(err)
+	}
 }
 
 // before is invoked from bulk processor before every commit.

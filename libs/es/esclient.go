@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/olivere/elastic/v7"
+	"github.com/olivere/elastic/v6"
 	"github.com/op/go-logging"
 )
 

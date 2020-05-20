@@ -5,7 +5,7 @@ import (
 )
 
 func TestIndex(t *testing.T) {
-	indexNameArr := []string{"test1", "test2", "test3"}
+	indexNameArr := []string{"test1"}
 	client, _ := NewESClient("root", "password", "http://10.180.128.11:30380")
 	for _, indexName := range indexNameArr {
 		bulk := Bulker{
