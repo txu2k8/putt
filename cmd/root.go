@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 	"pzatest/libs/tlog"
-	"pzatest/models"
 	"strings"
 	"time"
 
@@ -13,14 +12,30 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// SSHKey ...
+type SSHKey struct {
+	UserName string // ssh login username
+	Password string // ssh loging password
+	Port     int    // ssh login port, default: 22
+	KeyFile  string // ssh login PrivateKey file full path
+}
+
+// VizionBaseInput ...
+type VizionBaseInput struct {
+	MasterIPs    []string // Master nodes ips array
+	VsetIDs      []int    // vset ids array
+	DPLGroupIDs  []int    // dpl group ids array
+	JDGroupIDs   []int    // jd group ids array
+	K8sNameSpace string   // k8s namespace
+	SSHKey                // ssh keys for connect to nodes
+}
+
 var (
 	logger     = logging.MustGetLogger("test")
-	runTimes   int  // runTimes
-	debug      bool // debug modle
-	module     string
-	suite      string
+	runTimes   int      // runTimes
+	debug      bool     // debug modle
 	caseList   []string // Case List
-	vizionBase models.VizionBaseInput
+	vizionBase VizionBaseInput
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -59,6 +74,7 @@ func init() {
 	rootCmd.PersistentFlags().IntSliceVar(&vizionBase.VsetIDs, "vset_ids", []int{}, "vset IDs array")
 	rootCmd.PersistentFlags().IntSliceVar(&vizionBase.DPLGroupIDs, "dpl_group_ids", []int{1}, "dpl group ids array")
 	rootCmd.PersistentFlags().IntSliceVar(&vizionBase.JDGroupIDs, "jd_group_ids", []int{1}, "jd group ids array")
+	rootCmd.PersistentFlags().StringVar(&vizionBase.K8sNameSpace, "k8s_np", "vizion", "k8s namespace")
 	// rootCmd.MarkPersistentFlagRequired("master_ips")
 	// rootCmd.MarkPersistentFlagRequired("vset_ids")
 
