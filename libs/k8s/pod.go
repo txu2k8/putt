@@ -291,3 +291,16 @@ func (c *Client) IsAllPodReady(input IsAllPodReadyInput) error {
 	}
 	return nil
 }
+
+// WaitForAllPodReady ...
+func (c *Client) WaitForAllPodReady(input IsAllPodReadyInput, tries int) error {
+	action := func(attempt uint) error {
+		return c.IsAllPodReady(input)
+	}
+	err := retry.Retry(
+		action,
+		strategy.Limit(uint(tries)),
+		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+	)
+	return err
+}

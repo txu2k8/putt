@@ -21,8 +21,15 @@ func TestNewClient(t *testing.T) {
 	// logger.Info(podsName)
 
 	client.NameSpace = "vizion"
-	client.WaitForPodReady(IsPodReadyInput{
-		PodName:       "servicedpl-1-1-0",
+	// client.WaitForPodReady(IsPodReadyInput{
+	// 	PodName:       "servicedpl-1-1-0",
+	// 	Image:         "registry.vizion.local/stable/dpl:2020-05-21-01-46-43-develop_notest",
+	// 	ContainerName: "servicedpl"},
+	// 	10,
+	// )
+
+	client.WaitForAllPodReady(IsAllPodReadyInput{
+		PodLabel:      "name=servicedpl-1-1",
 		Image:         "registry.vizion.local/stable/dpl:2020-05-21-01-46-43-develop_notest",
 		ContainerName: "servicedpl"},
 		10,
