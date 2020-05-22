@@ -2,11 +2,7 @@ package resources
 
 import (
 	"pzatest/libs/k8s"
-
-	"github.com/op/go-logging"
 )
-
-var log = logging.MustGetLogger("test")
 
 // ServiceManagerGetter has a method to return a ServiceManager.
 type ServiceManagerGetter interface {
