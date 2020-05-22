@@ -20,13 +20,18 @@ type SSHManager interface {
 	NewSessionWithRetry() (*ssh.Session, error) // SSH connect session, retry when failed
 }
 
-// SSHInput ssh login input keys
-type SSHInput struct {
-	Host     string // ssh node host ip address
+// SSHKey ...
+type SSHKey struct {
 	UserName string // ssh login username
 	Password string // ssh loging password
 	Port     int    // ssh login port, default: 22
 	KeyFile  string // ssh login PrivateKey file full path
+}
+
+// SSHInput ssh login input keys
+type SSHInput struct {
+	Host string // ssh node host ip address
+	SSHKey
 }
 
 var (
@@ -153,4 +158,10 @@ func (conf *SSHInput) RunCmd(cmdSpec string) (int, string) {
 	defer session.Close()
 	logger.Infof("Execute: ssh %s@%s# %s", conf.UserName, conf.Host, cmdSpec)
 	return RunCmdWithOutput(session, cmdSpec)
+}
+
+// SCPGet ...
+func (conf *SSHInput) SCPGet(localPath, remotePath string) error {
+	logger.Info("SCPGet ...")
+	return nil
 }

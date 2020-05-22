@@ -5,6 +5,8 @@ import (
 	"os"
 	"path"
 	"pzatest/libs/tlog"
+	"pzatest/libs/utils"
+	"pzatest/types"
 	"strings"
 	"time"
 
@@ -12,30 +14,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// SSHKey ...
-type SSHKey struct {
-	UserName string // ssh login username
-	Password string // ssh loging password
-	Port     int    // ssh login port, default: 22
-	KeyFile  string // ssh login PrivateKey file full path
-}
-
-// VizionBaseInput ...
-type VizionBaseInput struct {
-	MasterIPs    []string // Master nodes ips array
-	VsetIDs      []int    // vset ids array
-	DPLGroupIDs  []int    // dpl group ids array
-	JDGroupIDs   []int    // jd group ids array
-	K8sNameSpace string   // k8s namespace
-	SSHKey                // ssh keys for connect to nodes
-}
-
 var (
-	logger     = logging.MustGetLogger("test")
-	runTimes   int      // runTimes
-	debug      bool     // debug modle
-	caseList   []string // Case List
-	vizionBase VizionBaseInput
+	logger         = logging.MustGetLogger("test")
+	runTimes       int      // runTimes
+	debug          bool     // debug modle
+	caseList       []string // Case List
+	vizionBaseConf types.VizionBaseInput
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -46,7 +30,7 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Vizion Base Info: %v", vizionBase)
+		fmt.Printf("Vizion Base Info: %s", utils.Prettify(vizionBaseConf))
 	},
 }
 
@@ -70,18 +54,19 @@ func init() {
 	rootCmd.PersistentFlags().StringArrayVar(&caseList, "case", []string{}, "Test Case Array")
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.vztest.yaml)")
-	rootCmd.PersistentFlags().StringArrayVar(&vizionBase.MasterIPs, "master_ips", []string{}, "Master nodes IP address Array")
-	rootCmd.PersistentFlags().IntSliceVar(&vizionBase.VsetIDs, "vset_ids", []int{}, "vset IDs array")
-	rootCmd.PersistentFlags().IntSliceVar(&vizionBase.DPLGroupIDs, "dpl_group_ids", []int{1}, "dpl group ids array")
-	rootCmd.PersistentFlags().IntSliceVar(&vizionBase.JDGroupIDs, "jd_group_ids", []int{1}, "jd group ids array")
-	rootCmd.PersistentFlags().StringVar(&vizionBase.K8sNameSpace, "k8s_np", "vizion", "k8s namespace")
+	rootCmd.PersistentFlags().StringArrayVar(&vizionBaseConf.MasterIPs, "master_ips", []string{}, "Master nodes IP address Array")
+	rootCmd.PersistentFlags().IntSliceVar(&vizionBaseConf.VsetIDs, "vset_ids", []int{}, "vset IDs array")
+	rootCmd.PersistentFlags().IntSliceVar(&vizionBaseConf.DPLGroupIDs, "dpl_group_ids", []int{1}, "dpl group ids array")
+	rootCmd.PersistentFlags().IntSliceVar(&vizionBaseConf.JDGroupIDs, "jd_group_ids", []int{1}, "jd group ids array")
+	rootCmd.PersistentFlags().StringVar(&vizionBaseConf.K8sNameSpace, "k8s_np", "vizion", "k8s namespace")
+	rootCmd.PersistentFlags().StringVar(&vizionBaseConf.KubeConfig, "kubeconfig", "C:\\workspace\\config", "k8s kubeconfig")
 	// rootCmd.MarkPersistentFlagRequired("master_ips")
 	// rootCmd.MarkPersistentFlagRequired("vset_ids")
 
-	rootCmd.PersistentFlags().StringVar(&vizionBase.SSHKey.UserName, "ssh_user", "root", "ssh login user")
-	rootCmd.PersistentFlags().StringVar(&vizionBase.SSHKey.Password, "ssh_pwd", "password", "ssh login password")
-	rootCmd.PersistentFlags().IntVar(&vizionBase.SSHKey.Port, "ssh_port", 22, "ssh login port")
-	rootCmd.PersistentFlags().StringVar(&vizionBase.SSHKey.KeyFile, "ssh_key", "", "ssh login PrivateKey file full path")
+	rootCmd.PersistentFlags().StringVar(&vizionBaseConf.SSHKey.UserName, "ssh_user", "root", "ssh login user")
+	rootCmd.PersistentFlags().StringVar(&vizionBaseConf.SSHKey.Password, "ssh_pwd", "password", "ssh login password")
+	rootCmd.PersistentFlags().IntVar(&vizionBaseConf.SSHKey.Port, "ssh_port", 22, "ssh login port")
+	rootCmd.PersistentFlags().StringVar(&vizionBaseConf.SSHKey.KeyFile, "ssh_key", "", "ssh login PrivateKey file full path")
 }
 
 // initConfig reads in config file and ENV variables if set.

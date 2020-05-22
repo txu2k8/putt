@@ -292,6 +292,57 @@ func (c *Client) IsAllPodReady(input IsAllPodReadyInput) error {
 	return nil
 }
 
+// IsAllPodDown ...
+func (c *Client) IsAllPodDown(input IsAllPodReadyInput) error {
+	allPods, err := c.Clientset.CoreV1().Pods(c.NameSpace).List(metav1.ListOptions{LabelSelector: input.PodLabel})
+	if err != nil {
+		logger.Errorf("%+v", err)
+		return err
+	}
+	if !input.IgnoreEmpty && len(allPods.Items) == 0 {
+		return fmt.Errorf("Got None pods")
+	}
+
+	for _, value := range allPods.Items {
+		pName := value.ObjectMeta.Name
+
+		// Phase
+		pPhase := value.Status.Phase
+		if pPhase == "Pending" {
+			return fmt.Errorf("Pod %s status: Pending", pName)
+		}
+
+		if input.NodeName != "" && input.NodeName != value.Spec.NodeName {
+			continue
+		}
+
+		// Image matched
+		if input.Image != "" {
+			image, err := c.GetPodImage(pName, input.ContainerName)
+			if err != nil {
+				return err
+			} else if image != input.Image {
+				return fmt.Errorf("Pod %s container [%s] image not matched!:%s", pName, input.ContainerName, input.Image)
+			}
+		}
+
+		// ContainerStatuses
+		if value.Status.ContainerStatuses != nil {
+			for _, cStatus := range value.Status.ContainerStatuses {
+				cName := cStatus.Name
+				if cStatus.Ready {
+					logger.Infof("Pod %s container [%s] ready!", pName, cName)
+				} else {
+					return fmt.Errorf("Pod %s container [%s] not ready", pName, cName)
+				}
+			}
+		} else {
+			return fmt.Errorf("Pod %s containers not ready", pName)
+		}
+	}
+	return nil
+}
+
 // WaitForAllPodReady ...
 func (c *Client) WaitForAllPodReady(input IsAllPodReadyInput, tries int) error {
 	action := func(attempt uint) error {

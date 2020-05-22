@@ -1,4 +1,4 @@
-package cass
+package resources
 
 import (
 	"errors"
@@ -6,12 +6,9 @@ import (
 	"pzatest/libs/db"
 
 	"github.com/gocql/gocql"
-	"github.com/op/go-logging"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 )
-
-var logger = logging.MustGetLogger("test")
 
 // CassCluster ...
 type CassCluster struct {

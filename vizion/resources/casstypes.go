@@ -1,4 +1,4 @@
-package cass
+package resources
 
 import (
 	"time"

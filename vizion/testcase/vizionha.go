@@ -2,6 +2,8 @@ package testcase
 
 import (
 	"pzatest/libs/utils"
+	"pzatest/types"
+	"pzatest/vizion/resources"
 )
 
 // HATester ...
@@ -143,3 +145,14 @@ func (job *RestartNodeTestInput) Run() error {
 }
 
 // ============================= RestartService =============================
+
+// Debug code
+func Debug(conf types.VizionBaseInput) error {
+	host := "10.25.119.77"
+	vizion := resources.VizionBase{VizionBaseInput: conf}
+	exist := vizion.Node(host).IsDplmodExist()
+	logger.Info(exist)
+	vizion.Service().K8sEnableNodeLabel("", "", "")
+
+	return nil
+}

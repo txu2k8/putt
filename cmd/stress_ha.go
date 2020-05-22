@@ -58,7 +58,29 @@ var restartServiceCmd = &cobra.Command{
 	Short: "VRestart Env Services",
 	Long:  `Vizion high availability test. --help for detail args.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("ha restart_service called")
+		if len(caseList) == 0 {
+			caseList = []string{"restart_service"}
+		}
+		logger.Infof("Case List(ha): %s", caseList)
+		testJobs := []stress.Job{}
+		for _, tc := range caseList {
+			jobs := []stress.Job{}
+			switch tc {
+			case "restart_service":
+				debug := func() error {
+					return testcase.Debug(vizionBaseConf)
+				}
+				jobs = []stress.Job{
+					{
+						Fn:       debug,
+						Name:     "RestartService",
+						RunTimes: runTimes,
+					},
+				}
+			}
+			testJobs = append(testJobs, jobs...)
+		}
+		stress.Run(testJobs)
 	},
 }
 
