@@ -12,6 +12,7 @@ var logger = logging.MustGetLogger("test")
 // BaseInterface ...
 type BaseInterface interface {
 	NodeGetter
+	DplmanagerGetter
 	ServiceManagerGetter
 }
 
@@ -23,6 +24,11 @@ type VizionBase struct {
 // Node returns NodeInterface
 func (b *VizionBase) Node(host string) NodeInterface {
 	return newNode(b, host)
+}
+
+// DplMgr returns Dplmanager
+func (b *VizionBase) DplMgr(host string) Dplmanager {
+	return newdplMgr(b, host)
 }
 
 // Service returns ServiceManager
