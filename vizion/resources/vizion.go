@@ -46,3 +46,15 @@ func (b *VizionBase) GetK8sClient() k8s.Client {
 	c.NameSpace = b.VizionBaseInput.K8sNameSpace
 	return c
 }
+
+// GetMasterCassClient returns a cassandra Client that is used to communicate
+// with master cassandra server by this client implementation.
+// TODO
+func (b *VizionBase) GetMasterCassClient() k8s.Client {
+	c, err := k8s.NewClientWithRetry(b.VizionBaseInput.KubeConfig)
+	if err != nil {
+		panic(err)
+	}
+	c.NameSpace = b.VizionBaseInput.K8sNameSpace
+	return c
+}
