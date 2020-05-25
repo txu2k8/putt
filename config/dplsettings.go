@@ -1,5 +1,16 @@
 package config
 
+import (
+	"fmt"
+	"pzatest/libs/utils"
+	"pzatest/types"
+	"strings"
+
+	"github.com/op/go-logging"
+)
+
+var logger = logging.MustGetLogger("test")
+
 // ========== const: K8S Settings ==========
 const (
 	K8sDeployment   = "deployment"
@@ -21,18 +32,6 @@ const (
 	DplmanagerLocalPath = "/usr/bin/dplmanager"
 	JDevicePath         = "/dev/j_device"
 )
-
-// DPL/SERVICE Settings
-const (
-	CHTYPEBD = "CH_TYPE_BD"
-	CHTYPES3 = "CH_TYPE_S3"
-)
-
-// Channel define the channel on dpl
-type Channel struct {
-	Type string
-	ID   string
-}
 
 // Service define the service information
 type Service struct {
@@ -56,6 +55,141 @@ type CleanItem struct {
 	Arg  []string
 }
 
+// GetPodLabel .
+func (sv *Service) GetPodLabel(base types.VizionBaseInput) (podLabel string) {
+	keyValue := strings.Split(sv.PodLabel, "=")
+	labelKey := keyValue[0]
+	labelValue := keyValue[1]
+
+	var podLabelValueArr []string
+	var podLabelValueStr string
+	switch sv.Type {
+	case MasterCass.Type, MysqlCluster.Type, MysqlOperator.Type, MysqlRouter.Type,
+		Dplexporter.Type, Dplmanager.Type, Nfsprovisioner.Type:
+		podLabelValueArr = []string{labelValue} // fixed label key=Value
+	case SubCass.Type:
+		for _, vsetID := range base.VsetIDs {
+			vsetPodValue := fmt.Sprintf("%s%d", labelValue, vsetID)
+			podLabelValueArr = append(podLabelValueArr, vsetPodValue)
+		}
+	case Jddpl.Type:
+		podLabelValueArr = []string{labelValue}
+		for _, jdGroupID := range base.JDGroupIDs {
+			jdLabelValue := fmt.Sprintf("%s-%d", labelValue, jdGroupID)
+			podLabelValueArr = append(podLabelValueArr, jdLabelValue)
+		}
+	case Servicedpl.Type:
+		for _, vsetID := range base.VsetIDs {
+			vsetPodValue := fmt.Sprintf("%s-%d", labelValue, vsetID)
+			podLabelValueArr = []string{labelValue, vsetPodValue}
+			for _, dplGroupID := range base.DPLGroupIDs {
+				dplLabelValue := fmt.Sprintf("%s-%d-%d", labelValue, vsetID, dplGroupID)
+				podLabelValueArr = append(podLabelValueArr, dplLabelValue)
+			}
+		}
+	case Mjcachedpl.Type, Djcachedpl.Type:
+		for _, vsetID := range base.VsetIDs {
+			vsetPodValue := fmt.Sprintf("%s-%d", labelValue, vsetID)
+			podLabelValueArr = []string{labelValue, vsetPodValue}
+			for _, jcacheGroupID := range base.JcacheGroupIDs {
+				jcacheLabelValue := fmt.Sprintf("%s-%d-%d", labelValue, vsetID, jcacheGroupID)
+				podLabelValueArr = append(podLabelValueArr, jcacheLabelValue)
+			}
+		}
+	case Mcmapdpl.Type, Dcmapdpl.Type:
+		podLabelValueArr = []string{labelValue}
+		for _, cmapGroupID := range base.CmapGroupIDs {
+			cmapLabelValue := fmt.Sprintf("%s-%d", labelValue, cmapGroupID)
+			podLabelValueArr = append(podLabelValueArr, cmapLabelValue)
+		}
+
+	default:
+		for _, vsetID := range base.VsetIDs {
+			vsetPodValue := fmt.Sprintf("%s-%d", labelValue, vsetID)
+			podLabelValueArr = append(podLabelValueArr, vsetPodValue)
+		}
+	}
+	podLabelValueStr = strings.Join(podLabelValueArr, ",")
+	podLabel = fmt.Sprintf("%s in (%s)", labelKey, podLabelValueStr)
+	logger.Debugf("PodLabel: %s", utils.Prettify(podLabel))
+	return
+}
+
+// GetNodeLabelArr .
+func (sv *Service) GetNodeLabelArr(base types.VizionBaseInput) (nodeLabelKeyArr, nodeLabelKeyValueArr []string) {
+	keyValue := strings.Split(sv.NodeLabel, "=")
+	labelKey := keyValue[0]
+	labelValue := keyValue[1]
+
+	switch sv.Type {
+	case Dplexporter.Type, Dplmanager.Type, MysqlCluster.Type,
+		Cdcgcbd.Type, Cdcgcs3.Type, Nfsprovisioner.Type:
+		nodeLabelKeyArr = []string{labelKey}
+		nodeLabelKeyValueArr = []string{labelKey + "=" + labelValue}
+	case Jddpl.Type:
+		for _, jdGroupID := range base.JDGroupIDs {
+			labelK := fmt.Sprintf("%s-%d", labelKey, jdGroupID)
+			labelKV := fmt.Sprintf("%s=%s", labelK, labelValue)
+			nodeLabelKeyArr = append(nodeLabelKeyArr, labelK)
+			nodeLabelKeyValueArr = append(nodeLabelKeyValueArr, labelKV)
+		}
+	case Servicedpl.Type:
+		for _, vsetID := range base.VsetIDs {
+			vsetLabelK := fmt.Sprintf("%s-%d", labelKey, vsetID)
+			vsetLabelKV := fmt.Sprintf("%s=%s", vsetLabelK, labelValue)
+			nodeLabelKeyArr = append(nodeLabelKeyArr, vsetLabelK)
+			nodeLabelKeyValueArr = append(nodeLabelKeyValueArr, vsetLabelKV)
+			for _, dplGroupID := range base.DPLGroupIDs {
+				labelK := fmt.Sprintf("%s-%d-%d", labelKey, vsetID, dplGroupID)
+				labelKV := fmt.Sprintf("%s=%s", labelK, labelValue)
+				nodeLabelKeyArr = append(nodeLabelKeyArr, labelK)
+				nodeLabelKeyValueArr = append(nodeLabelKeyValueArr, labelKV)
+			}
+		}
+	case Mjcachedpl.Type, Djcachedpl.Type:
+		for _, vsetID := range base.VsetIDs {
+			vsetLabelK := fmt.Sprintf("%s-%d", labelKey, vsetID)
+			vsetLabelKV := fmt.Sprintf("%s=%s", vsetLabelK, labelValue)
+			nodeLabelKeyArr = append(nodeLabelKeyArr, vsetLabelK)
+			nodeLabelKeyValueArr = append(nodeLabelKeyValueArr, vsetLabelKV)
+			for _, jcacheGroupID := range base.DPLGroupIDs {
+				labelK := fmt.Sprintf("%s-%d-%d", labelKey, vsetID, jcacheGroupID)
+				labelKV := fmt.Sprintf("%s=%s", labelK, labelValue)
+				nodeLabelKeyArr = append(nodeLabelKeyArr, labelK)
+				nodeLabelKeyValueArr = append(nodeLabelKeyValueArr, labelKV)
+			}
+		}
+	case Mcmapdpl.Type, Dcmapdpl.Type:
+		for _, jcacheGroupID := range base.DPLGroupIDs {
+			labelK := fmt.Sprintf("%s-%d", labelKey, jcacheGroupID)
+			labelKV := fmt.Sprintf("%s=%s", labelK, labelValue)
+			nodeLabelKeyArr = append(nodeLabelKeyArr, labelK)
+			nodeLabelKeyValueArr = append(nodeLabelKeyValueArr, labelKV)
+		}
+	case ES.Type:
+		// ES need bind to bd-vset nodes
+		bdKV := strings.Split(Dpldagent.NodeLabel, "=")
+		for _, vsetID := range base.VsetIDs {
+			vsetBdK := fmt.Sprintf("%s-%d", bdKV[0], vsetID)
+			vsetBdKV := fmt.Sprintf("%s=%s", vsetBdK, bdKV[1])
+			nodeLabelKeyArr = []string{fmt.Sprintf("%s,%s", vsetBdK, labelKey)}
+			nodeLabelKeyValueArr = []string{fmt.Sprintf("%s,%s", vsetBdKV, labelKey+"="+labelValue)}
+		}
+	default:
+		for _, vsetID := range base.VsetIDs {
+			vsetLabelK := fmt.Sprintf("%s-%d", labelKey, vsetID)
+			vsetLabelKV := fmt.Sprintf("%s=%s", vsetLabelK, labelValue)
+			nodeLabelKeyArr = append(nodeLabelKeyArr, vsetLabelK)
+			nodeLabelKeyValueArr = append(nodeLabelKeyValueArr, vsetLabelKV)
+		}
+	}
+
+	// logger.Debug(utils.Prettify(nodeLabelKeyArr))
+	logger.Debugf("NodeLabel: %s", utils.Prettify(nodeLabelKeyValueArr))
+	return
+}
+
+// ========== Define: Service/Binary ==========
 // ========== DPL Service/Binary ==========
 var (
 	// Mjcachedpl .
@@ -332,11 +466,83 @@ var (
 		TypeName:  "ETCD",
 		NameSpace: "kube-system",
 		K8sKind:   "",
-		PodLabel:  "component=etcd", // k=v, v-<vset_id>
-		NodeLabel: "node-role.kubernetes.io/etcd=true",          // k=v, v-<vset_id>
+		PodLabel:  "component=etcd",                    // k=v, v-<vset_id>
+		NodeLabel: "node-role.kubernetes.io/etcd=true", // k=v, v-<vset_id>
+		Container: "",
+		Replicas:  3,
+		GetPid:    "",
+	}
+
+	// MasterCass .
+	MasterCass = Service{
+		Name:      "MasterCass",
+		Type:      102,
+		TypeName:  "MasterCass",
+		NameSpace: "vizion",
+		K8sKind:   K8sStatefulsets,
+		PodLabel:  "app=cassandra-master", // k=v, v
+		NodeLabel: "cassandra-0=true",     // k=v, v
+		Container: "cassandra",
+		Replicas:  3,
+		GetPid:    "",
+	}
+
+	// SubCass .
+	SubCass = Service{
+		Name:      "SubCass",
+		Type:      103,
+		TypeName:  "SubCass",
+		NameSpace: "vizion",
+		K8sKind:   K8sStatefulsets,
+		PodLabel:  "app=cassandra-vset", // k=v, v-<vset_id>
+		NodeLabel: "cassandra=true",     // k=v, v-<vset_id>
+		Container: "cassandra",
+		Replicas:  3,
+		GetPid:    "",
+	}
+
+	// MysqlCluster .
+	MysqlCluster = Service{
+		Name:      "MysqlCluster",
+		Type:      104,
+		TypeName:  "MysqlCluster",
+		NameSpace: "vizion",
+		K8sKind:   K8sStatefulsets,
+		PodLabel:  "v1alpha1.mysql.oracle.com/cluster=mysql-cluster", // k=v, v
+		NodeLabel: "label-mysql=true",                                // k=v, v
+		Container: "mysql",
+		Replicas:  3,
+		GetPid:    "",
+	}
+
+	// MysqlOperator .
+	MysqlOperator = Service{
+		Name:      "MysqlOperator",
+		Type:      105,
+		TypeName:  "MysqlOperator",
+		NameSpace: "vizion",
+		K8sKind:   K8sDeployment,
+		PodLabel:  "app=mysql-operator", // k=v, v
+		NodeLabel: "label-mysql=true",   // k=v, v
+		Container: "mysql",
+		Replicas:  1,
+		GetPid:    "",
+	}
+
+	// MysqlRouter .
+	MysqlRouter = Service{
+		Name:      "MysqlRouter",
+		Type:      106,
+		TypeName:  "MysqlRouter",
+		NameSpace: "vizion",
+		K8sKind:   K8sDeployment,
+		PodLabel:  "app=mysql-router", // k=v, v
+		NodeLabel: "label-mysql=true", // k=v, v
+		Container: "mysql",
+		Replicas:  2,
+		GetPid:    "",
 	}
 )
-
 
 // ========== Clean Item ==========
 var (
@@ -352,8 +558,8 @@ var (
 
 	CleanSC = CleanItem{
 		Name: "storage_cache",
-		Arg:  []string{
-			"/opt/storage_cache/"
+		Arg: []string{
+			"/opt/storage_cache/",
 		},
 	}
 
@@ -382,10 +588,71 @@ var (
 
 	CleanEtcd = CleanItem{
 		Name: "etcd",
-		Arg:  []string{
-			"/vizion/dpl/add_vol"
+		Arg: []string{
+			"/vizion/dpl/add_vol",
 		},
 	}
+)
+
+// ========== Default: Service/Binary/CleanItem ==========
+var (
+	// Default dpl service for test/upgrade
+	DefaultDplServiceArray = []Service{
+		Mjcachedpl,
+		Djcachedpl,
+		Jddpl,
+		Servicedpl,
+		Flushdpl,
+		Mcmapdpl,
+		Dcmapdpl,
+		Dpldagent,
+		Vizions3,
+		Dplmanager,
+		Dplexporter,
+	}
+
+	// Default dpl binary for upgrade
+	DefaultDplBinaryArray = []Service{
+		Dplko,
+		Enctool,
+		Dplut,
+		Libetcdv3,
+	}
+
+	// Default app service for test
+	DefaultAppServiceArray = []Service{
+		ES,
+		Nfsprovisioner,
+		Cdcgcs3,
+		Cdcgcbd,
+	}
+
+	// Default master service for test
+	DefaultMasterServiceArray = []Service{
+		ETCD,
+		MasterCass,
+		SubCass,
+		MysqlCluster,
+		MysqlOperator,
+		MysqlRouter,
+	}
+
+	// DefaultCleanArray define the default cleanup item for maint/upgrade
+	DefaultCleanArray = []CleanItem{
+		CleanLog,
+		CleanJournal,
+		CleanSC,
+		CleanCdcgc,
+		CleanMasterCass,
+		CleanSubCass,
+		CleanEtcd,
+	}
+)
+
+// ========== const: DPL Channel type ==========
+const (
+	CHTYPEBD = "CH_TYPE_BD"
+	CHTYPES3 = "CH_TYPE_S3"
 )
 
 // DefaultCHTYPEArray define the default CH_TYPE list

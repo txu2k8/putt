@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/gob"
 	"encoding/hex"
 	"fmt"
@@ -455,4 +456,19 @@ func EscapeString(s string) string {
 func TimeTrack(start time.Time, name string) {
 	elapsed := time.Since(start)
 	logger.Infof("function %s finishes after %s", name, elapsed)
+}
+
+// Base64Encode ...
+func Base64Encode(input []byte) string {
+	encodeString := base64.StdEncoding.EncodeToString(input)
+	return encodeString
+}
+
+// Base64Decode ...
+func Base64Decode(encodeString string) []byte {
+	decodeBytes, err := base64.StdEncoding.DecodeString(encodeString)
+	if err != nil {
+		panic(err)
+	}
+	return decodeBytes
 }

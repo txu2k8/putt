@@ -148,11 +148,9 @@ func (job *RestartNodeTestInput) Run() error {
 
 // Debug code
 func Debug(conf types.VizionBaseInput) error {
-	host := "10.25.119.77"
+	// host := "10.25.119.77"
 	vizion := resources.VizionBase{VizionBaseInput: conf}
-	exist := vizion.Node(host).IsDplmodExist()
-	logger.Info(exist)
-	vizion.Service().K8sEnableNodeLabel("", "", "")
+	vizion.Service().Test("")
 
 	return nil
 }

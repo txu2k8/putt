@@ -4,42 +4,70 @@ import (
 	"errors"
 	"fmt"
 	"pzatest/libs/db"
+	"strings"
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
 )
 
-// CassCluster ...
-type CassCluster struct {
-	Session    *gocql.Session
-	sessionMap map[string]*gocql.Session
-	MdSession  *gocql.Session
+// CassClusterGetter has a method to return a CassCluster.
+type CassClusterGetter interface {
+	Cass() CassCluster
 }
 
-// cass clusters ...
-var masterCasCluster *gocql.ClusterConfig
+// CassCluster ...
+type CassCluster interface {
+	GetCassandraCluster() ([]CassandraCluster, error)
+	GetNode() ([]Node, error)
+	GetService(inputJSON GetServiceInput) ([]Service, error)
+	GetServiceByType(serviceType int) ([]Service, error)
+	GetServiceByTypeID(serviceType int, serviceUUID string) ([]Service, error)
+	GetVolume() ([]Volume, error)
+	GetTenant() ([]Tenant, error)
+	GetS3User() ([]S3User, error)
+	GetS3Bucket() ([]S3Bucket, error)
+	GetS3BucketGroup() ([]S3BucketGroup, error)
+}
+
+// CassConfig ...
+type CassConfig struct {
+	Index    int // 0-master, 1-vset1
+	IPs      []string
+	User     string
+	Password string
+	Port     int
+	Keyspace string
+}
+type sessCluster struct {
+	ConfigMap  map[string]CassConfig // {"0": CassConfig}
+	Session    *gocql.Session
+	SessionMap map[string]*gocql.Session
+}
+
+func newSessCluster(b *VizionBase) *sessCluster {
+	return &sessCluster{
+		ConfigMap: b.GetCassConfig(),
+	}
+}
 
 // SetIndex ...
-func (c *CassCluster) SetIndex(index string) {
-	c.MdSession = c.sessionMap[index]
-}
-
-// InitSessionMap ...
-func (c *CassCluster) InitSessionMap(masterConfig *db.CassConfig) {
-	masterSession, e := db.NewSessionWithRetry(masterConfig)
-	if e != nil {
-		panic(e)
+func (c *sessCluster) SetIndex(index string) {
+	config := c.ConfigMap[index]
+	dbConfig := db.CassConfig{
+		Hosts:    strings.Join(config.IPs, ","),
+		Username: config.User,
+		Password: config.Password,
+		Keyspace: config.Keyspace,
+		Port:     config.Port,
 	}
-	c.Session = masterSession
-
-	var master = make(map[string]*gocql.Session)
-	master["0"] = masterSession
-	c.sessionMap = master
+	session, _ := db.NewSessionWithRetry(&dbConfig)
+	c.SessionMap[index] = session
+	c.Session = c.SessionMap[index]
 }
 
 // DeleteFromTable ... TODO
-func DeleteFromTable(session *gocql.Session, table string) {
+func (c *sessCluster) DeleteFromTable(table string) {
 	stmt, _ := qb.Delete(table).Where(qb.EqLit("name", fmt.Sprintf("%s", "vset1_s3user"))).ToCql()
 	logger.Info(stmt)
 }
@@ -47,18 +75,18 @@ func DeleteFromTable(session *gocql.Session, table string) {
 // =============== select from table ===============
 
 // GetCassandraCluster ...
-func GetCassandraCluster(session *gocql.Session) ([]CassandraCluster, error) {
+func (c *sessCluster) GetCassandraCluster() ([]CassandraCluster, error) {
 	var ccs []CassandraCluster
 	stmt, names := qb.Select("cassandra_cluster").ToCql()
-	err := gocqlx.Query(session.Query(stmt), names).SelectRelease(&ccs)
+	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&ccs)
 	return ccs, err
 }
 
 // GetNode ...
-func GetNode(session *gocql.Session) ([]Node, error) {
+func (c *sessCluster) GetNode() ([]Node, error) {
 	var nodes []Node
 	stmt, names := qb.Select("node").ToCql()
-	err := gocqlx.Query(session.Query(stmt), names).SelectRelease(&nodes)
+	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&nodes)
 	return nodes, err
 }
 
@@ -85,7 +113,7 @@ func SelectServiceByTypeID(serviceType int, serviceUUID string) (stmt string, na
 }
 
 // GetService ...
-func GetService(session *gocql.Session, inputJSON GetServiceInput) ([]Service, error) {
+func (c *sessCluster) GetService(inputJSON GetServiceInput) ([]Service, error) {
 	var (
 		stmt     string
 		names    []string
@@ -102,62 +130,62 @@ func GetService(session *gocql.Session, inputJSON GetServiceInput) ([]Service, e
 	default:
 		return services, errors.New("Error type or id")
 	}
-	err := gocqlx.Query(session.Query(stmt), names).SelectRelease(&services)
+	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&services)
 	return services, err
 }
 
 // GetServiceByType ...
-func GetServiceByType(session *gocql.Session, serviceType int) ([]Service, error) {
+func (c *sessCluster) GetServiceByType(serviceType int) ([]Service, error) {
 	var services []Service
 	stmt, names := SelectServiceByType(serviceType)
-	err := gocqlx.Query(session.Query(stmt), names).SelectRelease(&services)
+	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&services)
 	return services, err
 }
 
 // GetServiceByTypeID ...
-func GetServiceByTypeID(session *gocql.Session, serviceType int, serviceUUID string) ([]Service, error) {
+func (c *sessCluster) GetServiceByTypeID(serviceType int, serviceUUID string) ([]Service, error) {
 	var services []Service
 	stmt, names := SelectServiceByTypeID(serviceType, serviceUUID)
-	err := gocqlx.Query(session.Query(stmt), names).SelectRelease(&services)
+	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&services)
 	return services, err
 }
 
 // GetVolume ...
-func GetVolume(session *gocql.Session) ([]Volume, error) {
+func (c *sessCluster) GetVolume() ([]Volume, error) {
 	var volumes []Volume
 	stmt, names := qb.Select("volume").ToCql()
-	err := gocqlx.Query(session.Query(stmt), names).SelectRelease(&volumes)
+	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&volumes)
 	return volumes, err
 }
 
 // GetTenant ...
-func GetTenant(session *gocql.Session) ([]Tenant, error) {
+func (c *sessCluster) GetTenant() ([]Tenant, error) {
 	var tenants []Tenant
 	stmt, names := qb.Select("tenant").ToCql()
-	err := gocqlx.Query(session.Query(stmt), names).SelectRelease(&tenants)
+	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&tenants)
 	return tenants, err
 }
 
 // GetS3User ...
-func GetS3User(session *gocql.Session) ([]S3User, error) {
+func (c *sessCluster) GetS3User() ([]S3User, error) {
 	var s3Users []S3User
 	stmt, names := qb.Select("s3user").ToCql()
-	err := gocqlx.Query(session.Query(stmt), names).SelectRelease(&s3Users)
+	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&s3Users)
 	return s3Users, err
 }
 
 // GetS3Bucket ...
-func GetS3Bucket(session *gocql.Session) ([]S3Bucket, error) {
+func (c *sessCluster) GetS3Bucket() ([]S3Bucket, error) {
 	var s3buckets []S3Bucket
 	stmt, names := qb.Select("s3bucket").ToCql()
-	err := gocqlx.Query(session.Query(stmt), names).SelectRelease(&s3buckets)
+	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&s3buckets)
 	return s3buckets, err
 }
 
 // GetS3BucketGroup ...
-func GetS3BucketGroup(session *gocql.Session) ([]S3BucketGroup, error) {
+func (c *sessCluster) GetS3BucketGroup() ([]S3BucketGroup, error) {
 	var s3bgs []S3BucketGroup
 	stmt, names := qb.Select("s3bucketgroup").ToCql()
-	err := gocqlx.Query(session.Query(stmt), names).SelectRelease(&s3bgs)
+	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&s3bgs)
 	return s3bgs, err
 }

@@ -58,6 +58,8 @@ func init() {
 	rootCmd.PersistentFlags().IntSliceVar(&vizionBaseConf.VsetIDs, "vset_ids", []int{}, "vset IDs array")
 	rootCmd.PersistentFlags().IntSliceVar(&vizionBaseConf.DPLGroupIDs, "dpl_group_ids", []int{1}, "dpl group ids array")
 	rootCmd.PersistentFlags().IntSliceVar(&vizionBaseConf.JDGroupIDs, "jd_group_ids", []int{1}, "jd group ids array")
+	rootCmd.PersistentFlags().IntSliceVar(&vizionBaseConf.JcacheGroupIDs, "jcache_group_ids", []int{1}, "jcache group ids array")
+	rootCmd.PersistentFlags().IntSliceVar(&vizionBaseConf.CmapGroupIDs, "cmap_group_ids", []int{1}, "cmap group ids array")
 	rootCmd.PersistentFlags().StringVar(&vizionBaseConf.K8sNameSpace, "k8s_np", "vizion", "k8s namespace")
 	rootCmd.PersistentFlags().StringVar(&vizionBaseConf.KubeConfig, "kubeconfig", "C:\\workspace\\config", "k8s kubeconfig")
 	// rootCmd.MarkPersistentFlagRequired("master_ips")
