@@ -50,7 +50,7 @@ func OutOfClusterConfig(kubeconfig string) (*rest.Config, error) {
 // NewClientSet ...
 func NewClientSet(cf *rest.Config) (*kubernetes.Clientset, error) {
 	// create the clientset
-	logger.Info(cf.Host)
+	logger.Infof("Connect to K8s Server: %s", cf.Host)
 	clientset, err := kubernetes.NewForConfig(cf)
 	if err != nil {
 		logger.Errorf("Get clientset error[%s]\n", err.Error())

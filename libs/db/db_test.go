@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	_ "pzatest/testinit"
 	"testing"
 	"time"
 
@@ -41,7 +40,7 @@ func getS3UserRow(session *gocql.Session, s3userName string) ([]s3User, error) {
 
 func TestDB(t *testing.T) {
 	cassConfig := CassConfig{
-		Hosts:    "10.25.119.84",
+		Hosts:    []string{"10.25.119.84"},
 		Username: "caadmin",
 		Password: "YFPliyZsejloVVrU",
 		Keyspace: "vizion",

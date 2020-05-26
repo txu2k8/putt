@@ -18,7 +18,7 @@ var (
 
 // CassConfig config for cassandra
 type CassConfig struct {
-	Hosts    string
+	Hosts    []string
 	Username string
 	Password string
 	Keyspace string
@@ -28,7 +28,7 @@ type CassConfig struct {
 func connectCluster(cf *CassConfig) *gocql.ClusterConfig {
 	// connect to the cluster
 	logger.Infof("Connect cassandra cluster:%+v", *cf)
-	cluster := gocql.NewCluster(cf.Hosts)
+	cluster := gocql.NewCluster(cf.Hosts...)
 	cluster.Port = cf.Port
 	cluster.Keyspace = cf.Keyspace
 	cluster.Timeout = time.Duration(cassTimeout) * time.Second
@@ -50,13 +50,9 @@ func NewSession(cf *CassConfig) (*gocql.Session, error) {
 
 // NewSessionWithRetry return the cassandra session
 func NewSessionWithRetry(cf *CassConfig) (*gocql.Session, error) {
-	if session != nil {
-		return session, nil
-	}
 	interval := time.Duration(15)
 	timeout := time.NewTimer(30 * time.Minute)
 	var err error
-
 loop:
 	for {
 		session, err = NewSession(cf)

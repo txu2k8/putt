@@ -73,7 +73,6 @@ func (c *Client) UpdateNodeLabel(nodeName string, labels map[string]string) erro
 			logger.Info("Update node label %s -> %s ...", nodeName, labels)
 			// c.Clientset.CoreV1().Nodes().Patch(nodeName, )
 		}
-
 	}
 
 	return nil

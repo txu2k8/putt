@@ -35,18 +35,19 @@ const (
 
 // Service define the service information
 type Service struct {
-	Name      string // service name
-	Path      string // service binary path in pod
-	GitPath   string // servicepath in gitlab
-	Type      int    // service Type ID
-	TypeName  string // service type name
-	NameSpace string // service in k8s namespace
-	K8sKind   string // service resource kind in k8s, sts,ds,deploy...
-	PodLabel  string // pod label template
-	NodeLabel string // node label template
-	Container string // service pod container name
-	Replicas  int    // service replicas
-	GetPid    string // the cmd to get service pid, eg: ps -ax | grep dpl
+	Name       string   // service name
+	Path       string   // service binary path in pod
+	GitPath    string   // servicepath in gitlab
+	Type       int      // service Type ID
+	TypeName   string   // service type name
+	NameSpace  string   // service in k8s namespace
+	K8sKind    string   // service resource kind in k8s, sts,ds,deploy...
+	PodLabel   string   // pod label template
+	NodeLabel  string   // node label template
+	Container  string   // service pod container name
+	Replicas   int      // service replicas
+	GetPid     string   // the cmd to get service pid, eg: ps -ax | grep dpl
+	LogPathArr []string // the service log path list
 }
 
 // CleanItem define the cleanup item
@@ -160,8 +161,8 @@ func (sv *Service) GetNodeLabelArr(base types.VizionBaseInput) (nodeLabelKeyArr,
 			}
 		}
 	case Mcmapdpl.Type, Dcmapdpl.Type:
-		for _, jcacheGroupID := range base.DPLGroupIDs {
-			labelK := fmt.Sprintf("%s-%d", labelKey, jcacheGroupID)
+		for _, cmapGroupID := range base.CmapGroupIDs {
+			labelK := fmt.Sprintf("%s-%d", labelKey, cmapGroupID)
 			labelKV := fmt.Sprintf("%s=%s", labelK, labelValue)
 			nodeLabelKeyArr = append(nodeLabelKeyArr, labelK)
 			nodeLabelKeyValueArr = append(nodeLabelKeyValueArr, labelKV)
@@ -189,181 +190,247 @@ func (sv *Service) GetNodeLabelArr(base types.VizionBaseInput) (nodeLabelKeyArr,
 	return
 }
 
+// GetLogDirArr .
+func (sv *Service) GetLogDirArr(base types.VizionBaseInput) (logDirArr []string) {
+	switch sv.Type {
+	case Jddpl.Type: // *-1
+		for _, jdGroupID := range base.JDGroupIDs {
+			for _, logPath := range sv.LogPathArr {
+				vsetLogPath := fmt.Sprintf("%s-%d", logPath, jdGroupID)
+				logDirArr = append(logDirArr, vsetLogPath)
+			}
+		}
+	case Servicedpl.Type: // *-vset1-1
+		for _, vsetID := range base.VsetIDs {
+			for _, dplGroupID := range base.DPLGroupIDs {
+				for _, logPath := range sv.LogPathArr {
+					vsetLogPath := fmt.Sprintf("%s-vset%d-%d", logPath, vsetID, dplGroupID)
+					logDirArr = append(logDirArr, vsetLogPath)
+				}
+			}
+		}
+	case Mjcachedpl.Type, Djcachedpl.Type: // *-vset1-1
+		for _, vsetID := range base.VsetIDs {
+			for _, jcacheGroupID := range base.DPLGroupIDs {
+				for _, logPath := range sv.LogPathArr {
+					vsetLogPath := fmt.Sprintf("%s-vset%d-%d", logPath, vsetID, jcacheGroupID)
+					logDirArr = append(logDirArr, vsetLogPath)
+				}
+			}
+		}
+	case Mcmapdpl.Type, Dcmapdpl.Type: // *-1
+		for _, cmapGroupID := range base.CmapGroupIDs {
+			for _, logPath := range sv.LogPathArr {
+				vsetLogPath := fmt.Sprintf("%s-%d", logPath, cmapGroupID)
+				logDirArr = append(logDirArr, vsetLogPath)
+			}
+		}
+	case Flushdpl.Type, Vizions3.Type, Dpldagent.Type: // *-vset1
+		for _, vsetID := range base.VsetIDs {
+			for _, logPath := range sv.LogPathArr {
+				vsetLogPath := fmt.Sprintf("%s-vset%d", logPath, vsetID)
+				logDirArr = append(logDirArr, vsetLogPath)
+			}
+		}
+	case Cdcgcbd.Type, Cdcgcs3.Type: // *-vset-1
+		for _, vsetID := range base.VsetIDs {
+			for _, logPath := range sv.LogPathArr {
+				vsetLogPath := fmt.Sprintf("%s-vset-%d", logPath, vsetID)
+				logDirArr = append(logDirArr, vsetLogPath)
+			}
+		}
+	default: // by define in Service
+		logDirArr = sv.LogPathArr
+	}
+	return
+}
+
 // ========== Define: Service/Binary ==========
 // ========== DPL Service/Binary ==========
 var (
 	// Mjcachedpl .
 	Mjcachedpl = Service{
-		Name:      "mjcacheserver",
-		Path:      "/opt/ccc/node/service/dpl/bin/mjcacheserver",
-		GitPath:   "build/mjcacheserver",
-		Type:      65537,
-		TypeName:  "MJCACHE_SERVER",
-		NameSpace: "vizion",
-		K8sKind:   K8sStatefulsets,
-		PodLabel:  "name=mjcachedpl", // k=v, v-<vset_id>-<group_id>
-		NodeLabel: "mjcachedpl=true", // k=v, v-<vset_id>-<group_id>
-		Container: "mjcachedpl",
-		Replicas:  3,
-		GetPid:    "ps -ax|grep -v grep|grep mjcacheserver|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		Name:       "mjcacheserver",
+		Path:       "/opt/ccc/node/service/dpl/bin/mjcacheserver",
+		GitPath:    "build/mjcacheserver",
+		Type:       65537,
+		TypeName:   "MJCACHE_SERVER",
+		NameSpace:  "vizion",
+		K8sKind:    K8sStatefulsets,
+		PodLabel:   "name=mjcachedpl", // k=v, v-<vset_id>-<group_id>
+		NodeLabel:  "mjcachedpl=true", // k=v, v-<vset_id>-<group_id>
+		Container:  "mjcachedpl",
+		Replicas:   3,
+		GetPid:     "ps -ax|grep -v grep|grep mjcacheserver|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		LogPathArr: []string{"pzcl-mjcachedpl"},
 	}
 
 	// Djcachedpl .
 	Djcachedpl = Service{
-		Name:      "djcacheserver",
-		Path:      "/opt/ccc/node/service/dpl/bin/djcacheserver",
-		GitPath:   "build/djcacheserver",
-		Type:      8390609,
-		TypeName:  "DJCACHE_SERVER",
-		NameSpace: "vizion",
-		K8sKind:   K8sStatefulsets,
-		PodLabel:  "name=djcachedpl-17", // k=v, v-<vset_id>-<group_id>
-		NodeLabel: "djcachedpl-17=true", // k=v, v-<vset_id>-<group_id>
-		Container: "djcachedpl",
-		Replicas:  3,
-		GetPid:    "ps -ax|grep -v grep|grep djcacheserver|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		Name:       "djcacheserver",
+		Path:       "/opt/ccc/node/service/dpl/bin/djcacheserver",
+		GitPath:    "build/djcacheserver",
+		Type:       8390609,
+		TypeName:   "DJCACHE_SERVER",
+		NameSpace:  "vizion",
+		K8sKind:    K8sStatefulsets,
+		PodLabel:   "name=djcachedpl-17", // k=v, v-<vset_id>-<group_id>
+		NodeLabel:  "djcachedpl-17=true", // k=v, v-<vset_id>-<group_id>
+		Container:  "djcachedpl",
+		Replicas:   3,
+		GetPid:     "ps -ax|grep -v grep|grep djcacheserver|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		LogPathArr: []string{"pzcl-djcachedpl-12", "pzcl-djcachedpl-17"},
 	}
 
 	// Jddpl .
 	Jddpl = Service{
-		Name:      "jdserver",
-		Path:      "/opt/ccc/node/service/dpl/bin/jdserver",
-		GitPath:   "build/jd",
-		Type:      8388609,
-		TypeName:  "JDSERVER",
-		NameSpace: "vizion",
-		K8sKind:   K8sStatefulsets,
-		PodLabel:  "name=jddpl", // k=v, v-<vset_id>-<group_id>
-		NodeLabel: "jddpl=true", // k=v, v-<vset_id>-<group_id>
-		Container: "jddpl",
-		Replicas:  3,
-		GetPid:    "ps -ax|grep -v grep|grep jddpl|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		Name:       "jdserver",
+		Path:       "/opt/ccc/node/service/dpl/bin/jdserver",
+		GitPath:    "build/jd",
+		Type:       8388609,
+		TypeName:   "JDSERVER",
+		NameSpace:  "vizion",
+		K8sKind:    K8sStatefulsets,
+		PodLabel:   "name=jddpl", // k=v, v-<vset_id>-<group_id>
+		NodeLabel:  "jddpl=true", // k=v, v-<vset_id>-<group_id>
+		Container:  "jddpl",
+		Replicas:   3,
+		GetPid:     "ps -ax|grep -v grep|grep jddpl|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		LogPathArr: []string{"pzcl-jddpl"},
 	}
 
 	// Servicedpl .
 	Servicedpl = Service{
-		Name:      "dplserver",
-		Path:      "/opt/ccc/node/service/dpl/bin/dplserver",
-		GitPath:   "build/dpl", // "build/server"
-		Type:      1024,
-		TypeName:  "DPLSERVER",
-		NameSpace: "vizion",
-		K8sKind:   K8sStatefulsets,
-		PodLabel:  "name=servicedpl", // k=v, v-<vset_id>-<group_id>
-		NodeLabel: "servicedpl=true", // k=v, v-<vset_id>-<group_id>
-		Container: "servicedpl",
-		Replicas:  3,
-		GetPid:    "ps -ax|grep -v grep|grep servicedpl|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		Name:       "dplserver",
+		Path:       "/opt/ccc/node/service/dpl/bin/dplserver",
+		GitPath:    "build/dpl", // "build/server"
+		Type:       1024,
+		TypeName:   "DPLSERVER",
+		NameSpace:  "vizion",
+		K8sKind:    K8sStatefulsets,
+		PodLabel:   "name=servicedpl", // k=v, v-<vset_id>-<group_id>
+		NodeLabel:  "servicedpl=true", // k=v, v-<vset_id>-<group_id>
+		Container:  "servicedpl",
+		Replicas:   3,
+		GetPid:     "ps -ax|grep -v grep|grep servicedpl|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		LogPathArr: []string{"pzcl-servicedpl"},
 	}
 
 	// Flushdpl .
 	Flushdpl = Service{
-		Name:      "flushserver",
-		Path:      "/opt/ccc/node/service/dpl/bin/flushserver",
-		GitPath:   "build/flush",
-		Type:      4194305,
-		TypeName:  "FLUSHSERVER",
-		NameSpace: "vizion",
-		K8sKind:   K8sStatefulsets,
-		PodLabel:  "name=flushdpl", // k=v, v-<vset_id>
-		NodeLabel: "flushdpl=true", // k=v, v-<vset_id>
-		Container: "flushdpl",
-		Replicas:  3,
-		GetPid:    "ps -ax|grep -v grep|grep flushdpl|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		Name:       "flushserver",
+		Path:       "/opt/ccc/node/service/dpl/bin/flushserver",
+		GitPath:    "build/flush",
+		Type:       4194305,
+		TypeName:   "FLUSHSERVER",
+		NameSpace:  "vizion",
+		K8sKind:    K8sStatefulsets,
+		PodLabel:   "name=flushdpl", // k=v, v-<vset_id>
+		NodeLabel:  "flushdpl=true", // k=v, v-<vset_id>
+		Container:  "flushdpl",
+		Replicas:   3,
+		GetPid:     "ps -ax|grep -v grep|grep flushdpl|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		LogPathArr: []string{"pzcl-flushdpl"},
 	}
 
 	// Mcmapdpl .
 	Mcmapdpl = Service{
-		Name:      "mcmapserver",
-		Path:      "/opt/ccc/node/service/dpl/bin/mcmapserver",
-		GitPath:   "build/mcmap",
-		Type:      2097153,
-		TypeName:  "MCMAPSERVER",
-		NameSpace: "vizion",
-		K8sKind:   K8sStatefulsets,
-		PodLabel:  "name=cmapmcdpl", // k=v, v-<vset_id>-<group_id>
-		NodeLabel: "cmapmcdpl=true", // k=v, v-<vset_id>-<group_id>
-		Container: "cmapmcdpl",
-		Replicas:  0,
-		GetPid:    "ps -ax|grep -v grep|grep mcmapserver|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		Name:       "mcmapserver",
+		Path:       "/opt/ccc/node/service/dpl/bin/mcmapserver",
+		GitPath:    "build/mcmap",
+		Type:       2097153,
+		TypeName:   "MCMAPSERVER",
+		NameSpace:  "vizion",
+		K8sKind:    K8sStatefulsets,
+		PodLabel:   "name=cmapmcdpl", // k=v, v-<vset_id>-<group_id>
+		NodeLabel:  "cmapmcdpl=true", // k=v, v-<vset_id>-<group_id>
+		Container:  "cmapmcdpl",
+		Replicas:   0,
+		GetPid:     "ps -ax|grep -v grep|grep mcmapserver|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		LogPathArr: []string{"pzcl-cmapdpl", "pzcl-cmapmcdpl"},
 	}
 
 	// Dcmapdpl .
 	Dcmapdpl = Service{
-		Name:      "dcmapserver",
-		Path:      "/opt/ccc/node/service/dpl/bin/dcmapserver",
-		GitPath:   "build/dcmap",
-		Type:      8389609,
-		TypeName:  "DCMAPSERVER",
-		NameSpace: "vizion",
-		K8sKind:   K8sStatefulsets,
-		PodLabel:  "name=cmapdcdpl-17", // k=v, v-<vset_id>-<group_id>
-		NodeLabel: "cmapdcdpl-17=true", // k=v, v-<vset_id>-<group_id>
-		Container: "cmapdcdpl",
-		Replicas:  0,
-		GetPid:    "ps -ax|grep -v grep|grep dcmapserver|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		Name:       "dcmapserver",
+		Path:       "/opt/ccc/node/service/dpl/bin/dcmapserver",
+		GitPath:    "build/dcmap",
+		Type:       8389609,
+		TypeName:   "DCMAPSERVER",
+		NameSpace:  "vizion",
+		K8sKind:    K8sStatefulsets,
+		PodLabel:   "name=cmapdcdpl-17", // k=v, v-<vset_id>-<group_id>
+		NodeLabel:  "cmapdcdpl-17=true", // k=v, v-<vset_id>-<group_id>
+		Container:  "cmapdcdpl",
+		Replicas:   0,
+		GetPid:     "ps -ax|grep -v grep|grep dcmapserver|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		LogPathArr: []string{"pzcl-cmapdcdpl-12", "pzcl-cmapdcdpl-17"},
 	}
 
 	// Dpldagent .
 	Dpldagent = Service{
-		Name:      "dpldagent",
-		Path:      "/opt/ccc/node/service/dpl/bin/dpldagent",
-		GitPath:   "build/dagent",
-		Type:      524289,
-		TypeName:  "BLOCK_DEVICE",
-		NameSpace: "vizion",
-		K8sKind:   K8sDaemonsets,
-		PodLabel:  "name=bd-vset", // k=v, v-<vset_id>
-		NodeLabel: "bd-vset=true", // k=v, v-<vset_id>
-		Container: "bd",
-		Replicas:  1,
-		GetPid:    "ps -ax|grep -v grep|grep dpldagent|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		Name:       "dpldagent",
+		Path:       "/opt/ccc/node/service/dpl/bin/dpldagent",
+		GitPath:    "build/dagent",
+		Type:       524289,
+		TypeName:   "BLOCK_DEVICE",
+		NameSpace:  "vizion",
+		K8sKind:    K8sDaemonsets,
+		PodLabel:   "name=bd-vset", // k=v, v-<vset_id>
+		NodeLabel:  "bd-vset=true", // k=v, v-<vset_id>
+		Container:  "bd",
+		Replicas:   1,
+		GetPid:     "ps -ax|grep -v grep|grep dpldagent|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		LogPathArr: []string{"pzcl-bd", "pzcl-bd-agent"},
 	}
 
 	// Vizions3 .
 	Vizions3 = Service{
-		Name:      "vizions3",
-		Path:      "/opt/ccc/node/service/dpl/bin/vizions3",
-		GitPath:   "src/s3/src/rgw",
-		Type:      8389609,
-		TypeName:  "S3",
-		NameSpace: "vizion",
-		K8sKind:   K8sDeployment,
-		PodLabel:  "name=vizion-s3-vset", // k=v, v-<vset_id>
-		NodeLabel: "vizion-s3-vset=true", // k=v, v-<vset_id>
-		Container: "vizions3",
-		Replicas:  1,
-		GetPid:    "ps -ax|grep -v grep|grep vizions3|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		Name:       "vizions3",
+		Path:       "/opt/ccc/node/service/dpl/bin/vizions3",
+		GitPath:    "src/s3/src/rgw",
+		Type:       8389609,
+		TypeName:   "S3",
+		NameSpace:  "vizion",
+		K8sKind:    K8sDeployment,
+		PodLabel:   "name=vizion-s3-vset", // k=v, v-<vset_id>
+		NodeLabel:  "vizion-s3-vset=true", // k=v, v-<vset_id>
+		Container:  "vizions3",
+		Replicas:   1,
+		GetPid:     "ps -ax|grep -v grep|grep vizions3|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		LogPathArr: []string{"pzcl-s3"},
 	}
 
 	// Dplmanager .
 	Dplmanager = Service{
-		Name:      "dplmanager",
-		Path:      "/opt/ccc/node/service/dpl/bin/dplmanager",
-		GitPath:   "build/manager",
-		Type:      34,
-		TypeName:  "S3",
-		NameSpace: "vizion",
-		K8sKind:   K8sDeployment,
-		PodLabel:  "name=dplmanager",                   // k=v, v
-		NodeLabel: "node-role.kubernetes.io/node=true", // k=v, v
-		Container: "dplmanager",
-		Replicas:  1,
-		GetPid:    "ps -ax|grep -v grep|grep dplmanager|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		Name:       "dplmanager",
+		Path:       "/opt/ccc/node/service/dpl/bin/dplmanager",
+		GitPath:    "build/manager",
+		Type:       34,
+		TypeName:   "S3",
+		NameSpace:  "vizion",
+		K8sKind:    K8sDeployment,
+		PodLabel:   "name=dplmanager",                   // k=v, v
+		NodeLabel:  "node-role.kubernetes.io/node=true", // k=v, v
+		Container:  "dplmanager",
+		Replicas:   1,
+		GetPid:     "ps -ax|grep -v grep|grep dplmanager|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		LogPathArr: []string{},
 	}
 
 	// Dplexporter .
 	Dplexporter = Service{
-		Name:      "dplexporter",
-		Type:      35,
-		TypeName:  "DPLEXPORTER",
-		NameSpace: "vizion",
-		K8sKind:   K8sDeployment,
-		PodLabel:  "name=dplexporter",                  // k=v, v
-		NodeLabel: "node-role.kubernetes.io/node=true", // k=v, v
-		Container: "dplexporter",
-		Replicas:  1,
-		GetPid:    "ps -ax|grep -v grep|grep dplexporter|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		Name:       "dplexporter",
+		Type:       35,
+		TypeName:   "DPLEXPORTER",
+		NameSpace:  "vizion",
+		K8sKind:    K8sDeployment,
+		PodLabel:   "name=dplexporter",                  // k=v, v
+		NodeLabel:  "node-role.kubernetes.io/node=true", // k=v, v
+		Container:  "dplexporter",
+		Replicas:   1,
+		GetPid:     "ps -ax|grep -v grep|grep dplexporter|grep -v bash|grep -v kubelet|awk '{print $1}'",
+		LogPathArr: []string{},
 	}
 )
 
@@ -402,58 +469,62 @@ var (
 var (
 	// ES .
 	ES = Service{
-		Name:      "es",
-		Type:      2049,
-		TypeName:  "ES",
-		NameSpace: "vizion",
-		K8sKind:   K8sStatefulsets,
-		PodLabel:  "role=es-cold-data", // k=v, v-<vset_id>
-		NodeLabel: "elk=true",          // k=v, v-<vset_id>
-		Container: "es-cold-data",
-		Replicas:  3,
-		GetPid:    "ps -ax|grep -v grep|grep elasticsearch|grep java|awk '{print $1}'",
+		Name:       "es",
+		Type:       2049,
+		TypeName:   "ES",
+		NameSpace:  "vizion",
+		K8sKind:    K8sStatefulsets,
+		PodLabel:   "role=es-cold-data", // k=v, v-<vset_id>
+		NodeLabel:  "elk=true",          // k=v, v-<vset_id>
+		Container:  "es-cold-data",
+		Replicas:   3,
+		GetPid:     "ps -ax|grep -v grep|grep elasticsearch|grep java|awk '{print $1}'",
+		LogPathArr: []string{},
 	}
 
 	// Nfsprovisioner .
 	Nfsprovisioner = Service{
-		Name:      "nfs-provisioner",
-		Type:      2050,
-		TypeName:  "NFS_PROVISIONER",
-		NameSpace: "vizion",
-		K8sKind:   K8sStatefulsets,
-		PodLabel:  "app=nfs-provisioner",  // k=v, v-<vset_id>
-		NodeLabel: "nfs-provisioner=true", // k=v, v-<vset_id>
-		Container: "nfs-provisioner",
-		Replicas:  1,
-		GetPid:    "ps -ax|grep -v grep|grep nfs-provisioner|grep java|awk '{print $1}'",
+		Name:       "nfs-provisioner",
+		Type:       2050,
+		TypeName:   "NFS_PROVISIONER",
+		NameSpace:  "vizion",
+		K8sKind:    K8sStatefulsets,
+		PodLabel:   "app=nfs-provisioner",  // k=v, v-<vset_id>
+		NodeLabel:  "nfs-provisioner=true", // k=v, v-<vset_id>
+		Container:  "nfs-provisioner",
+		Replicas:   1,
+		GetPid:     "ps -ax|grep -v grep|grep nfs-provisioner|grep java|awk '{print $1}'",
+		LogPathArr: []string{},
 	}
 
 	// Cdcgcs3 .
 	Cdcgcs3 = Service{
-		Name:      "cdcgc-s3",
-		Type:      2051,
-		TypeName:  "CDCGC_S3",
-		NameSpace: "vizion",
-		K8sKind:   K8sDeployment,
-		PodLabel:  "run=s3-cdcgc-vset",                 // k=v, v-<vset_id>
-		NodeLabel: "node-role.kubernetes.io/node=true", // k=v, v-<vset_id>
-		Container: "cdcgc",
-		Replicas:  1,
-		GetPid:    "",
+		Name:       "cdcgc-s3",
+		Type:       2051,
+		TypeName:   "CDCGC_S3",
+		NameSpace:  "vizion",
+		K8sKind:    K8sDeployment,
+		PodLabel:   "run=s3-cdcgc-vset",                 // k=v, v-<vset_id>
+		NodeLabel:  "node-role.kubernetes.io/node=true", // k=v, v-<vset_id>
+		Container:  "cdcgc",
+		Replicas:   1,
+		GetPid:     "",
+		LogPathArr: []string{"pzcl-s3-cdcgc-log", "pzcl-s3-cdcgc-data"},
 	}
 
 	// Cdcgcbd .
 	Cdcgcbd = Service{
-		Name:      "cdcgc-bd",
-		Type:      2052,
-		TypeName:  "CDCGC_BD",
-		NameSpace: "vizion",
-		K8sKind:   K8sDeployment,
-		PodLabel:  "run=bd-cdcgc-vset",                 // k=v, v-<vset_id>
-		NodeLabel: "node-role.kubernetes.io/node=true", // k=v, v-<vset_id>
-		Container: "cdcgc",
-		Replicas:  1,
-		GetPid:    "",
+		Name:       "cdcgc-bd",
+		Type:       2052,
+		TypeName:   "CDCGC_BD",
+		NameSpace:  "vizion",
+		K8sKind:    K8sDeployment,
+		PodLabel:   "run=bd-cdcgc-vset",                 // k=v, v-<vset_id>
+		NodeLabel:  "node-role.kubernetes.io/node=true", // k=v, v-<vset_id>
+		Container:  "cdcgc",
+		Replicas:   1,
+		GetPid:     "",
+		LogPathArr: []string{"pzcl-bd-cdcgc-log", "pzcl-bd-cdcgc-data"},
 	}
 )
 
@@ -596,30 +667,42 @@ var (
 
 // ========== Default: Service/Binary/CleanItem ==========
 var (
-	// Default dpl service for test/upgrade
+	// Default DPL Service for test/upgrade
 	DefaultDplServiceArray = []Service{
-		Mjcachedpl,
-		Djcachedpl,
+		Dplmanager,
 		Jddpl,
 		Servicedpl,
+		Mjcachedpl,
+		Djcachedpl,
 		Flushdpl,
 		Mcmapdpl,
 		Dcmapdpl,
-		Dpldagent,
 		Vizions3,
-		Dplmanager,
+		Dpldagent,
 		Dplexporter,
 	}
 
-	// Default dpl binary for upgrade
+	// Default DPL Binary for upgrade
 	DefaultDplBinaryArray = []Service{
+		Dplmanager,
+		Jddpl,
+		Servicedpl,
+		Mjcachedpl,
+		Djcachedpl,
+		Flushdpl,
+		Mcmapdpl,
+		Dcmapdpl,
+		Vizions3,
+		Dpldagent,
+		Dplexporter,
+
 		Dplko,
 		Enctool,
 		Dplut,
 		Libetcdv3,
 	}
 
-	// Default app service for test
+	// Default APP Service for test
 	DefaultAppServiceArray = []Service{
 		ES,
 		Nfsprovisioner,
@@ -627,7 +710,7 @@ var (
 		Cdcgcbd,
 	}
 
-	// Default master service for test
+	// Default MASTER service for test
 	DefaultMasterServiceArray = []Service{
 		ETCD,
 		MasterCass,
@@ -636,6 +719,12 @@ var (
 		MysqlOperator,
 		MysqlRouter,
 	}
+
+	// Default Core Service Array: DPL + APP
+	DefaultCoreServiceArray = append(DefaultDplServiceArray, DefaultAppServiceArray...)
+
+	// Default Service Array: DPL + APP + MASTER
+	DefaultServiceArray = append(DefaultCoreServiceArray, DefaultMasterServiceArray...)
 
 	// DefaultCleanArray define the default cleanup item for maint/upgrade
 	DefaultCleanArray = []CleanItem{

@@ -1,20 +1,24 @@
 package resources
 
 import (
+	"pzatest/libs/db"
 	"testing"
+
+	"github.com/gocql/gocql"
 )
 
 func TestGetService(t *testing.T) {
 	sessC := sessCluster{
-		ConfigMap: map[string]CassConfig{
-			"0": CassConfig{
-				IPs:      []string{"10.25.119.87"},
-				User:     "caadmin",
+		ConfigMap: map[string]db.CassConfig{
+			"0": db.CassConfig{
+				Hosts:    []string{"10.25.119.87"},
+				Username: "caadmin",
 				Password: "yjSJbEmPXmHfUbRa",
 				Keyspace: "vizion",
 				Port:     9042,
 			},
 		},
+		SessionMap: map[string]*gocql.Session{"0": nil},
 	}
 
 	sessC.SetIndex("0")

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"pzatest/libs/db"
-	"strings"
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx"
@@ -18,6 +17,7 @@ type CassClusterGetter interface {
 
 // CassCluster ...
 type CassCluster interface {
+	SetIndex(index string) CassCluster
 	GetCassandraCluster() ([]CassandraCluster, error)
 	GetNode() ([]Node, error)
 	GetService(inputJSON GetServiceInput) ([]Service, error)
@@ -30,40 +30,33 @@ type CassCluster interface {
 	GetS3BucketGroup() ([]S3BucketGroup, error)
 }
 
-// CassConfig ...
-type CassConfig struct {
-	Index    int // 0-master, 1-vset1
-	IPs      []string
-	User     string
-	Password string
-	Port     int
-	Keyspace string
-}
 type sessCluster struct {
-	ConfigMap  map[string]CassConfig // {"0": CassConfig}
 	Session    *gocql.Session
-	SessionMap map[string]*gocql.Session
+	ConfigMap  map[string]db.CassConfig  // {"0": db.CassConfig}
+	SessionMap map[string]*gocql.Session // {"0": *gocql.Session}
 }
 
 func newSessCluster(b *VizionBase) *sessCluster {
 	return &sessCluster{
-		ConfigMap: b.GetCassConfig(),
+		ConfigMap:  b.GetCassConfig(),
+		SessionMap: map[string]*gocql.Session{"0": nil},
 	}
 }
 
 // SetIndex ...
-func (c *sessCluster) SetIndex(index string) {
-	config := c.ConfigMap[index]
-	dbConfig := db.CassConfig{
-		Hosts:    strings.Join(config.IPs, ","),
-		Username: config.User,
-		Password: config.Password,
-		Keyspace: config.Keyspace,
-		Port:     config.Port,
+func (c *sessCluster) SetIndex(index string) CassCluster {
+	if _, ok := c.SessionMap[index]; ok {
+		if c.SessionMap[index] != nil {
+			c.Session = c.SessionMap[index]
+			return c
+		}
 	}
+
+	dbConfig := c.ConfigMap[index]
 	session, _ := db.NewSessionWithRetry(&dbConfig)
 	c.SessionMap[index] = session
 	c.Session = c.SessionMap[index]
+	return c
 }
 
 // DeleteFromTable ... TODO

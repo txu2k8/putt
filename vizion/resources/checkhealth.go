@@ -2,29 +2,27 @@ package resources
 
 import (
 	"fmt"
-	"pzatest/libs/k8s"
+	"pzatest/libs/utils"
 )
 
 // HealthCheckerGetter has a method to return a HealthChecker.
 type HealthCheckerGetter interface {
-	HealthCheck() HealthChecker
+	Check() HealthChecker
 }
 
 // HealthChecker ...
 type HealthChecker interface {
-	IsPingOK(ip string) error
+	IsNodeCrashed() error
 }
 
 // checker implements HealthChecker Interface
 type checker struct {
-	k8sclient k8s.Client
+	*VizionBase
 }
 
 // newHealthChecker returns a Nodes
 func newHealthChecker(b *VizionBase) *checker {
-	return &checker{
-		k8sclient: b.GetK8sClient(),
-	}
+	return &checker{b}
 }
 
 // IsPingOK ...
@@ -40,5 +38,23 @@ func IsPingOK(ip string) error {
 		cmd = fmt.Sprintf("ping %s", ip)
 	}
 	logger.Info(cmd)
+	return nil
+}
+
+func (c *checker) IsNodeCrashed() error {
+	crashed := false
+	crashArrMap := map[string][]string{}
+	for _, nodeIP := range c.VizionBase.Service().GetAllNodeIPs() {
+		node := c.VizionBase.Node(nodeIP)
+		crashArr := node.GetCrashDirs()
+		if len(crashArr) > 0 {
+			crashed = true
+			crashArrMap[nodeIP] = crashArr
+			logger.Errorf("%s has crash files\n%s", nodeIP, utils.Prettify(crashArr))
+		}
+	}
+	if crashed == true {
+		return fmt.Errorf("Some node has crash files\n%s", utils.Prettify(crashArrMap))
+	}
 	return nil
 }

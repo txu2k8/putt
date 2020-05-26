@@ -21,6 +21,8 @@ type ServiceManager interface {
 	GetSubCassUserPwd(vsetID int) (user, pwd string)
 	GetSubCassPort(vsetID int) (port int)
 
+	GetAllNodeIPs() (ipArr []string)
+
 	K8sEnableNodeLabel(nodeName, nodeLabel, podLabel string) error
 	// K8sDisableNodeLabel(nodeName, nodeLabel, podLabel string) error
 	// K8sEnableNodeLabelByType(serviceType int) error
@@ -121,6 +123,14 @@ func (s *svManager) GetSubCassPort(vsetID int) (port int) {
 	port, err := s.GetSvcPort(fmt.Sprintf("cassandra-vset%d-expose", vsetID), 9042)
 	if err != nil {
 		panic(err)
+	}
+	return
+}
+
+func (s *svManager) GetAllNodeIPs() (ipArr []string) {
+	nodeArr := s.GetNodeInfoArr()
+	for _, node := range nodeArr {
+		ipArr = append(ipArr, node["IP"])
 	}
 	return
 }

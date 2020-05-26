@@ -16,11 +16,17 @@ var logger = logging.MustGetLogger("test")
 
 // SSHManager ...
 type SSHManager interface {
-	NewSession() (*ssh.Session, error)          // SSH connect session
-	NewSessionWithRetry() (*ssh.Session, error) // SSH connect session, retry when failed
+	RunCmd(cmdSpec string) (int, string) // session.RunCmd
+	SCPGet(localPath, remotePath string) error
 }
 
-// SSHKey ...
+// SSHMgr .
+type SSHMgr struct {
+	*ssh.Session
+	*SSHConfig
+}
+
+// SSHKey ssh login keys
 type SSHKey struct {
 	UserName string // ssh login username
 	Password string // ssh loging password
@@ -28,24 +34,38 @@ type SSHKey struct {
 	KeyFile  string // ssh login PrivateKey file full path
 }
 
-// SSHInput ssh login input keys
-type SSHInput struct {
-	Host string // ssh node host ip address
-	SSHKey
+// SSHConfig ssh login config
+type SSHConfig struct {
+	Host           string        // ssh target host ip address
+	SSHKey                       // ssh login keys
+	Timeout        time.Duration // connection timeout (default: 600ms)
+	ConnectTimeout time.Duration // initial connection timeout, used during initial dial to server (default: 600ms)
 }
 
-var (
-	connectTimeout int = 600 // Second
-	session        *ssh.Session
-)
+// NewSSHConfig generates a new config for the default ssh implementation.
+func NewSSHConfig(host string, sshKey SSHKey) *SSHConfig {
+	cfg := &SSHConfig{
+		Host:           host,
+		SSHKey:         sshKey,
+		Timeout:        600 * time.Second,
+		ConnectTimeout: 600 * time.Second,
+	}
+	return cfg
+}
+
+// CreateSession initializes the cluster based on this config and returns a
+// session object that can be used to interact with the database.
+func (cfg *SSHConfig) CreateSession() (*ssh.Session, error) {
+	return cfg.NewSessionWithRetry()
+}
 
 // NewClient return the ssh client
-func (conf *SSHInput) NewClient() (*ssh.Client, error) {
+func (cfg *SSHConfig) NewClient() (*ssh.Client, error) {
 	// get auth method
 	auth := make([]ssh.AuthMethod, 0)
-	if conf.KeyFile != "" {
+	if cfg.KeyFile != "" {
 		// Use the PublicKeys method for remote authentication.
-		key, err := ioutil.ReadFile(conf.KeyFile) // privateKey file path,eg:/home/user/.ssh/id_rsa
+		key, err := ioutil.ReadFile(cfg.KeyFile) // privateKey file path,eg:/home/user/.ssh/id_rsa
 		if err != nil {
 			log.Fatalf("unable to read private key: %v", err)
 		}
@@ -57,7 +77,7 @@ func (conf *SSHInput) NewClient() (*ssh.Client, error) {
 		auth = append(auth, ssh.PublicKeys(signer))
 	} else {
 		// Use the password for remote authentication.
-		auth = append(auth, ssh.Password(conf.Password))
+		auth = append(auth, ssh.Password(cfg.Password))
 	}
 
 	hostKeyCallbk := func(hostname string, remote net.Addr, key ssh.PublicKey) error {
@@ -65,16 +85,16 @@ func (conf *SSHInput) NewClient() (*ssh.Client, error) {
 	}
 
 	config := &ssh.ClientConfig{
-		User:            conf.UserName,
+		User:            cfg.UserName,
 		Auth:            auth,
-		Timeout:         time.Duration(connectTimeout) * time.Second,
+		Timeout:         cfg.Timeout,
 		HostKeyCallback: hostKeyCallbk,
 	}
 
 	// connet to ssh
-	addr := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
+	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	logger.Infof("SSH Connect to %s@%s(pwd:%s, privateKey:%s)",
-		conf.UserName, addr, conf.Password, conf.KeyFile)
+		cfg.UserName, addr, cfg.Password, cfg.KeyFile)
 	client, err := ssh.Dial("tcp", addr, config)
 	if err != nil {
 		return nil, err
@@ -83,9 +103,9 @@ func (conf *SSHInput) NewClient() (*ssh.Client, error) {
 }
 
 // NewSession return the cassandra session
-func (conf *SSHInput) NewSession() (*ssh.Session, error) {
+func (cfg *SSHConfig) NewSession() (*ssh.Session, error) {
 	// connet to ssh
-	client, err := conf.NewClient()
+	client, err := cfg.NewClient()
 	if err != nil {
 		return nil, err
 	}
@@ -100,17 +120,15 @@ func (conf *SSHInput) NewSession() (*ssh.Session, error) {
 }
 
 // NewSessionWithRetry return the cassandra session
-func (conf *SSHInput) NewSessionWithRetry() (*ssh.Session, error) {
-	// if session != nil {
-	// 	return session, nil
-	// }
+func (cfg *SSHConfig) NewSessionWithRetry() (*ssh.Session, error) {
 	interval := time.Duration(15)
 	timeout := time.NewTimer(30 * time.Minute)
+	var session *ssh.Session
 	var err error
 
 loop:
 	for {
-		session, err = conf.NewSession()
+		session, err = cfg.NewSession()
 		if err == nil && session != nil {
 			break loop
 		}
@@ -128,16 +146,19 @@ loop:
 	return session, err
 }
 
-// RunCmdWithOutput ...
-func RunCmdWithOutput(session *ssh.Session, cmdSpec string) (int, string) {
+// RunCmd ...
+func (session *SSHMgr) RunCmd(cmdSpec string) (int, string) {
 	var rc int
 	var stdOut, stdErr bytes.Buffer
 
 	session.Stdout = &stdOut
 	session.Stderr = &stdErr
 
+	logger.Infof("SSH Execute: ssh %s@%s# %s", session.UserName, session.Host, cmdSpec)
 	if err := session.Run(cmdSpec); err != nil {
-		logger.Fatal("Failed to run: " + err.Error())
+		logger.Debugf("Failed to run: %s", err.Error())
+		// Process exited with status 1
+		rc = 1
 	}
 	if stdErr.Len() == 0 {
 		rc = 0
@@ -149,19 +170,14 @@ func RunCmdWithOutput(session *ssh.Session, cmdSpec string) (int, string) {
 	return rc, output
 }
 
-// RunCmd ...
-func (conf *SSHInput) RunCmd(cmdSpec string) (int, string) {
-	session, err := conf.NewSessionWithRetry()
-	if err != nil {
-		logger.Fatal(err)
-	}
-	defer session.Close()
-	logger.Infof("Execute: ssh %s@%s# %s", conf.UserName, conf.Host, cmdSpec)
-	return RunCmdWithOutput(session, cmdSpec)
-}
+// // RunCmd ...
+// func (s *sshMgr) RunCmd(cmdSpec string) (int, string) {
+// 	logger.Infof("Execute: ssh %s@%s# %s", cfg.UserName, cfg.Host, cmdSpec)
+// 	return RunCmdWithOutput(session, cmdSpec)
+// }
 
 // SCPGet ...
-func (conf *SSHInput) SCPGet(localPath, remotePath string) error {
+func (session *SSHMgr) SCPGet(localPath, remotePath string) error {
 	logger.Info("SCPGet ...")
 	return nil
 }

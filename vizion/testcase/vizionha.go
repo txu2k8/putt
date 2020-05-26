@@ -1,6 +1,7 @@
 package testcase
 
 import (
+	"pzatest/config"
 	"pzatest/libs/utils"
 	"pzatest/types"
 	"pzatest/vizion/resources"
@@ -150,7 +151,28 @@ func (job *RestartNodeTestInput) Run() error {
 func Debug(conf types.VizionBaseInput) error {
 	// host := "10.25.119.77"
 	vizion := resources.VizionBase{VizionBaseInput: conf}
-	vizion.Service().Test("")
 
+	// masterCass := vizion.Cass().SetIndex("0")
+	// svArr, _ := masterCass.GetServiceByType(1024)
+	// logger.Info(utils.Prettify(svArr))
+	// nArr, _ := masterCass.GetServiceByType(33)
+	// logger.Info(utils.Prettify(nArr))
+
+	// subCass := vizion.Cass().SetIndex("1")
+	// vArr, _ := subCass.GetVolume()
+	// logger.Info(utils.Prettify(vArr))
+
+	logPathArr := []string{}
+	for _, sv := range config.DefaultServiceArray {
+		logArr := sv.GetLogDirArr(conf)
+		// logger.Info(utils.Prettify(logArr))
+		logPathArr = append(logPathArr, logArr...)
+	}
+	for _, nodeIP := range vizion.Service().GetAllNodeIPs() {
+		node := vizion.Node(nodeIP)
+		node.CleanLog(logPathArr)
+	}
+
+	// return vizion.Check().IsNodeCrashed()
 	return nil
 }

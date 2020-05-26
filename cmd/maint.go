@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"pzatest/libs/runner/stress"
+	"pzatest/vizion/maintenance"
 
 	"github.com/spf13/cobra"
 )
@@ -26,7 +28,24 @@ var stopCmd = &cobra.Command{
 	Short: "Maintaince mode tools: stop",
 	Long:  `stop specified services`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("maint stop called")
+		if len(caseList) == 0 {
+			caseList = []string{"stop"}
+		}
+		logger.Infof("Case List(s3): %s", caseList)
+		var maintainer maintenance.Maintainer
+		maintainer = maintenance.NewMaint(vizionBaseConf)
+		stop := func() error {
+			err := maintainer.Stop()
+			return err
+		}
+		jobs := []stress.Job{
+			{
+				Fn:       stop,
+				Name:     "Stop-Service",
+				RunTimes: 1,
+			},
+		}
+		stress.Run(jobs)
 	},
 }
 
@@ -70,11 +89,20 @@ var makeBinaryCmd = &cobra.Command{
 	},
 }
 
+// AddFlagsService ...
+func AddFlagsService(subCmd *cobra.Command) error {
+	subCmd.PersistentFlags().StringVar(&s3TestConf.S3Ip, "s3_ip", "", "S3 server IP address")
+	subCmd.PersistentFlags().StringVar(&s3TestConf.S3AccessID, "s3_access_id", "", "S3 access ID")
+	subCmd.PersistentFlags().StringVar(&s3TestConf.S3SecretKey, "s3_secret_key", "", "S3 access secret key")
+	return nil
+}
+
 func init() {
-	toolsCmd.AddCommand(maintCmd)
+	rootCmd.AddCommand(maintCmd)
 	maintCmd.AddCommand(stopCmd)
 	maintCmd.AddCommand(startCmd)
 	maintCmd.AddCommand(restartCmd)
 	maintCmd.AddCommand(cleanupCmd)
 	maintCmd.AddCommand(makeBinaryCmd)
+
 }

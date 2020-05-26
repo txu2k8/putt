@@ -20,20 +20,23 @@ type Dplmanager interface {
 
 // dplMgr implements Dplmanager
 type dplMgr struct {
-	ssh sshmgr.SSHInput
+	sshmgr.SSHMgr
 }
 
 // newdplMgr returns a dplMgr
 func newdplMgr(b *VizionBase, host string) *dplMgr {
-	return &dplMgr{
-		ssh: sshmgr.SSHInput{Host: host, SSHKey: b.SSHKey},
+	sshCfg := sshmgr.NewSSHConfig(host, b.SSHKey)
+	session, err := sshCfg.CreateSession()
+	if err != nil {
+		panic(err)
 	}
+	return &dplMgr{sshmgr.SSHMgr{session, sshCfg}}
 }
 
 // GetJnsStat ... TODO
 func (d *dplMgr) GetJnsStat() bool {
 	cmdSpec := "lsmod | grep dpl"
-	_, output := d.ssh.RunCmd(cmdSpec)
+	_, output := d.RunCmd(cmdSpec)
 	logger.Info(output)
 	if output != "" && strings.Contains(output, "dpl") {
 		return true

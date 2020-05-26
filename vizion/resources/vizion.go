@@ -1,6 +1,7 @@
 package resources
 
 import (
+	"pzatest/libs/db"
 	"pzatest/libs/k8s"
 	"pzatest/types"
 	"strconv"
@@ -16,6 +17,7 @@ type BaseInterface interface {
 	DplmanagerGetter
 	ServiceManagerGetter
 	CassClusterGetter
+	HealthCheckerGetter
 }
 
 // VizionBase is used to interact with features provided by the  group.
@@ -44,6 +46,11 @@ func (b *VizionBase) Cass() CassCluster {
 	return newSessCluster(b)
 }
 
+// Check returns HealthChecker
+func (b *VizionBase) Check() HealthChecker {
+	return newHealthChecker(b)
+}
+
 // GetK8sClient returns a k8s.Client that is used to communicate
 // with K8S API server by this client implementation.
 func (b *VizionBase) GetK8sClient() k8s.Client {
@@ -56,14 +63,14 @@ func (b *VizionBase) GetK8sClient() k8s.Client {
 }
 
 // GetCassConfig returns cassandra cluster configs
-func (b *VizionBase) GetCassConfig() (cf map[string]CassConfig) {
+func (b *VizionBase) GetCassConfig() map[string]db.CassConfig {
 	masterCassIPs := b.Service().GetMasterCassIPs()
 	masterUser, masterPwd := b.Service().GetMasterCassUserPwd()
 	masterPort := b.Service().GetMasterCassPort()
-	cf["0"] = CassConfig{
-		Index:    0,
-		IPs:      masterCassIPs,
-		User:     masterUser,
+	cf := map[string]db.CassConfig{}
+	cf["0"] = db.CassConfig{
+		Hosts:    masterCassIPs,
+		Username: masterUser,
 		Password: masterPwd,
 		Port:     masterPort,
 		Keyspace: "vizion",
@@ -72,14 +79,14 @@ func (b *VizionBase) GetCassConfig() (cf map[string]CassConfig) {
 		vsetCassIPs := b.Service().GetSubCassIPs(vsetID)
 		vsetUser, vsetPwd := b.Service().GetSubCassUserPwd(vsetID)
 		vsetPort := b.Service().GetSubCassPort(vsetID)
-		cf[strconv.Itoa(vsetID)] = CassConfig{
-			Index:    vsetID,
-			IPs:      vsetCassIPs,
-			User:     vsetUser,
+		cf[strconv.Itoa(vsetID)] = db.CassConfig{
+			Hosts:    vsetCassIPs,
+			Username: vsetUser,
 			Password: vsetPwd,
 			Port:     vsetPort,
 			Keyspace: "vizion",
 		}
 	}
-	return
+	// logger.Infof("CassConfig:%s\n", utils.Prettify(cf))
+	return cf
 }
