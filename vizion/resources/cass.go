@@ -36,9 +36,9 @@ type sessCluster struct {
 	SessionMap map[string]*gocql.Session // {"0": *gocql.Session}
 }
 
-func newSessCluster(b *VizionBase) *sessCluster {
+func newSessCluster(v *Vizion) *sessCluster {
 	return &sessCluster{
-		ConfigMap:  b.GetCassConfig(),
+		ConfigMap:  v.GetCassConfig(),
 		SessionMap: map[string]*gocql.Session{"0": nil},
 	}
 }

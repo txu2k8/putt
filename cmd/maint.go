@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var maintConf maintenance.MaintTestInput
+
 // maintCmd represents the maint command
 var maintCmd = &cobra.Command{
 	Use:   "maint",
@@ -33,7 +35,7 @@ var stopCmd = &cobra.Command{
 		}
 		logger.Infof("Case List(s3): %s", caseList)
 		var maintainer maintenance.Maintainer
-		maintainer = maintenance.NewMaint(vizionBaseConf)
+		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
 		stop := func() error {
 			err := maintainer.Stop()
 			return err
@@ -90,11 +92,9 @@ var makeBinaryCmd = &cobra.Command{
 }
 
 // AddFlagsService ...
-func AddFlagsService(subCmd *cobra.Command) error {
-	subCmd.PersistentFlags().StringVar(&s3TestConf.S3Ip, "s3_ip", "", "S3 server IP address")
-	subCmd.PersistentFlags().StringVar(&s3TestConf.S3AccessID, "s3_access_id", "", "S3 access ID")
-	subCmd.PersistentFlags().StringVar(&s3TestConf.S3SecretKey, "s3_secret_key", "", "S3 access secret key")
-	return nil
+func AddFlagsService(cmd *cobra.Command) {
+	cmd.PersistentFlags().StringArrayVar(&maintConf.SvNameArr, "services", []string{""}, "Service Name List")
+	cmd.PersistentFlags().StringArrayVar(&maintConf.ExculdeSvNameArr, "exclude_services", []string{""}, "Exclude Service Name List")
 }
 
 func init() {
@@ -104,5 +104,9 @@ func init() {
 	maintCmd.AddCommand(restartCmd)
 	maintCmd.AddCommand(cleanupCmd)
 	maintCmd.AddCommand(makeBinaryCmd)
+
+	AddFlagsService(stopCmd)
+	AddFlagsService(startCmd)
+	AddFlagsService(restartCmd)
 
 }

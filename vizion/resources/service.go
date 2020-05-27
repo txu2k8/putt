@@ -38,22 +38,11 @@ type svManager struct {
 }
 
 // newServiceMgr returns a Nodes
-func newServiceMgr(b *VizionBase) *svManager {
+func newServiceMgr(v *Vizion) *svManager {
 	return &svManager{
-		b.GetK8sClient(),
+		v.GetK8sClient(),
 	}
 }
-
-// GetKubeConfig ...
-// func (b *svManager) GetKubeConfig() (cfPath string, err error) {
-// 	n := b.Node(b.MasterIPs[0])
-// 	cfPath, err = n.GetKubeConfig(false)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	b.KubeConfig = cfPath
-// 	return cfPath, err
-// }
 
 // K8sGetMasterCassIPs ...
 func (s *svManager) GetMasterCassIPs() (ipArr []string) {

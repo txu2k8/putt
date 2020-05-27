@@ -20,53 +20,54 @@ type BaseInterface interface {
 	HealthCheckerGetter
 }
 
-// VizionBase is used to interact with features provided by the  group.
-type VizionBase struct {
-	types.VizionBaseInput
+// Vizion is used to interact with features provided by the  group.
+type Vizion struct {
+	Base       types.VizionBaseInput
 	KubeConfig string // kubeconfig file path
 }
 
 // Node returns NodeInterface
-func (b *VizionBase) Node(host string) NodeInterface {
-	return newNode(b, host)
+func (v *Vizion) Node(host string) NodeInterface {
+	return newNode(v, host)
 }
 
 // DplMgr returns Dplmanager
-func (b *VizionBase) DplMgr(host string) Dplmanager {
-	return newdplMgr(b, host)
+func (v *Vizion) DplMgr(host string) Dplmanager {
+	return newdplMgr(v, host)
 }
 
 // Service returns ServiceManager
-func (b *VizionBase) Service() ServiceManager {
-	return newServiceMgr(b)
+func (v *Vizion) Service() ServiceManager {
+	return newServiceMgr(v)
 }
 
 // Cass returns CassCluster
-func (b *VizionBase) Cass() CassCluster {
-	return newSessCluster(b)
+func (v *Vizion) Cass() CassCluster {
+	return newSessCluster(v)
 }
 
 // Check returns HealthChecker
-func (b *VizionBase) Check() HealthChecker {
-	return newHealthChecker(b)
+func (v *Vizion) Check() HealthChecker {
+	return newHealthChecker(v)
 }
 
 // GetK8sClient returns a k8s.Client that is used to communicate
 // with K8S API server by this client implementation.
-func (b *VizionBase) GetK8sClient() k8s.Client {
-	c, err := k8s.NewClientWithRetry(b.VizionBaseInput.KubeConfig)
+func (v *Vizion) GetK8sClient() k8s.Client {
+	v.GetKubeConfig()
+	c, err := k8s.NewClientWithRetry(v.Base.KubeConfig)
 	if err != nil {
 		panic(err)
 	}
-	c.NameSpace = b.VizionBaseInput.K8sNameSpace
+	c.NameSpace = v.Base.K8sNameSpace
 	return c
 }
 
 // GetCassConfig returns cassandra cluster configs
-func (b *VizionBase) GetCassConfig() map[string]db.CassConfig {
-	masterCassIPs := b.Service().GetMasterCassIPs()
-	masterUser, masterPwd := b.Service().GetMasterCassUserPwd()
-	masterPort := b.Service().GetMasterCassPort()
+func (v *Vizion) GetCassConfig() map[string]db.CassConfig {
+	masterCassIPs := v.Service().GetMasterCassIPs()
+	masterUser, masterPwd := v.Service().GetMasterCassUserPwd()
+	masterPort := v.Service().GetMasterCassPort()
 	cf := map[string]db.CassConfig{}
 	cf["0"] = db.CassConfig{
 		Hosts:    masterCassIPs,
@@ -75,10 +76,10 @@ func (b *VizionBase) GetCassConfig() map[string]db.CassConfig {
 		Port:     masterPort,
 		Keyspace: "vizion",
 	}
-	for _, vsetID := range b.VizionBaseInput.VsetIDs {
-		vsetCassIPs := b.Service().GetSubCassIPs(vsetID)
-		vsetUser, vsetPwd := b.Service().GetSubCassUserPwd(vsetID)
-		vsetPort := b.Service().GetSubCassPort(vsetID)
+	for _, vsetID := range v.Base.VsetIDs {
+		vsetCassIPs := v.Service().GetSubCassIPs(vsetID)
+		vsetUser, vsetPwd := v.Service().GetSubCassUserPwd(vsetID)
+		vsetPort := v.Service().GetSubCassPort(vsetID)
 		cf[strconv.Itoa(vsetID)] = db.CassConfig{
 			Hosts:    vsetCassIPs,
 			Username: vsetUser,

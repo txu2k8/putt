@@ -13,8 +13,8 @@ func TestVizion(t *testing.T) {
 		Password: "password",
 		Port:     22,
 	}
-	b := VizionBase{VizionBaseInput: types.VizionBaseInput{SSHKey: sshKey}}
-	exist := b.Node(host).IsDplmodExist()
+	v := Vizion{Base: types.VizionBaseInput{SSHKey: sshKey}}
+	exist := v.Node(host).IsDplmodExist()
 	logger.Info(exist)
-	b.Service().K8sEnableNodeLabel("", "", "")
+	v.Service().K8sEnableNodeLabel("", "", "")
 }

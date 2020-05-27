@@ -6,9 +6,11 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"os"
 	"time"
 
 	"github.com/op/go-logging"
+	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -22,8 +24,9 @@ type SSHManager interface {
 
 // SSHMgr .
 type SSHMgr struct {
-	*ssh.Session
-	*SSHConfig
+	Session    *ssh.Session // ssh session for Run(cmdSpec)
+	Cfg        *SSHConfig   // ssh config
+	SftpClient *sftp.Client // sftp client for scp copy files
 }
 
 // SSHKey ssh login keys
@@ -42,21 +45,20 @@ type SSHConfig struct {
 	ConnectTimeout time.Duration // initial connection timeout, used during initial dial to server (default: 600ms)
 }
 
-// NewSSHConfig generates a new config for the default ssh implementation.
-func NewSSHConfig(host string, sshKey SSHKey) *SSHConfig {
+// NewSSHMgr generates a new SSHManager for the default ssh implementation.
+func NewSSHMgr(host string, sshKey SSHKey) *SSHMgr {
 	cfg := &SSHConfig{
 		Host:           host,
 		SSHKey:         sshKey,
 		Timeout:        600 * time.Second,
 		ConnectTimeout: 600 * time.Second,
 	}
-	return cfg
-}
 
-// CreateSession initializes the cluster based on this config and returns a
-// session object that can be used to interact with the database.
-func (cfg *SSHConfig) CreateSession() (*ssh.Session, error) {
-	return cfg.NewSessionWithRetry()
+	session, err := cfg.NewSessionWithRetry()
+	if err != nil {
+		panic(err)
+	}
+	return &SSHMgr{Session: session, Cfg: cfg}
 }
 
 // NewClient return the ssh client
@@ -119,7 +121,24 @@ func (cfg *SSHConfig) NewSession() (*ssh.Session, error) {
 	return session, nil
 }
 
-// NewSessionWithRetry return the cassandra session
+// NewSftpClient .
+func (cfg *SSHConfig) NewSftpClient() (*sftp.Client, error) {
+	// connet to ssh
+	client, err := cfg.NewClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// create sftp client
+	sftpClient, err := sftp.NewClient(client)
+	if err != nil {
+		return nil, err
+	}
+
+	return sftpClient, nil
+}
+
+// NewSessionWithRetry return the ssh session
 func (cfg *SSHConfig) NewSessionWithRetry() (*ssh.Session, error) {
 	interval := time.Duration(15)
 	timeout := time.NewTimer(30 * time.Minute)
@@ -146,16 +165,43 @@ loop:
 	return session, err
 }
 
+// NewSftpClientWithRetry return the sftp.Client
+func (cfg *SSHConfig) NewSftpClientWithRetry() (*sftp.Client, error) {
+	interval := time.Duration(15)
+	timeout := time.NewTimer(30 * time.Minute)
+	var sftpClient *sftp.Client
+	var err error
+
+loop:
+	for {
+		sftpClient, err = cfg.NewSftpClient()
+		if err == nil && sftpClient != nil {
+			break loop
+		}
+		logger.Warningf("New ssh sftpClient failed, %v", err)
+
+		// retry or timeout
+		select {
+		case <-time.After(interval * time.Second):
+			logger.Infof("retry new ssh session after %d second", interval)
+		case <-timeout.C:
+			err = fmt.Errorf("new ssh session failed after retry many times, cause by %v", err)
+			break loop
+		}
+	}
+	return sftpClient, err
+}
+
 // RunCmd ...
-func (session *SSHMgr) RunCmd(cmdSpec string) (int, string) {
+func (sshMgr *SSHMgr) RunCmd(cmdSpec string) (int, string) {
 	var rc int
 	var stdOut, stdErr bytes.Buffer
 
-	session.Stdout = &stdOut
-	session.Stderr = &stdErr
+	sshMgr.Session.Stdout = &stdOut
+	sshMgr.Session.Stderr = &stdErr
 
-	logger.Infof("SSH Execute: ssh %s@%s# %s", session.UserName, session.Host, cmdSpec)
-	if err := session.Run(cmdSpec); err != nil {
+	logger.Infof("SSH Execute: ssh %s@%s# %s", sshMgr.Cfg.UserName, sshMgr.Cfg.Host, cmdSpec)
+	if err := sshMgr.Session.Run(cmdSpec); err != nil {
 		logger.Debugf("Failed to run: %s", err.Error())
 		// Process exited with status 1
 		rc = 1
@@ -170,14 +216,65 @@ func (session *SSHMgr) RunCmd(cmdSpec string) (int, string) {
 	return rc, output
 }
 
-// // RunCmd ...
-// func (s *sshMgr) RunCmd(cmdSpec string) (int, string) {
-// 	logger.Infof("Execute: ssh %s@%s# %s", cfg.UserName, cfg.Host, cmdSpec)
-// 	return RunCmdWithOutput(session, cmdSpec)
-// }
+// ConnectSftpClient ...
+func (sshMgr *SSHMgr) ConnectSftpClient() {
+	sftpClient, err := sshMgr.Cfg.NewSftpClientWithRetry()
+	if err != nil {
+		panic(err)
+	}
+	sshMgr.SftpClient = sftpClient
+}
 
-// SCPGet ...
-func (session *SSHMgr) SCPGet(localPath, remotePath string) error {
-	logger.Info("SCPGet ...")
+// ScpGet ...
+func (sshMgr *SSHMgr) ScpGet(localPath, remotePath string) error {
+	logger.Infof("scp %s@%s:%s %s ...", sshMgr.Cfg.UserName, sshMgr.Cfg.Host, remotePath, localPath)
+	dstFile, err := os.Create(localPath)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	srcFile, err := sshMgr.SftpClient.Open(remotePath)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	buf := make([]byte, 1024)
+	for {
+		n, _ := srcFile.Read(buf)
+		if n == 0 {
+			break
+		}
+		dstFile.Write(buf[0:n])
+	}
+
+	return nil
+}
+
+// ScpPut ...
+func (sshMgr *SSHMgr) ScpPut(localPath, remotePath string) error {
+	logger.Infof("scpPut %s -> %s@%s:%s ...", localPath, sshMgr.Cfg.UserName, sshMgr.Cfg.Host, remotePath)
+	srcFile, err := os.Open(localPath)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	dstFile, err := sshMgr.SftpClient.Create(remotePath)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	buf := make([]byte, 1024)
+	for {
+		n, _ := srcFile.Read(buf)
+		if n == 0 {
+			break
+		}
+		dstFile.Write(buf[0:n])
+	}
+
 	return nil
 }

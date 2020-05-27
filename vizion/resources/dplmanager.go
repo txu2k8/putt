@@ -20,17 +20,12 @@ type Dplmanager interface {
 
 // dplMgr implements Dplmanager
 type dplMgr struct {
-	sshmgr.SSHMgr
+	*sshmgr.SSHMgr
 }
 
 // newdplMgr returns a dplMgr
-func newdplMgr(b *VizionBase, host string) *dplMgr {
-	sshCfg := sshmgr.NewSSHConfig(host, b.SSHKey)
-	session, err := sshCfg.CreateSession()
-	if err != nil {
-		panic(err)
-	}
-	return &dplMgr{sshmgr.SSHMgr{session, sshCfg}}
+func newdplMgr(v *Vizion, host string) *dplMgr {
+	return &dplMgr{sshmgr.NewSSHMgr(host, v.Base.SSHKey)}
 }
 
 // GetJnsStat ... TODO

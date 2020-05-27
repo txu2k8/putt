@@ -148,9 +148,9 @@ func (job *RestartNodeTestInput) Run() error {
 // ============================= RestartService =============================
 
 // Debug code
-func Debug(conf types.VizionBaseInput) error {
+func Debug(base types.VizionBaseInput) error {
 	// host := "10.25.119.77"
-	vizion := resources.VizionBase{VizionBaseInput: conf}
+	vizion := resources.Vizion{Base: base}
 
 	// masterCass := vizion.Cass().SetIndex("0")
 	// svArr, _ := masterCass.GetServiceByType(1024)
@@ -164,7 +164,7 @@ func Debug(conf types.VizionBaseInput) error {
 
 	logPathArr := []string{}
 	for _, sv := range config.DefaultServiceArray {
-		logArr := sv.GetLogDirArr(conf)
+		logArr := sv.GetLogDirArr(base)
 		// logger.Info(utils.Prettify(logArr))
 		logPathArr = append(logPathArr, logArr...)
 	}

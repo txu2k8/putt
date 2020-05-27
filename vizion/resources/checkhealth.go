@@ -17,12 +17,12 @@ type HealthChecker interface {
 
 // checker implements HealthChecker Interface
 type checker struct {
-	*VizionBase
+	*Vizion
 }
 
 // newHealthChecker returns a Nodes
-func newHealthChecker(b *VizionBase) *checker {
-	return &checker{b}
+func newHealthChecker(v *Vizion) *checker {
+	return &checker{v}
 }
 
 // IsPingOK ...
@@ -44,8 +44,8 @@ func IsPingOK(ip string) error {
 func (c *checker) IsNodeCrashed() error {
 	crashed := false
 	crashArrMap := map[string][]string{}
-	for _, nodeIP := range c.VizionBase.Service().GetAllNodeIPs() {
-		node := c.VizionBase.Node(nodeIP)
+	for _, nodeIP := range c.Vizion.Service().GetAllNodeIPs() {
+		node := c.Vizion.Node(nodeIP)
 		crashArr := node.GetCrashDirs()
 		if len(crashArr) > 0 {
 			crashed = true

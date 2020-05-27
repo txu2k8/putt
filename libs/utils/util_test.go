@@ -11,9 +11,9 @@ func TestUtilFunc(t *testing.T) {
 	// logger.Info(ByteCountDecimal(12792627))
 	// 2020-04-08T16:36:08 test INFO: 12.2 MB
 
-	logger.Infof("%v", GetRandomString(13))
+	// logger.Infof("%v", GetRandomString(13))
 	// SleepProgressBar(1 * time.Second)
-	logger.Infof("%v", string(UniqueID()))
+	// logger.Infof("%v", string(UniqueID()))
 	// SleepProgressBar(10 * time.Second)
 	// PrintWithProgressBar("test", 100)
 
@@ -23,7 +23,10 @@ func TestUtilFunc(t *testing.T) {
 	// logger.Info(GetRandomInt64(10, 1000))
 
 	// s := map[string]int{"aa": 1, "bb": 2}
-	d := []string{"sssa", "adada"}
-	logger.Info(d)
-	logger.Info(Prettify(d))
+	// d := []string{"sssa", "adada"}
+	// logger.Info(d)
+	// logger.Info(Prettify(d))
+
+	ip := GetLocalIP()
+	logger.Info(Prettify(ip))
 }

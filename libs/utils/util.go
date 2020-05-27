@@ -13,6 +13,7 @@ import (
 	"math"
 	"math/big"
 	mathrand "math/rand"
+	"net"
 	"os"
 	"os/exec"
 	"path"
@@ -471,4 +472,16 @@ func Base64Decode(encodeString string) []byte {
 		panic(err)
 	}
 	return decodeBytes
+}
+
+// GetLocalIP .
+func GetLocalIP() (ip string) {
+	conn, err := net.Dial("udp", "google.com:80")
+	if err != nil {
+		logger.Error(err.Error())
+		return
+	}
+	defer conn.Close()
+	ip = strings.Split(conn.LocalAddr().String(), ":")[0]
+	return
 }

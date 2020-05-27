@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"pzatest/libs/sshmgr"
+	"regexp"
 	"strings"
 
 	"github.com/chenhg5/collection"
@@ -20,7 +21,8 @@ type NodeGetter interface {
 
 // NodeInterface has methods to work on Node resources.
 type NodeInterface interface {
-	GetKubeConfig(bool) (string, error)
+	GetKubeConfig(localPath string) error
+	GetKubeVipIP(fqdn string) (vIP string)
 	GetCrashDirs() (crashArr []string)
 	GetLogDirs(dirFilter []string) (logDirArr []string)
 	CleanLog(dirFilter []string) error
@@ -29,37 +31,45 @@ type NodeInterface interface {
 
 // nodes implements NodeInterface
 type node struct {
-	sshmgr.SSHMgr
+	*sshmgr.SSHMgr
 }
 
 // newNode returns a Nodes
-func newNode(b *VizionBase, host string) *node {
-	sshCfg := sshmgr.NewSSHConfig(host, b.SSHKey)
-	session, err := sshCfg.CreateSession()
-	if err != nil {
-		panic(err)
-	}
-	return &node{sshmgr.SSHMgr{session, sshCfg}}
+func newNode(v *Vizion, host string) *node {
+	return &node{sshmgr.NewSSHMgr(host, v.Base.SSHKey)}
 }
 
 // GetKubeConfig ...
-func (n *node) GetKubeConfig(overwrite bool) (cfPath string, err error) {
+func (n *node) GetKubeConfig(localPath string) error {
 	remoteCf := "/root/.kube/config"
-	localDir := "/tmp"
-	_, err = os.Stat(cfPath)
+
+	localDir := strings.Split(localPath, path.Base(localPath))[0]
+	_, err := os.Stat(localDir)
 	if os.IsNotExist(err) {
-		err := os.MkdirAll(cfPath, os.ModePerm)
+		err := os.MkdirAll(localDir, os.ModePerm)
 		if err != nil {
-			logger.Panicf("mkdir failed![%v]", err)
+			panic(err)
 		}
 	}
 
-	cfPath = path.Join(localDir, "config")
-	if overwrite {
-		err = n.SCPGet(cfPath, remoteCf)
-	}
+	n.ConnectSftpClient()
+	err = n.ScpGet(localPath, remoteCf)
 
-	return cfPath, err
+	return err
+}
+
+// GetKubeVipIP .
+// fqdn: "kubernetes.vizion.local"
+func (n *node) GetKubeVipIP(fqdn string) (vIP string) {
+	re := regexp.MustCompile(`(([01]{0,1}\d{0,1}\d|2[0-4]\d|25[0-5])\.){3}([01]{0,1}\d{0,1}\d|2[0-4]\d|25[0-5])`)
+	cmdSpec := fmt.Sprintf("ping %s -c 1", fqdn)
+	_, output := n.RunCmd(cmdSpec)
+	matched := re.FindAllStringSubmatch(output, -1)
+	// logger.Info(utils.Prettify(matched))
+	for _, match := range matched {
+		vIP = match[0]
+	}
+	return
 }
 
 func (n *node) GetCrashDirs() (crashArr []string) {

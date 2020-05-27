@@ -12,8 +12,7 @@ func TestIsDplmodExist(t *testing.T) {
 		Password: "password",
 		Port:     22,
 	}
-
-	n := node{ssh: sshmgr.SSHInput{Host: host, SSHKey: sshKey}}
+	n := node{sshmgr.NewSSHMgr(host, sshKey)}
 	logger.Info(n.IsDplmodExist())
 	logger.Info(n.IsDplmodExist())
 }
