@@ -26,14 +26,12 @@ var maintCmd = &cobra.Command{
 
 // stopCmd represents the stop command
 var stopCmd = &cobra.Command{
-	Use:   "stop",
-	Short: "Maintaince mode tools: stop",
-	Long:  `stop specified services`,
+	Use:     "stop",
+	Short:   "Maintaince mode tools: stop service",
+	Long:    "Stop specified services(default:All DPL+APP)",
+	Example: "pzatest maint stop --master_ips 10.25.119.71 --vset_ids 1 --services es --clean all",
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(caseList) == 0 {
-			caseList = []string{"stop"}
-		}
-		logger.Infof("Case List(s3): %s", caseList)
+		logger.Infof("maint stop services ...")
 		var maintainer maintenance.Maintainer
 		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
 		stop := func() error {
@@ -91,10 +89,15 @@ var makeBinaryCmd = &cobra.Command{
 	},
 }
 
-// AddFlagsService ...
-func AddFlagsService(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringArrayVar(&maintConf.SvNameArr, "services", []string{""}, "Service Name List")
-	cmd.PersistentFlags().StringArrayVar(&maintConf.ExculdeSvNameArr, "exclude_services", []string{""}, "Exclude Service Name List")
+// AddFlagsMaintService ...
+func AddFlagsMaintService(cmd *cobra.Command) {
+	cmd.PersistentFlags().StringArrayVar(&maintConf.SvNameArr, "services", []string{}, "Service Name List")
+	cmd.PersistentFlags().StringArrayVar(&maintConf.ExculdeSvNameArr, "services_exclude", []string{}, "Service Name List which excluded")
+}
+
+// AddFlagsMaintClean ...
+func AddFlagsMaintClean(cmd *cobra.Command) {
+	cmd.PersistentFlags().StringArrayVar(&maintConf.CleanNameArr, "clean", []string{}, "Clean item Name List")
 }
 
 func init() {
@@ -105,8 +108,9 @@ func init() {
 	maintCmd.AddCommand(cleanupCmd)
 	maintCmd.AddCommand(makeBinaryCmd)
 
-	AddFlagsService(stopCmd)
-	AddFlagsService(startCmd)
-	AddFlagsService(restartCmd)
+	AddFlagsMaintService(stopCmd)
+	AddFlagsMaintClean(stopCmd)
+	AddFlagsMaintService(startCmd)
+	AddFlagsMaintService(restartCmd)
 
 }

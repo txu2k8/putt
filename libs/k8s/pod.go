@@ -82,6 +82,13 @@ func (c *Client) GetPodImage(podName, containerName string) (image string, err e
 	return "", fmt.Errorf("Not found container [%s] in pod %s", containerName, podName)
 }
 
+// DeletePod ...
+func (c *Client) DeletePod(podName string) error {
+	return c.Clientset.CoreV1().Pods(c.NameSpace).Delete(podName, &metav1.DeleteOptions{GracePeriodSeconds: int64Ptr(5184000)})
+}
+
+// =============== IsPod Ready/Down/Terminated ===============
+
 // IsPodReady ...
 func (c *Client) IsPodReady(input IsPodReadyInput) error {
 	allPods, err := c.Clientset.CoreV1().Pods(c.NameSpace).List(metav1.ListOptions{})
@@ -228,19 +235,6 @@ func (c *Client) IsPodTerminated(input IsPodReadyInput) error {
 	return nil
 }
 
-// WaitForPodReady ...
-func (c *Client) WaitForPodReady(input IsPodReadyInput, tries int) error {
-	action := func(attempt uint) error {
-		return c.IsPodReady(input)
-	}
-	err := retry.Retry(
-		action,
-		strategy.Limit(uint(tries)),
-		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
-	)
-	return err
-}
-
 // IsAllPodReady ...
 func (c *Client) IsAllPodReady(input IsAllPodReadyInput) error {
 	allPods, err := c.Clientset.CoreV1().Pods(c.NameSpace).List(metav1.ListOptions{LabelSelector: input.PodLabel})
@@ -343,10 +337,65 @@ func (c *Client) IsAllPodDown(input IsAllPodReadyInput) error {
 	return nil
 }
 
+// =============== WaitForPod Ready/Down/Terminated ===============
+type checkFn func(input map[string]interface{}) error
+
+// WaitForPod ...
+func (c *Client) WaitForPod(fn checkFn, input map[string]interface{}, tries int) error {
+	action := func(attempt uint) error {
+		return fn(input)
+	}
+	err := retry.Retry(
+		action,
+		strategy.Limit(uint(tries)),
+		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+	)
+	return err
+}
+
+// WaitForPodReady ...
+func (c *Client) WaitForPodReady(input IsPodReadyInput, tries int) error {
+	action := func(attempt uint) error {
+		return c.IsPodReady(input)
+	}
+	err := retry.Retry(
+		action,
+		strategy.Limit(uint(tries)),
+		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+	)
+	return err
+}
+
+// WaitForPodDown ...
+func (c *Client) WaitForPodDown(input IsPodReadyInput, tries int) error {
+	action := func(attempt uint) error {
+		return c.IsPodDown(input)
+	}
+	err := retry.Retry(
+		action,
+		strategy.Limit(uint(tries)),
+		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+	)
+	return err
+}
+
 // WaitForAllPodReady ...
 func (c *Client) WaitForAllPodReady(input IsAllPodReadyInput, tries int) error {
 	action := func(attempt uint) error {
 		return c.IsAllPodReady(input)
+	}
+	err := retry.Retry(
+		action,
+		strategy.Limit(uint(tries)),
+		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+	)
+	return err
+}
+
+// WaitForAllPodDown ...
+func (c *Client) WaitForAllPodDown(input IsAllPodReadyInput, tries int) error {
+	action := func(attempt uint) error {
+		return c.IsAllPodDown(input)
 	}
 	err := retry.Retry(
 		action,

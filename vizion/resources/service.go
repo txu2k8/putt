@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"pzatest/libs/k8s"
 	"pzatest/libs/utils"
+	"strings"
+	"sync"
+	"time"
 )
 
 // ServiceManagerGetter has a method to return a ServiceManager.
@@ -13,6 +16,7 @@ type ServiceManagerGetter interface {
 
 // ServiceManager ...
 type ServiceManager interface {
+	k8s.ClientSet
 	GetMasterCassIPs() (ipArr []string)
 	GetMasterCassUserPwd() (user, pwd string)
 	GetMasterCassPort() (port int)
@@ -23,13 +27,22 @@ type ServiceManager interface {
 
 	GetAllNodeIPs() (ipArr []string)
 
-	K8sEnableNodeLabel(nodeName, nodeLabel, podLabel string) error
+	EnableNodeLabelByLabels(nodeLabel []string) error
+	DisableNodeLabelByLabels(nodeLabel []string) error
+	DeletePodsByLabel(podLabel string) (err error)
 	// K8sDisableNodeLabel(nodeName, nodeLabel, podLabel string) error
 	// K8sEnableNodeLabelByType(serviceType int) error
 	// K8sDisableNodeLabelByType(serviceType int) error
 	// K8sStartAll(serviceType int) error
 	// K8sShutdownAll(serviceType int) error
 	Test(podLabel string) error
+}
+
+// Worker ...
+type Worker struct {
+	wg          sync.WaitGroup
+	done        chan struct{}
+	maxParallel int
 }
 
 // svManager implements NodeInterface
@@ -124,11 +137,77 @@ func (s *svManager) GetAllNodeIPs() (ipArr []string) {
 	return
 }
 
-// K8sEnableNodeLabel .
-func (s *svManager) K8sEnableNodeLabel(nodeName, nodeLabel, podLabel string) error {
-	img, _ := s.GetPodImage("cmapmcdpl-1-0", "cmapmcdpl")
-	logger.Info(img)
+// EnableNodeLabel .
+func (s *svManager) EnableNodeLabelByLabels(nodeLabelArr []string) error {
 	return nil
+}
+
+func (s *svManager) DisableNodeLabelByLabels(nodeLabelArr []string) (err error) {
+	var nodeLabelNameMap map[string][]string
+	for _, nodeLabel := range nodeLabelArr {
+		nodeLabelNameMap[nodeLabel] = s.GetNodeNameArrByLabel(nodeLabel)
+	}
+
+	w := Worker{maxParallel: 100}
+	ch := make(chan struct{}, w.maxParallel)
+
+	for nLable, nodeNameArr := range nodeLabelNameMap {
+		for _, nodeName := range nodeNameArr {
+			time.Sleep(2 * time.Second)
+			select {
+			case ch <- struct{}{}:
+				w.wg.Add(1)
+				go func() {
+					nLables := strings.Split(nLable, ",")
+					err = s.DisableNodeLabel(nodeName, nLables[len(nLables)-1])
+					if err != nil {
+						w.wg.Done()
+						w.done <- struct{}{}
+					}
+					<-ch
+					w.wg.Done()
+				}()
+			case <-w.done:
+				break
+			}
+		}
+	}
+	w.wg.Wait()
+	return
+}
+
+func (s *svManager) DeletePodsByLabel(podLabel string) (err error) {
+	pods, err := s.GetPodListByLabel(podLabel)
+	if err != nil {
+		return
+	}
+
+	w := Worker{maxParallel: 100}
+	ch := make(chan struct{}, w.maxParallel)
+
+	for _, pod := range pods.Items {
+		podName := pod.ObjectMeta.Name
+		nodeName := pod.Spec.NodeName
+		time.Sleep(2 * time.Second)
+		select {
+		case ch <- struct{}{}:
+			w.wg.Add(1)
+			go func() {
+				logger.Info("Kubectl delete pod %s ...(%s)", podName, nodeName)
+				err = s.DeletePod(podName)
+				if err != nil {
+					w.wg.Done()
+					w.done <- struct{}{}
+				}
+				<-ch
+				w.wg.Done()
+			}()
+		case <-w.done:
+			break
+		}
+	}
+	w.wg.Wait()
+	return
 }
 
 // Test .

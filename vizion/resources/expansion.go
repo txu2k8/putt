@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"pzatest/config"
+	"pzatest/libs/k8s"
 	"pzatest/libs/utils"
 	"strings"
 
@@ -89,12 +90,87 @@ func (v *Vizion) CleanLog() {
 }
 
 // StopService .
-func (v *Vizion) StopService(serviceArr []config.Service) error {
-	for _, sv := range serviceArr {
-		// logger.Info(utils.Prettify(sv))
-		logger.Infof(">> Stop service %s:%d ...", sv.TypeName, sv.Type)
-		ipArr, _ := v.Cass().SetIndex("0").GetServiceByType(sv.Type)
-		logger.Info(utils.Prettify(ipArr))
+func (v *Vizion) StopService(sv config.Service) error {
+	logger.Infof(">> Stop service %s:%d ...", sv.TypeName, sv.Type)
+	podLabel := sv.GetPodLabel(v.Base)
+	nodeLabelArr, _ := sv.GetNodeLabelArr(v.Base)
+	svMgr := v.Service()
+
+	switch sv.K8sKind {
+	case config.K8sStatefulsets:
+		if sv.Type == config.ES.Type { // disable label
+			svMgr.DisableNodeLabelByLabels(nodeLabelArr)
+			svMgr.DeletePodsByLabel(podLabel)
+			svMgr.WaitForAllPodDown(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 30)
+		}
+		// set replicas
+		k8sNameArr, _ := svMgr.GetStatefulSetsNameArrByLabel(podLabel)
+		for _, k8sName := range k8sNameArr {
+			svMgr.SetStatefulSetsReplicas(k8sName, 0)
+			svMgr.WaitForPodDown(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 30)
+		}
+	case config.K8sDeployment: // set replicas
+		k8sNameArr, _ := svMgr.GetDeploymentsNameArrByLabel(podLabel)
+		for _, k8sName := range k8sNameArr {
+			svMgr.SetDeploymentsReplicas(k8sName, 0)
+			svMgr.WaitForPodDown(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 30)
+		}
+	default: // disable label
+		svMgr.DisableNodeLabelByLabels(nodeLabelArr)
+		svMgr.DeletePodsByLabel(podLabel)
+		svMgr.WaitForAllPodDown(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 30)
+	}
+	return nil
+}
+
+// StartService .
+func (v *Vizion) StartService(sv config.Service) error {
+	logger.Infof(">> Start service %s:%d ...", sv.TypeName, sv.Type)
+	podLabel := sv.GetPodLabel(v.Base)
+	nodeLabelArr, nodeLabelKVArr := sv.GetNodeLabelArr(v.Base)
+
+	svMgr := v.Service()
+
+	var replicas int
+	switch sv.Type {
+	case config.Dplmanager.Type, config.Dplexporter.Type, config.Cdcgcbd.Type, config.Cdcgcs3.Type:
+		replicas = sv.Replicas
+	default:
+		var nodeNameArr []string
+		for _, nLabelKv := range nodeLabelKVArr {
+			nodeNameArr = append(nodeNameArr, svMgr.GetNodeNameArrByLabel(nLabelKv)...)
+		}
+		validReplicas := len(nodeNameArr)
+		replicas = utils.MaxInt(sv.Replicas, validReplicas)
+	}
+
+	switch sv.K8sKind {
+	case config.K8sStatefulsets:
+		if sv.Type == config.ES.Type { // disable label
+			svMgr.EnableNodeLabelByLabels(nodeLabelArr)
+			svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 30)
+		}
+		// set replicas
+		if replicas == 0 {
+			break
+		}
+		k8sNameArr, _ := svMgr.GetStatefulSetsNameArrByLabel(podLabel)
+		for _, k8sName := range k8sNameArr {
+			svMgr.SetStatefulSetsReplicas(k8sName, replicas)
+			svMgr.WaitForPodReady(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 30)
+		}
+	case config.K8sDeployment: // set replicas
+		if replicas == 0 {
+			break
+		}
+		k8sNameArr, _ := svMgr.GetDeploymentsNameArrByLabel(podLabel)
+		for _, k8sName := range k8sNameArr {
+			svMgr.SetDeploymentsReplicas(k8sName, replicas)
+			svMgr.WaitForPodReady(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 30)
+		}
+	default: // disable label
+		svMgr.EnableNodeLabelByLabels(nodeLabelArr)
+		svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 30)
 	}
 	return nil
 }

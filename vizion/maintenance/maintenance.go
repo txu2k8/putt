@@ -2,6 +2,7 @@ package maintenance
 
 import (
 	"pzatest/config"
+	"pzatest/libs/utils"
 	"pzatest/types"
 	"pzatest/vizion/resources"
 
@@ -40,7 +41,6 @@ type MaintTestInput struct {
 func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
 	var svArr, binArr []config.Service
 	var cleanArr []config.CleanItem
-
 	if len(mt.SvNameArr) == 0 {
 		svArr = config.DefaultCoreServiceArray
 	} else {
@@ -83,7 +83,15 @@ func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
 
 // Stop - maint
 func (maint *Maint) Stop() error {
-	return maint.Vizion.StopService(maint.ServiceArr)
+	logger.Info(utils.Prettify(maint))
+	for _, sv := range maint.ServiceArr {
+		// logger.Info(utils.Prettify(sv))
+		err := maint.Vizion.StopService(sv)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Start - maint

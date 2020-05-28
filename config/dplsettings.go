@@ -373,7 +373,7 @@ var (
 		Path:       "/opt/ccc/node/service/dpl/bin/dpldagent",
 		GitPath:    "build/dagent",
 		Type:       524289,
-		TypeName:   "BLOCK_DEVICE",
+		TypeName:   "DPLDAGENT",
 		NameSpace:  "vizion",
 		K8sKind:    K8sDaemonsets,
 		PodLabel:   "name=bd-vset", // k=v, v-<vset_id>
@@ -389,7 +389,7 @@ var (
 		Name:       "vizions3",
 		Path:       "/opt/ccc/node/service/dpl/bin/vizions3",
 		GitPath:    "src/s3/src/rgw",
-		Type:       8389609,
+		Type:       33,
 		TypeName:   "S3",
 		NameSpace:  "vizion",
 		K8sKind:    K8sDeployment,
@@ -407,7 +407,7 @@ var (
 		Path:       "/opt/ccc/node/service/dpl/bin/dplmanager",
 		GitPath:    "build/manager",
 		Type:       34,
-		TypeName:   "S3",
+		TypeName:   "DPLMANAGER",
 		NameSpace:  "vizion",
 		K8sKind:    K8sDeployment,
 		PodLabel:   "name=dplmanager",                   // k=v, v

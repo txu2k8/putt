@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/md5"
 	"crypto/rand"
@@ -484,4 +485,32 @@ func GetLocalIP() (ip string) {
 	defer conn.Close()
 	ip = strings.Split(conn.LocalAddr().String(), ":")[0]
 	return
+}
+
+func prompt() {
+	fmt.Printf("-> Press Return key to continue.")
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		break
+	}
+	if err := scanner.Err(); err != nil {
+		panic(err)
+	}
+	fmt.Println()
+}
+
+// MinInt .
+func MinInt(x, y int) int {
+	if x < y {
+		return x
+	}
+	return y
+}
+
+// MaxInt .
+func MaxInt(x, y int) int {
+	if x > y {
+		return x
+	}
+	return y
 }
