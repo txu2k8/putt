@@ -12,6 +12,8 @@ import (
 	"github.com/chenhg5/collection"
 )
 
+// ============ Get /root/.kube/config ============
+
 // ReplaceKubeServer .
 func ReplaceKubeServer(cfPath, server string) {
 	defaultServer := "kubernetes.vizion.local"
@@ -75,19 +77,7 @@ func (v *Vizion) GetKubeConfig() {
 	v.Base.KubeConfig = cfPath
 }
 
-// CleanLog .
-func (v *Vizion) CleanLog() {
-	logPathArr := []string{}
-	for _, sv := range config.DefaultServiceArray {
-		logArr := sv.GetLogDirArr(v.Base)
-		// logger.Info(utils.Prettify(logArr))
-		logPathArr = append(logPathArr, logArr...)
-	}
-	for _, nodeIP := range v.Service().GetAllNodeIPs() {
-		node := v.Node(nodeIP)
-		node.CleanLog(logPathArr)
-	}
-}
+// ============ Stop/Start Services ============
 
 // StopService .
 func (v *Vizion) StopService(sv config.Service) error {
@@ -172,5 +162,92 @@ func (v *Vizion) StartService(sv config.Service) error {
 		svMgr.EnableNodeLabelByLabels(nodeLabelArr)
 		svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 30)
 	}
+	return nil
+}
+
+// ============ Clean up ============
+
+// CleanLog .
+func (v *Vizion) CleanLog(svArr []config.Service) error {
+	logger.Info("> Clean Services Logs ...")
+	logPathArr := []string{}
+	for _, sv := range svArr {
+		logArr := sv.GetLogDirArr(v.Base)
+		// logger.Info(utils.Prettify(logArr))
+		logPathArr = append(logPathArr, logArr...)
+	}
+	for _, nodeIP := range v.Service().GetAllNodeIPs() {
+		node := v.Node(nodeIP)
+		node.CleanLog(logPathArr)
+	}
+
+	return nil
+}
+
+// CleanJournal .
+func (v *Vizion) CleanJournal() error {
+	return nil
+}
+
+// CleanStorageCache .
+func (v *Vizion) CleanStorageCache() error {
+	return nil
+}
+
+// CleanSubCassTables .
+func (v *Vizion) CleanSubCassTables(tableNameArr []string) error {
+	for _, vsetID := range v.Base.VsetIDs {
+		subCass := v.Cass().SetIndex(string(vsetID))
+		for _, tableName := range tableNameArr {
+			err := subCass.TruncateTable(tableName)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// UpdateMasterCassTables .
+func (v *Vizion) UpdateMasterCassTables() error {
+	// masterCass := v.Cass().SetIndex("0")
+	logger.Info("> Updata VPM ...")
+	logger.Info("> Updata DPL ...")
+	logger.Info("> Updata ANCHSERVER ...")
+	logger.Info("> Clean JFS table ...")
+	logger.Info("> Insert index_map table ...")
+	return nil
+}
+
+// SetBdVolumeKV .
+func (v *Vizion) SetBdVolumeKV(kvArr []string) error {
+	for _, vsetID := range v.Base.VsetIDs {
+		subCass := v.Cass().SetIndex(string(vsetID))
+		subCass.TruncateTable("")
+		for _, kv := range kvArr {
+			logger.Infof("> Set vizion.volume: %s ...", kv)
+		}
+	}
+	return nil
+}
+
+// UpdateSubCassTables .
+func (v *Vizion) UpdateSubCassTables() error {
+	kvArr := []string{
+		"format=False",
+		"status=2",
+		"block_device_service=null",
+	}
+	v.SetBdVolumeKV(kvArr)
+	return nil
+}
+
+// CleanEtcd .
+func (v *Vizion) CleanEtcd(prefixArr []string) error {
+	return nil
+}
+
+// CleanCdcgc .
+func (v *Vizion) CleanCdcgc() error {
 	return nil
 }

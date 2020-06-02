@@ -81,6 +81,61 @@ func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
 	}
 }
 
+// Cleanup - maint
+func (maint *Maint) Cleanup() error {
+	formatBD := false
+	for _, clean := range maint.CleanArr {
+		switch clean.Name {
+		case "log":
+			err := maint.Vizion.CleanLog(maint.ServiceArr)
+			if err != nil {
+				return err
+			}
+		case "journal":
+			err := maint.Vizion.CleanJournal()
+			if err != nil {
+				return err
+			}
+		case "storage_cache":
+			err := maint.Vizion.CleanStorageCache()
+			if err != nil {
+				return err
+			}
+		case "master_cassandra":
+			formatBD = true
+			err := maint.Vizion.UpdateMasterCassTables()
+			if err != nil {
+				return err
+			}
+		case "sub_cassandra":
+			formatBD = true
+			err := maint.Vizion.CleanSubCassTables(clean.Arg)
+			if err != nil {
+				return err
+			}
+		case "etcd":
+			formatBD = true
+			err := maint.Vizion.CleanEtcd(clean.Arg)
+			if err != nil {
+				return err
+			}
+		case "cdcgc":
+			err := maint.Vizion.CleanCdcgc()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if formatBD == true {
+		err := maint.Vizion.UpdateSubCassTables()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Stop - maint
 func (maint *Maint) Stop() error {
 	logger.Info(utils.Prettify(maint))
@@ -96,7 +151,14 @@ func (maint *Maint) Stop() error {
 
 // Start - maint
 func (maint *Maint) Start() error {
-
+	logger.Info(utils.Prettify(maint))
+	for _, sv := range maint.ServiceArr {
+		// logger.Info(utils.Prettify(sv))
+		err := maint.Vizion.StartService(sv)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

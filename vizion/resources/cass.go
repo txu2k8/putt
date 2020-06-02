@@ -28,6 +28,7 @@ type CassCluster interface {
 	GetS3User() ([]S3User, error)
 	GetS3Bucket() ([]S3Bucket, error)
 	GetS3BucketGroup() ([]S3BucketGroup, error)
+	TruncateTable(table string) error
 }
 
 type sessCluster struct {
@@ -63,6 +64,13 @@ func (c *sessCluster) SetIndex(index string) CassCluster {
 func (c *sessCluster) DeleteFromTable(table string) {
 	stmt, _ := qb.Delete(table).Where(qb.EqLit("name", fmt.Sprintf("%s", "vset1_s3user"))).ToCql()
 	logger.Info(stmt)
+}
+
+// TruncateTable ... TODO
+func (c *sessCluster) TruncateTable(table string) error {
+	stmt, _ := qb.Delete(table).Where(qb.EqLit("name", fmt.Sprintf("%s", "vset1_s3user"))).ToCql()
+	logger.Info(stmt)
+	return nil
 }
 
 // =============== select from table ===============
