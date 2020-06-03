@@ -26,6 +26,8 @@ type ServiceManager interface {
 	GetSubCassPort(vsetID int) (port int)
 
 	GetAllNodeIPs() (ipArr []string)
+	GetNodeNameArrByLabels(nodeLabelArr []string) (nodeNameArr []string)
+	GetNodeIPArrByLabels(nodeLabelArr []string) (nodeIPArr []string)
 
 	EnableNodeLabelByLabels(nodeLabel []string) error
 	DisableNodeLabelByLabels(nodeLabel []string) error
@@ -133,6 +135,20 @@ func (s *svManager) GetAllNodeIPs() (ipArr []string) {
 	nodeArr := s.GetNodeInfoArr()
 	for _, node := range nodeArr {
 		ipArr = append(ipArr, node["IP"])
+	}
+	return
+}
+
+func (s *svManager) GetNodeNameArrByLabels(nodeLabelArr []string) (nodeNameArr []string) {
+	for _, nLable := range nodeLabelArr {
+		nodeNameArr = append(nodeNameArr, s.GetNodeNameArrByLabel(nLable)...)
+	}
+	return
+}
+
+func (s *svManager) GetNodeIPArrByLabels(nodeLabelArr []string) (nodeIPArr []string) {
+	for _, nLable := range nodeLabelArr {
+		nodeIPArr = append(nodeIPArr, s.GetNodeIPArrByLabel(nLable)...)
 	}
 	return
 }

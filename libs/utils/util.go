@@ -300,20 +300,36 @@ func SizeCountToByte(s string) int64 {
 }
 
 // RunCmd run command at local
-func RunCmd(cmdSpc string) {
+func RunCmd(cmdSpc string) (rc int, output string, err error) {
+	logger.Infof("Run cmd: %s", cmdSpc)
 	var stdOut, stdErr bytes.Buffer
-	cmd := exec.Command(cmdSpc)
+	cmdSpcSplit := strings.Split(cmdSpc, " ")
+	name := cmdSpcSplit[0]
+	args := []string{}
+	if len(cmdSpcSplit) > 1 {
+		args = cmdSpcSplit[1:]
+	}
+	cmd := exec.Command(name, args...)
 	cmd.Stdout = &stdOut
 	cmd.Stderr = &stdErr
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("cmd exec failed: %s : %s", fmt.Sprint(err), stdErr.String())
+	err = cmd.Run()
+	output = stdOut.String()
+	rc = 0
+	if stdErr.String() != "" {
+		rc = -1
+		output += stdErr.String()
 	}
-	fmt.Print(stdOut.String())
-	ret, err := strconv.Atoi(strings.Replace(stdOut.String(), "\n", "", -1))
 	if err != nil {
-		panic(err)
+		logger.Infof("cmd exec failed: %s", fmt.Sprint(err))
+		rc = -1
 	}
-	fmt.Printf("%d, %s\n", ret, stdErr.String())
+
+	// rc, err = strconv.Atoi(strings.Replace(stdOut.String(), "\n", "", -1))
+	// if err != nil {
+	// 	logger.Info(err)
+	// 	return -1, output, err
+	// }
+	return rc, output, err
 }
 
 // Prettify returns the string representation of a value.
@@ -487,7 +503,31 @@ func GetLocalIP() (ip string) {
 	return
 }
 
-func prompt() {
+// IsPingOK .
+func IsPingOK(ip string) error {
+	var cmdSpc string
+	sysstr := "Windows"
+	switch sysstr {
+	case "Windows":
+		cmdSpc = fmt.Sprintf("C:\\Windows\\System32\\ping %s", ip)
+	case "Linux":
+		cmdSpc = fmt.Sprintf("ping -c1 %s", ip)
+	default:
+		cmdSpc = fmt.Sprintf("ping %s", ip)
+	}
+	rc, out, err := RunCmd(cmdSpc)
+	logger.Info(out)
+	if err != nil {
+		return err
+	}
+	if rc != 0 {
+		return fmt.Errorf(out)
+	}
+	return nil
+}
+
+// Prompt .
+func Prompt() {
 	fmt.Printf("-> Press Return key to continue.")
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {

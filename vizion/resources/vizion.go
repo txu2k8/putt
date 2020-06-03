@@ -1,8 +1,10 @@
 package resources
 
 import (
+	"fmt"
 	"pzatest/libs/db"
 	"pzatest/libs/k8s"
+	"pzatest/libs/utils"
 	"pzatest/types"
 	"strconv"
 
@@ -29,6 +31,24 @@ type Vizion struct {
 // Node returns NodeInterface
 func (v *Vizion) Node(host string) NodeInterface {
 	return newNode(v, host)
+}
+
+// VaildMasterIP returns Vaild MasterIP --> Ping OK
+func (v *Vizion) VaildMasterIP() string {
+	for _, masterIP := range v.Base.MasterIPs {
+		err := utils.IsPingOK(masterIP)
+		if err != nil {
+			continue
+		}
+		return masterIP
+	}
+	panic(fmt.Sprintf("All MasterIPs Ping failed: %v", v.Base.MasterIPs))
+}
+
+// MasterNode returns NodeInterface with host=masterIP
+func (v *Vizion) MasterNode() NodeInterface {
+	masterIP := v.VaildMasterIP()
+	return newNode(v, masterIP)
 }
 
 // DplMgr returns Dplmanager

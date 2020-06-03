@@ -69,6 +69,17 @@ func (c *Client) GetNodeNameArrByLabel(nodeLabel string) (nodeNameArr []string) 
 	return
 }
 
+// GetNodeIPArrByLabel ...
+func (c *Client) GetNodeIPArrByLabel(nodeLabel string) (nodeIPArr []string) {
+	nodes, _ := c.Clientset.CoreV1().Nodes().List(metav1.ListOptions{LabelSelector: nodeLabel})
+	for _, value := range nodes.Items {
+		nodeName := value.ObjectMeta.Name
+		nodeIP := c.GetNodePriorIPByName(nodeName)
+		nodeIPArr = append(nodeIPArr, nodeIP)
+	}
+	return
+}
+
 // UpdateNodeLabel ...
 func (c *Client) UpdateNodeLabel(nodeName string, labels map[string]string) error {
 	node, _ := c.Clientset.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})

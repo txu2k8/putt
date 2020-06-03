@@ -19,7 +19,8 @@ var logger = logging.MustGetLogger("test")
 // SSHManager ...
 type SSHManager interface {
 	RunCmd(cmdSpec string) (int, string) // session.RunCmd
-	SCPGet(localPath, remotePath string) error
+	ScpGet(localPath, remotePath string) error
+	ScpPut(localPath, remotePath string) error
 }
 
 // SSHMgr .

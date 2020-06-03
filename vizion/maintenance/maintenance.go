@@ -2,7 +2,6 @@ package maintenance
 
 import (
 	"pzatest/config"
-	"pzatest/libs/utils"
 	"pzatest/types"
 	"pzatest/vizion/resources"
 
@@ -17,6 +16,7 @@ type Maintainer interface {
 	Stop() error
 	Start() error
 	Restart() error
+	ApplyImage() error
 	UpgradeCore() error
 }
 
@@ -92,6 +92,10 @@ func (maint *Maint) Cleanup() error {
 				return err
 			}
 		case "journal":
+			err := maint.Vizion.CleanEtcd(clean.Arg)
+			if err != nil {
+				return err
+			}
 			err := maint.Vizion.CleanJournal()
 			if err != nil {
 				return err
@@ -138,20 +142,24 @@ func (maint *Maint) Cleanup() error {
 
 // Stop - maint
 func (maint *Maint) Stop() error {
-	logger.Info(utils.Prettify(maint))
 	for _, sv := range maint.ServiceArr {
-		// logger.Info(utils.Prettify(sv))
 		err := maint.Vizion.StopService(sv)
 		if err != nil {
 			return err
 		}
 	}
+
+	err := maint.Cleanup()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // Start - maint
 func (maint *Maint) Start() error {
-	logger.Info(utils.Prettify(maint))
+	// logger.Info(utils.Prettify(maint))
 	for _, sv := range maint.ServiceArr {
 		// logger.Info(utils.Prettify(sv))
 		err := maint.Vizion.StartService(sv)
@@ -164,14 +172,47 @@ func (maint *Maint) Start() error {
 
 // Restart - maint
 func (maint *Maint) Restart() error {
-	maint.Stop()
-	maint.Start()
+	err := maint.Stop()
+	if err != nil {
+		return err
+	}
+	err = maint.Start()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ApplyImage - maint TODO
+func (maint *Maint) ApplyImage() error {
+	err := maint.Stop()
+	if err != nil {
+		return err
+	}
+	err = maint.Start()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // UpgradeCore - maint
 func (maint *Maint) UpgradeCore() error {
-	maint.Stop()
-	maint.Start()
+	err := maint.Stop()
+	if err != nil {
+		return err
+	}
+
+	err = maint.ApplyImage()
+	if err != nil {
+		return err
+	}
+
+	err = maint.Start()
+	if err != nil {
+		return err
+	}
 	return nil
 }

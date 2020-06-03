@@ -21,6 +21,7 @@ type NodeGetter interface {
 
 // NodeInterface has methods to work on Node resources.
 type NodeInterface interface {
+	sshmgr.SSHManager
 	GetKubeConfig(localPath string) error
 	GetKubeVipIP(fqdn string) (vIP string)
 	GetCrashDirs() (crashArr []string)

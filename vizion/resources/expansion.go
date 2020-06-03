@@ -2,11 +2,13 @@ package resources
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path"
 	"pzatest/config"
 	"pzatest/libs/k8s"
 	"pzatest/libs/utils"
+	"regexp"
 	"strings"
 
 	"github.com/chenhg5/collection"
@@ -50,7 +52,8 @@ func ReplaceKubeServer(cfPath, server string) {
 func (v *Vizion) GetKubeConfig() {
 	fqdn := "kubernetes.vizion.local"
 	kubePath := "/tmp/kube"
-	cfPath := path.Join(kubePath, v.Base.MasterIPs[0]+".config")
+	masterIP := v.VaildMasterIP()
+	cfPath := path.Join(kubePath, masterIP+".config")
 
 	_, err := os.Stat(kubePath)
 	if os.IsNotExist(err) {
@@ -62,7 +65,7 @@ func (v *Vizion) GetKubeConfig() {
 
 	_, err = os.Stat(cfPath)
 	if os.IsNotExist(err) {
-		n := v.Node(v.Base.MasterIPs[0])
+		n := v.Node(masterIP)
 		err := n.GetKubeConfig(cfPath)
 		if err != nil {
 			panic(err)
@@ -184,8 +187,60 @@ func (v *Vizion) CleanLog(svArr []config.Service) error {
 	return nil
 }
 
-// CleanJournal .
+// FormatJDevice .
+func (v *Vizion) FormatJDevice(nodeIP, jdev, jdPodName string) error {
+	formatCmd := fmt.Sprintf("dd if=/dev/zero of=%s bs=1k count=4", jdev)
+	if jdPodName != "" { // Run format cmd in pod
+		// TODO
+	} else { // run format cmd on node local
+		n := v.Node(nodeIP)
+		_, output := n.RunCmd(formatCmd)
+		logger.Info(output)
+	}
+	return nil
+}
+
+// CleanJournal . Format Journal device and etcd
 func (v *Vizion) CleanJournal() error {
+	logger.Info("Format journal ...")
+	_, nodeLabelArr := config.Jddpl.GetNodeLabelArr(v.Base)
+	// podLabel := config.Jddpl.GetPodLabel(v.Base)
+	jddplNodeIPs := v.Service().GetNodeIPArrByLabels(nodeLabelArr)
+	if len(jddplNodeIPs) <= 1 {
+		return fmt.Errorf("Find jddpl Nodes <= 1")
+	}
+
+	jdeviceLsCmd := "ls -lh " + config.JDevicePath
+	jdevicePattern := regexp.MustCompile(`/dev/j_device\d*`)
+	awsEnv := false
+	jdevArr := []string{}
+	for _, nodeIP := range jddplNodeIPs {
+		n := v.Node(nodeIP)
+		_, output := n.RunCmd(jdeviceLsCmd)
+		logger.Info(output)
+		if strings.Contains(output, "No such file or directory") {
+			// aws env, just support format_journal on jd_pod
+			awsEnv = true
+		} else { // vmware env, support format_journal on local
+			logger.Info("Local disk, Format journal on local ...")
+			jdPodName := ""
+			matched := jdevicePattern.FindAllStringSubmatch(output, -1)
+			for _, match := range matched {
+				jdevArr = append(jdevArr, match[0])
+			}
+			logger.Info(jdevArr)
+			for _, jdev := range jdevArr {
+				err := v.FormatJDevice(nodeIP, jdev, jdPodName)
+				if err != nil {
+					panic(err)
+				}
+			}
+		}
+	}
+
+	if awsEnv == true { // if servicedpl already started, skip format_journal
+		// TODO
+	}
 	return nil
 }
 
@@ -244,6 +299,15 @@ func (v *Vizion) UpdateSubCassTables() error {
 
 // CleanEtcd .
 func (v *Vizion) CleanEtcd(prefixArr []string) error {
+	// etcdctlv3 del --prefix /vizion/dpl/add_vol
+	cmdArr := []string{}
+	for _, prefix := range prefixArr {
+		cmdArr = append(cmdArr, "etcdctlv3 del --prefix "+prefix)
+	}
+	masterNode := v.MasterNode()
+	for _, cmd := range cmdArr {
+		masterNode.RunCmd(cmd)
+	}
 	return nil
 }
 

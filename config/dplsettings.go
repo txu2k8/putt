@@ -661,6 +661,8 @@ var (
 		Name: "etcd",
 		Arg: []string{
 			"/vizion/dpl/add_vol",
+			"/vizion/dpl/stg_unit",
+			"/vizion/dpl/jnl",
 		},
 	}
 )

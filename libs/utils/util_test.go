@@ -27,6 +27,12 @@ func TestUtilFunc(t *testing.T) {
 	// logger.Info(d)
 	// logger.Info(Prettify(d))
 
-	ip := GetLocalIP()
-	logger.Info(Prettify(ip))
+	// ip := GetLocalIP()
+	// logger.Info(Prettify(ip))
+
+	rc, out, err := RunCmd("cmd")
+	logger.Infof("%d,%s,%v", rc, out, err)
+
+	// err := IsPingOK("10.25.119.71")
+	// logger.Infof("%v", err)
 }

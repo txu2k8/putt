@@ -25,22 +25,6 @@ func newHealthChecker(v *Vizion) *checker {
 	return &checker{v}
 }
 
-// IsPingOK ...
-func IsPingOK(ip string) error {
-	var cmd string
-	sysstr := ""
-	switch sysstr {
-	case "Windows":
-		cmd = fmt.Sprintf("ping %s", ip)
-	case "Linux":
-		cmd = fmt.Sprintf("ping -c1 %s", ip)
-	default:
-		cmd = fmt.Sprintf("ping %s", ip)
-	}
-	logger.Info(cmd)
-	return nil
-}
-
 func (c *checker) IsNodeCrashed() error {
 	crashed := false
 	crashArrMap := map[string][]string{}
