@@ -27,6 +27,7 @@ type NodeInterface interface {
 	GetCrashDirs() (crashArr []string)
 	GetLogDirs(dirFilter []string) (logDirArr []string)
 	CleanLog(dirFilter []string) error
+	DeleteFiles(topPath string) error
 	IsDplmodExist() bool
 }
 
@@ -127,6 +128,21 @@ func (n *node) CleanLog(dirFilter []string) error {
 		cmdSpec := fmt.Sprintf("rm -rf %s/*", logDir)
 		n.RunCmd(cmdSpec)
 	}
+	return nil
+}
+
+func (n *node) DeleteFiles(topPath string) error {
+	if !strings.HasSuffix(topPath, "/") {
+		topPath += "/"
+	}
+
+	cmdSpec1 := fmt.Sprintf("ls -1 %s | awk '{print i$0}' i='%s' | grep -v lost+found | xargs rm -rf", topPath, topPath)
+	_, output := n.RunCmd(cmdSpec1)
+	logger.Debug(output)
+
+	cmdSpec2 := fmt.Sprintf("ls -l %s", topPath)
+	_, output = n.RunCmd(cmdSpec2)
+	logger.Info(output)
 	return nil
 }
 

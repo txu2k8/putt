@@ -17,8 +17,8 @@ func (c *Client) GetDaemonsetsNameArrByLabel(labelSelector string) (dsNameArr []
 	// logger.Info(utils.Prettify(pods))
 	for _, value := range dsArr.Items {
 		dsNameArr = append(dsNameArr, value.ObjectMeta.Name)
-		logger.Info(dsNameArr)
 	}
+	logger.Infof("DaemonSets: %v", dsNameArr)
 	return dsNameArr, nil
 }
 

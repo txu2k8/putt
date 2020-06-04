@@ -17,8 +17,8 @@ func (c *Client) GetDeploymentsNameArrByLabel(labelSelector string) (depNameArr 
 	// logger.Info(utils.Prettify(pods))
 	for _, value := range depArr.Items {
 		depNameArr = append(depNameArr, value.ObjectMeta.Name)
-		logger.Info(depNameArr)
 	}
+	logger.Infof("Deployments: %v", depNameArr)
 	return depNameArr, nil
 }
 
@@ -29,6 +29,7 @@ func (c *Client) SetDeploymentsReplicas(depName string, replicas int) error {
 		panic(fmt.Errorf("Failed to get latest version of Deployments: %v", getErr))
 	}
 
+	logger.Info(fmt.Sprintf("kubectl scale --replicas=%d deployment %s", replicas, depName))
 	result.Spec.Replicas = int32Ptr(1) // reduce replica count
 	// result.Spec.Template.Spec.Containers[0].Image = "nginx:1.13" // change nginx version
 	_, updateErr := c.Clientset.AppsV1().Deployments(c.NameSpace).Update(result)

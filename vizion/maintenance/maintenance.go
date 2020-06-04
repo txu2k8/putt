@@ -83,48 +83,49 @@ func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
 
 // Cleanup - maint
 func (maint *Maint) Cleanup() error {
+	var err error
 	formatBD := false
 	for _, clean := range maint.CleanArr {
 		switch clean.Name {
 		case "log":
-			err := maint.Vizion.CleanLog(maint.ServiceArr)
+			err = maint.Vizion.CleanLog(maint.ServiceArr)
 			if err != nil {
 				return err
 			}
 		case "journal":
-			err := maint.Vizion.CleanEtcd(clean.Arg)
+			err = maint.Vizion.CleanEtcd(clean.Arg)
 			if err != nil {
 				return err
 			}
-			err := maint.Vizion.CleanJournal()
+			err = maint.Vizion.CleanJournal()
 			if err != nil {
 				return err
 			}
 		case "storage_cache":
-			err := maint.Vizion.CleanStorageCache()
+			err = maint.Vizion.CleanStorageCache(clean.Arg[0], false)
 			if err != nil {
 				return err
 			}
 		case "master_cassandra":
 			formatBD = true
-			err := maint.Vizion.UpdateMasterCassTables()
+			err = maint.Vizion.UpdateMasterCassTables()
 			if err != nil {
 				return err
 			}
 		case "sub_cassandra":
 			formatBD = true
-			err := maint.Vizion.CleanSubCassTables(clean.Arg)
+			err = maint.Vizion.CleanSubCassTables(clean.Arg)
 			if err != nil {
 				return err
 			}
 		case "etcd":
 			formatBD = true
-			err := maint.Vizion.CleanEtcd(clean.Arg)
+			err = maint.Vizion.CleanEtcd(clean.Arg)
 			if err != nil {
 				return err
 			}
 		case "cdcgc":
-			err := maint.Vizion.CleanCdcgc()
+			err = maint.Vizion.CleanCdcgc()
 			if err != nil {
 				return err
 			}
@@ -132,7 +133,7 @@ func (maint *Maint) Cleanup() error {
 	}
 
 	if formatBD == true {
-		err := maint.Vizion.UpdateSubCassTables()
+		err = maint.Vizion.UpdateSubCassTables()
 		if err != nil {
 			return err
 		}

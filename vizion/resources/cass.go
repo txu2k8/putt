@@ -23,11 +23,13 @@ type CassCluster interface {
 	GetService(inputJSON GetServiceInput) ([]Service, error)
 	GetServiceByType(serviceType int) ([]Service, error)
 	GetServiceByTypeID(serviceType int, serviceUUID string) ([]Service, error)
+	GetServiceByTypeVsetID(serviceType int, vsetID int) ([]Service, error)
 	GetVolume() ([]Volume, error)
 	GetTenant() ([]Tenant, error)
 	GetS3User() ([]S3User, error)
 	GetS3Bucket() ([]S3Bucket, error)
 	GetS3BucketGroup() ([]S3BucketGroup, error)
+	Execute(cmd string) error
 	TruncateTable(table string) error
 }
 
@@ -60,17 +62,24 @@ func (c *sessCluster) SetIndex(index string) CassCluster {
 	return c
 }
 
+// Execute ...
+func (c *sessCluster) Execute(cmd string) error {
+	if err := c.Session.Query(cmd).Exec(); err != nil {
+		logger.Error(err)
+		return err
+	}
+	return nil
+}
+
 // DeleteFromTable ... TODO
 func (c *sessCluster) DeleteFromTable(table string) {
 	stmt, _ := qb.Delete(table).Where(qb.EqLit("name", fmt.Sprintf("%s", "vset1_s3user"))).ToCql()
 	logger.Info(stmt)
 }
 
-// TruncateTable ... TODO
+// TruncateTable ...
 func (c *sessCluster) TruncateTable(table string) error {
-	stmt, _ := qb.Delete(table).Where(qb.EqLit("name", fmt.Sprintf("%s", "vset1_s3user"))).ToCql()
-	logger.Info(stmt)
-	return nil
+	return c.Execute("TRUNCATE " + table)
 }
 
 // =============== select from table ===============
@@ -113,6 +122,11 @@ func SelectServiceByTypeID(serviceType int, serviceUUID string) (stmt string, na
 	return qb.Select("service").Where(qb.EqLit("type", fmt.Sprintf("%d", serviceType))).Where(qb.EqLit("id", serviceUUID)).ToCql()
 }
 
+// SelectServiceByTypeVsetID ...
+func SelectServiceByTypeVsetID(serviceType int, vsetID int) (stmt string, names []string) {
+	return qb.Select("service").Where(qb.EqLit("type", fmt.Sprintf("%d", serviceType))).Where(qb.EqTuple("vset_id", vsetID)).ToCql()
+}
+
 // GetService ...
 func (c *sessCluster) GetService(inputJSON GetServiceInput) ([]Service, error) {
 	var (
@@ -147,6 +161,14 @@ func (c *sessCluster) GetServiceByType(serviceType int) ([]Service, error) {
 func (c *sessCluster) GetServiceByTypeID(serviceType int, serviceUUID string) ([]Service, error) {
 	var services []Service
 	stmt, names := SelectServiceByTypeID(serviceType, serviceUUID)
+	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&services)
+	return services, err
+}
+
+// GetServiceByTypeID ...
+func (c *sessCluster) GetServiceByTypeVsetID(serviceType int, vsetID int) ([]Service, error) {
+	var services []Service
+	stmt, names := SelectServiceByTypeVsetID(serviceType, vsetID)
 	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&services)
 	return services, err
 }

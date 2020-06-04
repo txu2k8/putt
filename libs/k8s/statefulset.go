@@ -17,8 +17,8 @@ func (c *Client) GetStatefulSetsNameArrByLabel(labelSelector string) (stsNameArr
 	// logger.Info(utils.Prettify(pods))
 	for _, value := range stsArr.Items {
 		stsNameArr = append(stsNameArr, value.ObjectMeta.Name)
-		logger.Info(stsNameArr)
 	}
+	logger.Infof("StatefulSets: %v", stsNameArr)
 	return stsNameArr, nil
 }
 

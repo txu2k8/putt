@@ -706,10 +706,10 @@ var (
 
 	// Default APP Service for test
 	DefaultAppServiceArray = []Service{
-		ES,
-		Nfsprovisioner,
 		Cdcgcs3,
 		Cdcgcbd,
+		Nfsprovisioner,
+		ES,
 	}
 
 	// Default MASTER service for test
@@ -723,10 +723,10 @@ var (
 	}
 
 	// Default Core Service Array: DPL + APP
-	DefaultCoreServiceArray = append(DefaultDplServiceArray, DefaultAppServiceArray...)
+	DefaultCoreServiceArray = append(DefaultAppServiceArray, DefaultDplServiceArray...)
 
 	// Default Service Array: DPL + APP + MASTER
-	DefaultServiceArray = append(DefaultCoreServiceArray, DefaultMasterServiceArray...)
+	DefaultServiceArray = append(DefaultMasterServiceArray, DefaultCoreServiceArray...)
 
 	// DefaultCleanArray define the default cleanup item for maint/upgrade
 	DefaultCleanArray = []CleanItem{
@@ -734,7 +734,7 @@ var (
 		CleanJournal,
 		CleanSC,
 		CleanCdcgc,
-		CleanMasterCass,
+		// CleanMasterCass,  // Not need clean master cass now
 		CleanSubCass,
 		CleanEtcd,
 	}
