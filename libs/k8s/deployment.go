@@ -30,7 +30,7 @@ func (c *Client) SetDeploymentsReplicas(depName string, replicas int) error {
 	}
 
 	logger.Info(fmt.Sprintf("kubectl scale --replicas=%d deployment %s", replicas, depName))
-	result.Spec.Replicas = int32Ptr(1) // reduce replica count
+	result.Spec.Replicas = int32Ptr(int32(replicas)) // reduce replica count
 	// result.Spec.Template.Spec.Containers[0].Image = "nginx:1.13" // change nginx version
 	_, updateErr := c.Clientset.AppsV1().Deployments(c.NameSpace).Update(result)
 	return updateErr

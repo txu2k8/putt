@@ -29,7 +29,7 @@ func (c *Client) SetStatefulSetsReplicas(stsName string, replicas int) error {
 		panic(fmt.Errorf("Failed to get latest version of StatefulSets: %v", getErr))
 	}
 
-	result.Spec.Replicas = int32Ptr(1) // reduce replica count
+	result.Spec.Replicas = int32Ptr(int32(replicas)) // reduce replica count
 	// result.Spec.Template.Spec.Containers[0].Image = "nginx:1.13" // change nginx version
 	_, updateErr := c.Clientset.AppsV1().StatefulSets(c.NameSpace).Update(result)
 	return updateErr

@@ -143,14 +143,13 @@ func (maint *Maint) Cleanup() error {
 
 // Stop - maint
 func (maint *Maint) Stop() error {
-	for _, sv := range maint.ServiceArr {
-		err := maint.Vizion.StopService(sv)
-		if err != nil {
-			return err
-		}
+	var err error
+	err = maint.Vizion.StopService(maint.ServiceArr)
+	if err != nil {
+		return err
 	}
 
-	err := maint.Cleanup()
+	err = maint.Cleanup()
 	if err != nil {
 		return err
 	}
@@ -161,14 +160,8 @@ func (maint *Maint) Stop() error {
 // Start - maint
 func (maint *Maint) Start() error {
 	// logger.Info(utils.Prettify(maint))
-	for _, sv := range maint.ServiceArr {
-		// logger.Info(utils.Prettify(sv))
-		err := maint.Vizion.StartService(sv)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	err := maint.Vizion.StartService(maint.ServiceArr)
+	return err
 }
 
 // Restart - maint
