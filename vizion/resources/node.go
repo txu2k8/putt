@@ -28,6 +28,7 @@ type NodeInterface interface {
 	GetLogDirs(dirFilter []string) (logDirArr []string)
 	CleanLog(dirFilter []string) error
 	DeleteFiles(topPath string) error
+	ChangeDplmanagerShellImage(image, dplmgrPath string) error
 	IsDplmodExist() bool
 }
 
@@ -143,6 +144,24 @@ func (n *node) DeleteFiles(topPath string) error {
 	cmdSpec2 := fmt.Sprintf("ls -l %s", topPath)
 	_, output = n.RunCmd(cmdSpec2)
 	logger.Info(output)
+	return nil
+}
+
+func (n *node) ChangeDplmanagerShellImage(image, dplmgrPath string) error {
+	tmpImage := strings.Replace(image, "/", `\/`, -1)
+	n.RunCmd(fmt.Sprintf("chmod 777 %s", dplmgrPath))
+
+	cmdSpec := fmt.Sprintf("sed -ri 's/registry.vizion.\\S+/%s/g' %s", tmpImage, dplmgrPath)
+	_, output := n.RunCmd(cmdSpec)
+	logger.Info(output)
+
+	n.RunCmd(fmt.Sprintf("chmod 544 %s", dplmgrPath))
+
+	_, output = n.RunCmd(fmt.Sprintf("cat %s", dplmgrPath))
+	logger.Debug(output)
+	if !strings.Contains(output, image) {
+		return fmt.Errorf("Change %s image failed", dplmgrPath)
+	}
 	return nil
 }
 

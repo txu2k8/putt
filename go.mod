@@ -9,6 +9,7 @@ require (
 	github.com/gocql/gocql v0.0.0-20200511135441-57b003a04490
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.4.2 // indirect
+	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/googleapis/gnostic v0.4.1 // indirect
 	github.com/imdario/mergo v0.3.9 // indirect
@@ -20,6 +21,7 @@ require (
 	github.com/olivere/elastic/v6 v6.2.1
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/pkg/sftp v1.11.0
+	github.com/plouc/go-gitlab-client v2.0.0-beta.5+incompatible
 	github.com/qianlnk/pgbar v0.0.0-20190929032005-46c23acad4ed
 	github.com/qianlnk/to v0.0.0-20191230085244-91e712717368 // indirect
 	github.com/satori/go.uuid v1.2.0

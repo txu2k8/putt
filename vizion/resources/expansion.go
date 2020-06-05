@@ -188,7 +188,7 @@ func (v *Vizion) ApplyServicesImage(svArr []config.Service, image string) error 
 			continue
 		}
 		svContainer := sv.Container
-		logger.Infof(">> Apply service image %s[%s]:%s ...", sv.TypeName, svContainer, image)
+		logger.Infof(">> Apply service image %s %s(%s):%s ...", sv.K8sKind, sv.TypeName, svContainer, image)
 		podLabel := sv.GetPodLabel(v.Base)
 
 		switch sv.K8sKind {
@@ -209,6 +209,22 @@ func (v *Vizion) ApplyServicesImage(svArr []config.Service, image string) error 
 			}
 		default: // not support
 			logger.Errorf("Not supported k8s resource: %s", sv.K8sKind)
+		}
+	}
+	return nil
+}
+
+// ApplyDplmanagerShellImage .
+func (v *Vizion) ApplyDplmanagerShellImage(image string) error {
+	dplmgrPath := config.DplmanagerLocalPath
+	svMgr := v.Service()
+	nodeIPs := svMgr.GetAllNodeIPs()
+
+	for _, nodeIP := range nodeIPs {
+		node := v.Node(nodeIP)
+		err := node.ChangeDplmanagerShellImage(image, dplmgrPath)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -436,3 +452,6 @@ func (v *Vizion) CleanEtcd(prefixArr []string) error {
 func (v *Vizion) CleanCdcgc() error {
 	return nil
 }
+
+// ============ GitLab / Git / Image ============
+// TODO

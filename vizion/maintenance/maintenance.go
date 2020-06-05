@@ -173,7 +173,8 @@ func (maint *Maint) Start() error {
 
 // Restart - maint
 func (maint *Maint) Restart() error {
-	err := maint.Stop()
+	var err error
+	err = maint.Stop()
 	if err != nil {
 		return err
 	}
@@ -187,12 +188,18 @@ func (maint *Maint) Restart() error {
 
 // ApplyImage - maint TODO
 func (maint *Maint) ApplyImage() error {
-	err := maint.Stop()
+	var err error
+	err = maint.Stop()
 	if err != nil {
 		return err
 	}
 
 	err = maint.Vizion.ApplyServicesImage(maint.ServiceArr, maint.Image)
+	if err != nil {
+		return err
+	}
+
+	err = maint.Vizion.ApplyDplmanagerShellImage(maint.Image)
 	if err != nil {
 		return err
 	}
@@ -205,9 +212,21 @@ func (maint *Maint) ApplyImage() error {
 	return nil
 }
 
+// MakeImage - maint make image by tag to gitlab
+func (maint *Maint) MakeImage() error {
+	maint.Image = ""
+	return nil
+}
+
 // UpgradeCore - maint
 func (maint *Maint) UpgradeCore() error {
-	err := maint.Stop()
+	var err error
+	err = maint.MakeImage()
+	if err != nil {
+		return err
+	}
+
+	err = maint.Stop()
 	if err != nil {
 		return err
 	}
