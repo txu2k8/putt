@@ -27,6 +27,7 @@ type Maint struct {
 	ExculdeServiceArr []config.Service
 	BinaryArr         []config.Service
 	CleanArr          []config.CleanItem
+	Image             string
 }
 
 // MaintTestInput .
@@ -35,12 +36,15 @@ type MaintTestInput struct {
 	ExculdeSvNameArr []string // service Name array
 	BinNameArr       []string //  binary Name array
 	CleanNameArr     []string //  clean item Name array
+	Image            string
 }
 
 // NewMaint returns a Nodes
 func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
 	var svArr, binArr []config.Service
 	var cleanArr []config.CleanItem
+
+	// service Array
 	if len(mt.SvNameArr) == 0 {
 		svArr = config.DefaultCoreServiceArray
 	} else {
@@ -51,6 +55,7 @@ func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
 		}
 	}
 
+	// binary Array
 	if len(mt.BinNameArr) == 0 {
 		binArr = svArr
 	} else {
@@ -61,6 +66,7 @@ func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
 		}
 	}
 
+	// clean Array
 	if len(mt.CleanNameArr) == 0 {
 		cleanArr = []config.CleanItem{}
 	} else if collection.Collect(mt.CleanNameArr).Contains("all") {
@@ -78,6 +84,7 @@ func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
 		ServiceArr: svArr,
 		BinaryArr:  binArr,
 		CleanArr:   cleanArr,
+		Image:      mt.Image,
 	}
 }
 
@@ -144,7 +151,7 @@ func (maint *Maint) Cleanup() error {
 // Stop - maint
 func (maint *Maint) Stop() error {
 	var err error
-	err = maint.Vizion.StopService(maint.ServiceArr)
+	err = maint.Vizion.StopServices(maint.ServiceArr)
 	if err != nil {
 		return err
 	}
@@ -160,7 +167,7 @@ func (maint *Maint) Stop() error {
 // Start - maint
 func (maint *Maint) Start() error {
 	// logger.Info(utils.Prettify(maint))
-	err := maint.Vizion.StartService(maint.ServiceArr)
+	err := maint.Vizion.StartServices(maint.ServiceArr)
 	return err
 }
 
@@ -184,6 +191,12 @@ func (maint *Maint) ApplyImage() error {
 	if err != nil {
 		return err
 	}
+
+	err = maint.Vizion.ApplyServicesImage(maint.ServiceArr, maint.Image)
+	if err != nil {
+		return err
+	}
+
 	err = maint.Start()
 	if err != nil {
 		return err
@@ -204,9 +217,5 @@ func (maint *Maint) UpgradeCore() error {
 		return err
 	}
 
-	err = maint.Start()
-	if err != nil {
-		return err
-	}
 	return nil
 }

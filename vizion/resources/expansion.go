@@ -89,10 +89,10 @@ func (v *Vizion) GetKubeConfig() {
 	v.Base.KubeConfig = cfPath
 }
 
-// ============ Stop/Start Services ============
+// ============ Stop/Start/Apply Services ============
 
-// StopService .
-func (v *Vizion) StopService(svArr []config.Service) error {
+// StopServices .
+func (v *Vizion) StopServices(svArr []config.Service) error {
 	svMgr := v.Service()
 	for _, sv := range svArr {
 		logger.Infof(">> Stop service %s:%d ...", sv.TypeName, sv.Type)
@@ -127,8 +127,8 @@ func (v *Vizion) StopService(svArr []config.Service) error {
 	return nil
 }
 
-// StartService .
-func (v *Vizion) StartService(svArr []config.Service) error {
+// StartServices .
+func (v *Vizion) StartServices(svArr []config.Service) error {
 	svMgr := v.Service()
 	for _, sv := range svArr {
 		logger.Infof(">> Start service %s:%d ...", sv.TypeName, sv.Type)
@@ -177,6 +177,40 @@ func (v *Vizion) StartService(svArr []config.Service) error {
 		}
 	}
 
+	return nil
+}
+
+// ApplyServicesImage .
+func (v *Vizion) ApplyServicesImage(svArr []config.Service, image string) error {
+	svMgr := v.Service()
+	for _, sv := range svArr {
+		if !collection.Collect(config.DefaultDplServiceArray).Contains(sv) {
+			continue
+		}
+		svContainer := sv.Container
+		logger.Infof(">> Apply service image %s[%s]:%s ...", sv.TypeName, svContainer, image)
+		podLabel := sv.GetPodLabel(v.Base)
+
+		switch sv.K8sKind {
+		case config.K8sStatefulsets: // Statefulsets
+			k8sNameArr, _ := svMgr.GetStatefulSetsNameArrByLabel(podLabel)
+			for _, k8sName := range k8sNameArr {
+				svMgr.SetStatefulSetsImage(k8sName, svContainer, image)
+			}
+		case config.K8sDeployment: // Deployment
+			k8sNameArr, _ := svMgr.GetDeploymentsNameArrByLabel(podLabel)
+			for _, k8sName := range k8sNameArr {
+				svMgr.SetDeploymentsImage(k8sName, svContainer, image)
+			}
+		case config.K8sDaemonsets: // Daemonsets
+			k8sNameArr, _ := svMgr.GetDaemonsetsNameArrByLabel(podLabel)
+			for _, k8sName := range k8sNameArr {
+				svMgr.SetDaemonSetsImage(k8sName, svContainer, image)
+			}
+		default: // not support
+			logger.Errorf("Not supported k8s resource: %s", sv.K8sKind)
+		}
+	}
 	return nil
 }
 

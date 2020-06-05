@@ -48,6 +48,10 @@ type ClientSet interface {
 	GetDeploymentsNameArrByLabel(labelSelector string) (depNameArr []string, err error)
 	SetDeploymentsReplicas(depName string, replicas int) error
 	SetDeploymentsImage(depName, containerName, image string) error
+
+	// Daemonsets
+	GetDaemonsetsNameArrByLabel(labelSelector string) (dsNameArr []string, err error)
+	SetDaemonSetsImage(dsName, containerName, image string) error
 }
 
 // Client ...

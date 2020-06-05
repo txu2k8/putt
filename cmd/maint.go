@@ -55,7 +55,21 @@ var startCmd = &cobra.Command{
 	Short: "Maintaince mode tools: start",
 	Long:  `start specified services`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("maint start called")
+		logger.Infof("maint start services ...")
+		var maintainer maintenance.Maintainer
+		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
+		start := func() error {
+			err := maintainer.Start()
+			return err
+		}
+		jobs := []stress.Job{
+			{
+				Fn:       start,
+				Name:     "Start-Service",
+				RunTimes: 1,
+			},
+		}
+		stress.Run(jobs)
 	},
 }
 
@@ -65,7 +79,21 @@ var restartCmd = &cobra.Command{
 	Short: "Maintaince mode tools: restart",
 	Long:  `restart specified services`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("maint restart called")
+		logger.Infof("maint restart services ...")
+		var maintainer maintenance.Maintainer
+		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
+		restart := func() error {
+			err := maintainer.Restart()
+			return err
+		}
+		jobs := []stress.Job{
+			{
+				Fn:       restart,
+				Name:     "Restart-Service",
+				RunTimes: 1,
+			},
+		}
+		stress.Run(jobs)
 	},
 }
 
@@ -75,7 +103,21 @@ var cleanupCmd = &cobra.Command{
 	Short: "Maintaince mode tools: cleanup",
 	Long:  `cleanup specified items`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("maint cleanup called")
+		logger.Infof("maint clean up ...")
+		var maintainer maintenance.Maintainer
+		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
+		cleanup := func() error {
+			err := maintainer.Cleanup()
+			return err
+		}
+		jobs := []stress.Job{
+			{
+				Fn:       cleanup,
+				Name:     "Clean Up",
+				RunTimes: 1,
+			},
+		}
+		stress.Run(jobs)
 	},
 }
 
@@ -85,7 +127,45 @@ var makeBinaryCmd = &cobra.Command{
 	Short: "Maintaince mode tools: make_binary",
 	Long:  `make binary from git server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("maint make_binary called")
+		logger.Infof("maint clean up ...")
+		var maintainer maintenance.Maintainer
+		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
+		cleanup := func() error {
+			err := maintainer.Cleanup()
+			return err
+		}
+		jobs := []stress.Job{
+			{
+				Fn:       cleanup,
+				Name:     "Clean Up",
+				RunTimes: 1,
+			},
+		}
+		stress.Run(jobs)
+	},
+}
+
+// applyImageCmd represents the make_binary command
+var applyImageCmd = &cobra.Command{
+	Use:   "apply_image",
+	Short: "Maintaince mode tools: apply_image",
+	Long:  `apply service container image`,
+	Run: func(cmd *cobra.Command, args []string) {
+		logger.Infof("maint apply service image ...")
+		var maintainer maintenance.Maintainer
+		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
+		applyImg := func() error {
+			err := maintainer.ApplyImage()
+			return err
+		}
+		jobs := []stress.Job{
+			{
+				Fn:       applyImg,
+				Name:     "Apply Service Image",
+				RunTimes: 1,
+			},
+		}
+		stress.Run(jobs)
 	},
 }
 
@@ -100,6 +180,11 @@ func AddFlagsMaintClean(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringArrayVar(&maintConf.CleanNameArr, "clean", []string{}, "Clean item Name List")
 }
 
+// AddFlagsMaintImage ...
+func AddFlagsMaintImage(cmd *cobra.Command) {
+	cmd.PersistentFlags().StringArrayVar(&maintConf.Image, "image", "", "core image")
+}
+
 func init() {
 	rootCmd.AddCommand(maintCmd)
 	maintCmd.AddCommand(stopCmd)
@@ -108,9 +193,18 @@ func init() {
 	maintCmd.AddCommand(cleanupCmd)
 	maintCmd.AddCommand(makeBinaryCmd)
 
+	// stop
 	AddFlagsMaintService(stopCmd)
 	AddFlagsMaintClean(stopCmd)
+	// start
 	AddFlagsMaintService(startCmd)
+	AddFlagsMaintClean(stopCmd)
+	// restart
 	AddFlagsMaintService(restartCmd)
+	AddFlagsMaintClean(restartCmd)
+	// apply image
+	AddFlagsMaintImage(applyImageCmd)
+	AddFlagsMaintService(applyImageCmd)
+	AddFlagsMaintClean(applyImageCmd)
 
 }
