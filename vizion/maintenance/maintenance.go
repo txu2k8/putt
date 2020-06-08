@@ -2,6 +2,7 @@ package maintenance
 
 import (
 	"pzatest/config"
+	"pzatest/libs/git"
 	"pzatest/types"
 	"pzatest/vizion/resources"
 
@@ -214,7 +215,19 @@ func (maint *Maint) ApplyImage() error {
 
 // MakeImage - maint make image by tag to gitlab
 func (maint *Maint) MakeImage() error {
+	tagName := ""
+	config := git.GitlabConfig{
+		BaseURL: "http://gitlab.panzura.com",
+		Token:   "xjB1FHHyJHNQUhgy7K7t",
+	}
+	gitMgr := git.NewGitlabClient(config)
+	err := gitMgr.IsImageOK(25, "2020-06-04-18-50-40-develop_notest")
+	if err != nil {
+		logger.Error(err)
+	}
+
 	maint.Image = ""
+
 	return nil
 }
 
