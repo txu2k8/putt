@@ -25,7 +25,7 @@ type BaseInterface interface {
 // Vizion is used to interact with features provided by the  group.
 type Vizion struct {
 	Base       types.VizionBaseInput
-	KubeConfig string // kubeconfig file path
+	KubeConfig string // kubeconfig file path, not use
 }
 
 // Node returns NodeInterface

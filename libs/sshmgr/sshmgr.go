@@ -25,7 +25,7 @@ type SSHManager interface {
 
 // SSHMgr .
 type SSHMgr struct {
-	Session    *ssh.Session // ssh session for Run(cmdSpec)
+	Client     *ssh.Client  //ssh client
 	Cfg        *SSHConfig   // ssh config
 	SftpClient *sftp.Client // sftp client for scp copy files
 }
@@ -55,11 +55,12 @@ func NewSSHMgr(host string, sshKey SSHKey) *SSHMgr {
 		ConnectTimeout: 600 * time.Second,
 	}
 
-	session, err := cfg.NewSessionWithRetry()
+	client, err := cfg.NewClientWithRetry()
 	if err != nil {
 		panic(err)
 	}
-	return &SSHMgr{Session: session, Cfg: cfg}
+
+	return &SSHMgr{Client: client, Cfg: cfg}
 }
 
 // NewClient return the ssh client
@@ -105,23 +106,6 @@ func (cfg *SSHConfig) NewClient() (*ssh.Client, error) {
 	return client, nil
 }
 
-// NewSession return the cassandra session
-func (cfg *SSHConfig) NewSession() (*ssh.Session, error) {
-	// connet to ssh
-	client, err := cfg.NewClient()
-	if err != nil {
-		return nil, err
-	}
-
-	// create session
-	session, err := client.NewSession()
-	if err != nil {
-		return nil, err
-	}
-
-	return session, nil
-}
-
 // NewSftpClient .
 func (cfg *SSHConfig) NewSftpClient() (*sftp.Client, error) {
 	// connet to ssh
@@ -139,31 +123,31 @@ func (cfg *SSHConfig) NewSftpClient() (*sftp.Client, error) {
 	return sftpClient, nil
 }
 
-// NewSessionWithRetry return the ssh session
-func (cfg *SSHConfig) NewSessionWithRetry() (*ssh.Session, error) {
+// NewClientWithRetry return the ssh client
+func (cfg *SSHConfig) NewClientWithRetry() (*ssh.Client, error) {
 	interval := time.Duration(15)
 	timeout := time.NewTimer(30 * time.Minute)
-	var session *ssh.Session
+	var client *ssh.Client
 	var err error
 
 loop:
 	for {
-		session, err = cfg.NewSession()
-		if err == nil && session != nil {
+		client, err = cfg.NewClient()
+		if err == nil && client != nil {
 			break loop
 		}
-		logger.Warningf("New ssh session failed, %v", err)
+		logger.Warningf("New ssh client failed, %v", err)
 
 		// retry or timeout
 		select {
 		case <-time.After(interval * time.Second):
-			logger.Infof("retry new ssh session after %d second", interval)
+			logger.Infof("retry new ssh client after %d second", interval)
 		case <-timeout.C:
-			err = fmt.Errorf("new ssh session failed after retry many times, cause by %v", err)
+			err = fmt.Errorf("new ssh client failed after retry many times, cause by %v", err)
 			break loop
 		}
 	}
-	return session, err
+	return client, err
 }
 
 // NewSftpClientWithRetry return the sftp.Client
@@ -197,12 +181,16 @@ loop:
 func (sshMgr *SSHMgr) RunCmd(cmdSpec string) (int, string) {
 	var rc int
 	var stdOut, stdErr bytes.Buffer
-
-	sshMgr.Session.Stdout = &stdOut
-	sshMgr.Session.Stderr = &stdErr
+	// create session
+	session, err := sshMgr.Client.NewSession()
+	if err != nil {
+		return -1, fmt.Sprintf("%s", err)
+	}
+	session.Stdout = &stdOut
+	session.Stderr = &stdErr
 
 	logger.Infof("SSH Execute: ssh %s@%s# %s", sshMgr.Cfg.UserName, sshMgr.Cfg.Host, cmdSpec)
-	if err := sshMgr.Session.Run(cmdSpec); err != nil {
+	if err := session.Run(cmdSpec); err != nil {
 		logger.Debugf("Failed to run: %s", err.Error())
 		// Process exited with status 1
 		rc = 1
@@ -213,7 +201,7 @@ func (sshMgr *SSHMgr) RunCmd(cmdSpec string) (int, string) {
 		rc = -1
 	}
 	output := stdOut.String() + stdErr.String()
-	// logger.Infof("%d, %s\n", rc, stdOut.String())
+	// logger.Debugf("%d, %s\n", rc, output)
 	return rc, output
 }
 

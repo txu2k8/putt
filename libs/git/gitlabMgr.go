@@ -1,6 +1,7 @@
 package git
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"pzatest/libs/retry"
@@ -18,7 +19,7 @@ type GitlabManager interface {
 	GetPipelineJobArr(projectID, pipelineID int) ([]*gitlab.Job, error)
 	IsJobStatusExpected(projectID int, tagName, jobName, expectStatus string) error
 	WaitJobStatusExpected(projectID int, tagName, jobName, expectStatus string) error
-	IsImageOK(projectID int, tagName string) error
+	IsPipelineJobsSuccess(projectID int, tagName string) error
 }
 
 // GitlabMgr .
@@ -85,10 +86,17 @@ func (g *GitlabMgr) GetPipelineJobArr(projectID, pipelineID int) ([]*gitlab.Job,
 func (g *GitlabMgr) IsJobStatusExpected(projectID int, tagName, jobName, expectStatus string) error {
 	pipelines, _ := g.GetProjectPipelineArr(projectID, tagName)
 	// logger.Infof("Pipline Array:\n%s", utils.Prettify(pipelines))
+	if len(pipelines) <= 0 {
+		return fmt.Errorf("Got None pipelines with tag: %s", tagName)
+	}
 
 	for _, pipeline := range pipelines {
 		jobs, _ := g.GetPipelineJobArr(projectID, pipeline.ID)
 		// logger.Info(utils.Prettify(jobs))
+		if len(jobs) <= 0 {
+			return fmt.Errorf("Got None job in pipeline %d", pipeline.ID)
+		}
+
 		for _, job := range jobs {
 			if job.Name == jobName {
 				switch job.Status {
@@ -107,7 +115,7 @@ func (g *GitlabMgr) IsJobStatusExpected(projectID int, tagName, jobName, expectS
 			}
 		}
 	}
-	return fmt.Errorf("Jobs status not expected")
+	return errors.New("Jobs status not expected")
 }
 
 // WaitJobStatusExpected ...
@@ -123,13 +131,13 @@ func (g *GitlabMgr) WaitJobStatusExpected(projectID int, tagName, jobName, expec
 	return err
 }
 
-// IsImageOK .
-func (g *GitlabMgr) IsImageOK(projectID int, tagName string) error {
+// IsPipelineJobsSuccess job1: build-image, job2: test
+func (g *GitlabMgr) IsPipelineJobsSuccess(projectID int, tagName string) error {
 	if err := g.WaitJobStatusExpected(projectID, tagName, "build-image", "success"); err == nil {
 		if err := g.WaitJobStatusExpected(projectID, tagName, "test", "success"); err == nil {
 			return nil
 		}
-		return fmt.Errorf("build-imag:OK, test:FAIL")
+		return errors.New("build-imag:OK, test:FAIL")
 	}
-	return fmt.Errorf("Image not Availabel")
+	return errors.New("Pipeline Jobs not all success, Image not Availabel")
 }

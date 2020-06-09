@@ -1,10 +1,13 @@
 package maintenance
 
 import (
+	"errors"
 	"pzatest/config"
 	"pzatest/libs/git"
 	"pzatest/types"
 	"pzatest/vizion/resources"
+	"strings"
+	"time"
 
 	"github.com/chenhg5/collection"
 	"github.com/op/go-logging"
@@ -14,9 +17,11 @@ var logger = logging.MustGetLogger("test")
 
 // Maintainer for maintenance ops
 type Maintainer interface {
+	Cleanup() error
 	Stop() error
 	Start() error
 	Restart() error
+	MakeImage() error
 	ApplyImage() error
 	UpgradeCore() error
 }
@@ -29,6 +34,20 @@ type Maint struct {
 	BinaryArr         []config.Service
 	CleanArr          []config.CleanItem
 	Image             string
+	GitCfg            GitInput
+}
+
+// GitInput ...
+type GitInput struct {
+	BuildIP         string // the git project server IP address
+	BuildPath       string // the git procject path
+	BuildNum        string // the build number for tag, eg: 2.1.0.133, used in JENKINS
+	BuildServerUser string
+	BuildServerPwd  string
+	BuildServerKey  string
+	Pull            bool // git pull before tag?
+	Tag             bool // git tag && push  ?
+	Make            bool // exec make file ?
 }
 
 // MaintTestInput .
@@ -37,7 +56,8 @@ type MaintTestInput struct {
 	ExculdeSvNameArr []string // service Name array
 	BinNameArr       []string //  binary Name array
 	CleanNameArr     []string //  clean item Name array
-	Image            string
+	Image            string   // eg: registry.ai/stable:tag
+	GitCfg           GitInput // The build number for image tag name, used in JENKINS
 }
 
 // NewMaint returns a Nodes
@@ -86,6 +106,7 @@ func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
 		BinaryArr:  binArr,
 		CleanArr:   cleanArr,
 		Image:      mt.Image,
+		GitCfg:     mt.GitCfg,
 	}
 }
 
@@ -187,9 +208,72 @@ func (maint *Maint) Restart() error {
 	return nil
 }
 
+// MakeImage - maint make image by tag to gitlab
+func (maint *Maint) isImageOK() error {
+	logger.Infof("Wait for Image Availabel: %s", maint.Image)
+	if maint.Image == "" {
+		return errors.New("image name is nul")
+	}
+	tagName := strings.Split(maint.Image, ":")[1]
+
+	// wait for image OK on gitlab
+	cfg := git.GitlabConfig{
+		BaseURL: "http://gitlab.panzura.com",
+		Token:   "xjB1FHHyJHNQUhgy7K7t",
+	}
+	projectID := 25
+	gitlabMgr := git.NewGitlabClient(cfg)
+	err := gitlabMgr.IsPipelineJobsSuccess(projectID, tagName)
+	if err != nil {
+		return err
+	}
+	logger.Infof("Image Availabel: %s", maint.Image)
+	return nil
+}
+
+// MakeImage - maint make image by tag to gitlab
+func (maint *Maint) MakeImage() error {
+	var err error
+	strTime := time.Now().Format("2006-01-02-15-04-05")
+	// Get build path branch Name, joint tagName
+	gitMgr := git.NewGitMgr(config.DplBuildIP, "root", "password", "")
+	branchName := gitMgr.GetCurrentBranch(config.DplBuildPath)
+	tagName := strTime + "_" + branchName
+	if maint.GitCfg.BuildNum == "" {
+		tagName = tagName + "_notest"
+	} else {
+		tagName = tagName + "_" + maint.GitCfg.BuildNum
+	}
+
+	// pull && tag and push
+	if maint.GitCfg.Pull == true {
+		if err = gitMgr.Pull(config.DplBuildPath); err != nil {
+			return err
+		}
+	}
+	if maint.GitCfg.Tag == true {
+		if err = gitMgr.Tag(config.DplBuildPath, tagName); err != nil {
+			return err
+		}
+	}
+	maint.Image = config.RemoteDplRegistry + ":" + tagName
+
+	// wait for maint.Image OK on gitlab
+	if err = maint.isImageOK(); err != nil {
+		return err
+	}
+	// logger.Info(utils.Prettify(maint))
+	return nil
+}
+
 // ApplyImage - maint TODO
 func (maint *Maint) ApplyImage() error {
 	var err error
+	// wait for image OK on gitlab
+	if err = maint.isImageOK(); err != nil {
+		return err
+	}
+
 	err = maint.Stop()
 	if err != nil {
 		return err
@@ -209,24 +293,6 @@ func (maint *Maint) ApplyImage() error {
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-// MakeImage - maint make image by tag to gitlab
-func (maint *Maint) MakeImage() error {
-	tagName := ""
-	config := git.GitlabConfig{
-		BaseURL: "http://gitlab.panzura.com",
-		Token:   "xjB1FHHyJHNQUhgy7K7t",
-	}
-	gitMgr := git.NewGitlabClient(config)
-	err := gitMgr.IsImageOK(25, "2020-06-04-18-50-40-develop_notest")
-	if err != nil {
-		logger.Error(err)
-	}
-
-	maint.Image = ""
 
 	return nil
 }

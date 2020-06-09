@@ -70,8 +70,8 @@ func Wait(durations ...time.Duration) Strategy {
 			if len(durations) <= durationIndex {
 				durationIndex = len(durations) - 1
 			}
-			SleepProgressBar(durations[durationIndex])
-			// time.Sleep(durations[durationIndex])
+			// SleepProgressBar(durations[durationIndex])
+			time.Sleep(durations[durationIndex])
 		}
 
 		return true
@@ -88,8 +88,9 @@ func Backoff(algorithm backoff.Algorithm) Strategy {
 // duration as defined by the given backoff.Algorithm and jitter.Transformation.
 func BackoffWithJitter(algorithm backoff.Algorithm, transformation jitter.Transformation) Strategy {
 	return func(attempt uint) bool {
-		if 0 < attempt {
-			time.Sleep(transformation(algorithm(attempt)))
+		if 1 < attempt {
+			SleepProgressBar(transformation(algorithm(attempt)))
+			// time.Sleep(transformation(algorithm(attempt)))
 		}
 
 		return true

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"pzatest/config"
 	"pzatest/libs/runner/stress"
 	"pzatest/vizion/maintenance"
 
@@ -145,6 +146,30 @@ var makeBinaryCmd = &cobra.Command{
 	},
 }
 
+// makeImageCmd represents the make_binary command
+var makeImageCmd = &cobra.Command{
+	Use:   "make_image",
+	Short: "Maintaince mode tools: make_image",
+	Long:  `make image by push tag to gitlab server`,
+	Run: func(cmd *cobra.Command, args []string) {
+		logger.Infof("maint make image ...")
+		var maintainer maintenance.Maintainer
+		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
+		makeImg := func() error {
+			err := maintainer.MakeImage()
+			return err
+		}
+		jobs := []stress.Job{
+			{
+				Fn:       makeImg,
+				Name:     "Apply Service Image",
+				RunTimes: 1,
+			},
+		}
+		stress.Run(jobs)
+	},
+}
+
 // applyImageCmd represents the make_binary command
 var applyImageCmd = &cobra.Command{
 	Use:   "apply_image",
@@ -169,20 +194,34 @@ var applyImageCmd = &cobra.Command{
 	},
 }
 
-// AddFlagsMaintService ...
+// AddFlagsMaintService Service
 func AddFlagsMaintService(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringArrayVar(&maintConf.SvNameArr, "services", []string{}, "Service Name List")
-	cmd.PersistentFlags().StringArrayVar(&maintConf.ExculdeSvNameArr, "services_exclude", []string{}, "Service Name List which excluded")
+	cmd.PersistentFlags().StringArrayVar(&maintConf.SvNameArr, "services", []string{}, "Service Name List (default [])")
+	cmd.PersistentFlags().StringArrayVar(&maintConf.ExculdeSvNameArr, "services_exclude", []string{}, "Service Name List which excluded (default [])")
 }
 
-// AddFlagsMaintClean ...
+// AddFlagsMaintClean Clean
 func AddFlagsMaintClean(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringArrayVar(&maintConf.CleanNameArr, "clean", []string{}, "Clean item Name List")
+	cmd.PersistentFlags().StringArrayVar(&maintConf.CleanNameArr, "clean", []string{}, "Clean item Name List (default [])")
 }
 
-// AddFlagsMaintImage ...
+// AddFlagsMaintImage Image
 func AddFlagsMaintImage(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringArrayVar(&maintConf.Image, "image", "", "core image")
+	cmd.PersistentFlags().StringVar(&maintConf.Image, "image", "", "core image (default \"\")")
+}
+
+// AddFlagsMaintGit Git
+func AddFlagsMaintGit(cmd *cobra.Command) {
+	cmd.PersistentFlags().BoolVar(&maintConf.GitCfg.Pull, "pull", false, "git pull if true (default false)")
+	cmd.PersistentFlags().BoolVar(&maintConf.GitCfg.Tag, "tag", false, "git tag if true (default false)")
+	cmd.PersistentFlags().BoolVar(&maintConf.GitCfg.Make, "make", false, "make file if true (default false)")
+
+	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildIP, "build_ip", config.DplBuildIP, "build ip)")
+	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildPath, "build_path", config.DplBuildPath, "build path")
+	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildNum, "build_num", "", "build number,eg: 2.1.0.100 (default \"\")")
+	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildServerUser, "build_server_user", "", "build server user (default root)")
+	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildServerPwd, "build_server_pwd", "", "build server pwd (default password)")
+	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildServerKey, "build_server_key", "", "build server key, (default \"\")")
 }
 
 func init() {
@@ -192,16 +231,22 @@ func init() {
 	maintCmd.AddCommand(restartCmd)
 	maintCmd.AddCommand(cleanupCmd)
 	maintCmd.AddCommand(makeBinaryCmd)
+	maintCmd.AddCommand(makeImageCmd)
+	maintCmd.AddCommand(applyImageCmd)
 
+	// clean
+	AddFlagsMaintClean(cleanupCmd)
 	// stop
 	AddFlagsMaintService(stopCmd)
 	AddFlagsMaintClean(stopCmd)
 	// start
 	AddFlagsMaintService(startCmd)
-	AddFlagsMaintClean(stopCmd)
+	AddFlagsMaintClean(startCmd)
 	// restart
 	AddFlagsMaintService(restartCmd)
 	AddFlagsMaintClean(restartCmd)
+	// make image
+	AddFlagsMaintGit(makeImageCmd)
 	// apply image
 	AddFlagsMaintImage(applyImageCmd)
 	AddFlagsMaintService(applyImageCmd)
