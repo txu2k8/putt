@@ -102,7 +102,7 @@ func (v *Vizion) StopServices(svArr []config.Service) error {
 		switch sv.K8sKind {
 		case config.K8sStatefulsets:
 			if sv.Type == config.ES.Type { // disable label
-				svMgr.DisableNodeLabelByLabels(nodeLabelArr)
+				svMgr.DisableNodeLabels(nodeLabelArr)
 				svMgr.DeletePodsByLabel(podLabel)
 				svMgr.WaitForAllPodDown(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 30)
 			}
@@ -119,7 +119,7 @@ func (v *Vizion) StopServices(svArr []config.Service) error {
 				svMgr.WaitForPodDown(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 30)
 			}
 		default: // disable label
-			svMgr.DisableNodeLabelByLabels(nodeLabelArr)
+			svMgr.DisableNodeLabels(nodeLabelArr)
 			svMgr.DeletePodsByLabel(podLabel)
 			svMgr.WaitForAllPodDown(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 30)
 		}
@@ -150,7 +150,7 @@ func (v *Vizion) StartServices(svArr []config.Service) error {
 		switch sv.K8sKind {
 		case config.K8sStatefulsets:
 			if sv.Type == config.ES.Type { // disable label
-				svMgr.EnableNodeLabelByLabels(nodeLabelArr)
+				svMgr.EnableNodeLabels(nodeLabelArr)
 				svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 30)
 			}
 			// set replicas
@@ -172,7 +172,7 @@ func (v *Vizion) StartServices(svArr []config.Service) error {
 				svMgr.WaitForPodReady(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 30)
 			}
 		default: // disable label
-			svMgr.EnableNodeLabelByLabels(nodeLabelArr)
+			svMgr.EnableNodeLabels(nodeLabelArr)
 			svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 30)
 		}
 	}

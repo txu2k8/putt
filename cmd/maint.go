@@ -125,20 +125,20 @@ var cleanupCmd = &cobra.Command{
 // cleanupCmd represents the make_binary command
 var makeBinaryCmd = &cobra.Command{
 	Use:   "make_binary",
-	Short: "Maintaince mode tools: make_binary",
+	Short: "Maintaince mode tools: make_binary --TODO",
 	Long:  `make binary from git server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		logger.Infof("maint clean up ...")
+		logger.Infof("maint Make Binary ...")
 		var maintainer maintenance.Maintainer
 		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
-		cleanup := func() error {
-			err := maintainer.Cleanup()
+		makeBin := func() error {
+			err := maintainer.MakeBinary()
 			return err
 		}
 		jobs := []stress.Job{
 			{
-				Fn:       cleanup,
-				Name:     "Clean Up",
+				Fn:       makeBin,
+				Name:     "Make Binary",
 				RunTimes: 1,
 			},
 		}
@@ -196,8 +196,22 @@ var applyImageCmd = &cobra.Command{
 
 // AddFlagsMaintService Service
 func AddFlagsMaintService(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringArrayVar(&maintConf.SvNameArr, "services", []string{}, "Service Name List (default [])")
+	var DefaultCoreServiceNameArray = []string{}
+	for _, sv := range config.DefaultCoreServiceArray {
+		DefaultCoreServiceNameArray = append(DefaultCoreServiceNameArray, sv.Name)
+	}
+	cmd.PersistentFlags().StringArrayVar(&maintConf.SvNameArr, "services", []string{}, fmt.Sprintf("Service Name List (default [])\nchoice:%s", DefaultCoreServiceNameArray))
 	cmd.PersistentFlags().StringArrayVar(&maintConf.ExculdeSvNameArr, "services_exclude", []string{}, "Service Name List which excluded (default [])")
+}
+
+// AddFlagsMaintBinary Service
+func AddFlagsMaintBinary(cmd *cobra.Command) {
+	var DefaultCoreBinaryNameArray = []string{}
+	for _, sv := range config.DefaultDplServiceArray {
+		DefaultCoreBinaryNameArray = append(DefaultCoreBinaryNameArray, sv.Name)
+	}
+	cmd.PersistentFlags().StringArrayVar(&maintConf.BinNameArr, "binarys", []string{}, fmt.Sprintf("Binarys Name List (default [])\nchoice:%s", DefaultCoreBinaryNameArray))
+	cmd.PersistentFlags().StringArrayVar(&maintConf.ExculdeBinNameArr, "binarys_exclude", []string{}, "Binarys Name List which excluded (default [])")
 }
 
 // AddFlagsMaintClean Clean
@@ -215,13 +229,13 @@ func AddFlagsMaintGit(cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolVar(&maintConf.GitCfg.Pull, "pull", false, "git pull if true (default false)")
 	cmd.PersistentFlags().BoolVar(&maintConf.GitCfg.Tag, "tag", false, "git tag if true (default false)")
 	cmd.PersistentFlags().BoolVar(&maintConf.GitCfg.Make, "make", false, "make file if true (default false)")
-
-	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildIP, "build_ip", config.DplBuildIP, "build ip)")
-	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildPath, "build_path", config.DplBuildPath, "build path")
+	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildServerIP, "build_server_ip", config.DplBuildIP, "git build server ip")
+	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildServerUser, "build_server_user", "root", "git build server user")
+	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildServerPwd, "build_server_pwd", "password", "git build server pwd")
+	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildServerKey, "build_server_key", "", "git build server key (default \"\")")
+	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildPath, "build_path", config.DplBuildPath, "git build project path")
 	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildNum, "build_num", "", "build number,eg: 2.1.0.100 (default \"\")")
-	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildServerUser, "build_server_user", "", "build server user (default root)")
-	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildServerPwd, "build_server_pwd", "", "build server pwd (default password)")
-	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildServerKey, "build_server_key", "", "build server key, (default \"\")")
+	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.LocalBinPath, "local_bin_path", config.DplBuildLocalPath, "local path for store dpl binarys")
 }
 
 func init() {
@@ -245,11 +259,13 @@ func init() {
 	// restart
 	AddFlagsMaintService(restartCmd)
 	AddFlagsMaintClean(restartCmd)
+	// make binary
+	AddFlagsMaintGit(makeBinaryCmd)
+	AddFlagsMaintBinary(makeBinaryCmd)
 	// make image
 	AddFlagsMaintGit(makeImageCmd)
 	// apply image
 	AddFlagsMaintImage(applyImageCmd)
 	AddFlagsMaintService(applyImageCmd)
 	AddFlagsMaintClean(applyImageCmd)
-
 }

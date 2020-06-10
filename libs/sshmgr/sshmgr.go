@@ -216,7 +216,7 @@ func (sshMgr *SSHMgr) ConnectSftpClient() {
 
 // ScpGet ...
 func (sshMgr *SSHMgr) ScpGet(localPath, remotePath string) error {
-	logger.Infof("scp %s@%s:%s %s ...", sshMgr.Cfg.UserName, sshMgr.Cfg.Host, remotePath, localPath)
+	logger.Infof("scp %s@%s:%s -> %s ...", sshMgr.Cfg.UserName, sshMgr.Cfg.Host, remotePath, localPath)
 	dstFile, err := os.Create(localPath)
 	if err != nil {
 		return err
@@ -229,15 +229,23 @@ func (sshMgr *SSHMgr) ScpGet(localPath, remotePath string) error {
 	}
 	defer srcFile.Close()
 
-	buf := make([]byte, 1024)
-	for {
-		n, _ := srcFile.Read(buf)
-		if n == 0 {
-			break
-		}
-		dstFile.Write(buf[0:n])
-	}
+	// srcFileInfo, err := srcFile.Stat()
+	// if err != nil {
+	// 	return err
+	// }
+	// srcFileSize := srcFileInfo.Size()
 
+	// buf := make([]byte, srcFileSize)
+	// for {
+	// 	n, _ := srcFile.Read(buf)
+	// 	if n == 0 {
+	// 		break
+	// 	}
+	// 	dstFile.Write(buf[0:n])
+	// }
+	if _, err = srcFile.WriteTo(dstFile); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -256,14 +264,17 @@ func (sshMgr *SSHMgr) ScpPut(localPath, remotePath string) error {
 	}
 	defer dstFile.Close()
 
-	buf := make([]byte, 1024)
-	for {
-		n, _ := srcFile.Read(buf)
-		if n == 0 {
-			break
-		}
-		dstFile.Write(buf[0:n])
-	}
+	// buf := make([]byte, 1024)
+	// for {
+	// 	n, _ := srcFile.Read(buf)
+	// 	if n == 0 {
+	// 		break
+	// 	}
+	// 	dstFile.Write(buf[0:n])
+	// }
 
+	if _, err = dstFile.ReadFrom(srcFile); err != nil {
+		return err
+	}
 	return nil
 }

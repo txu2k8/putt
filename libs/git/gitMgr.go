@@ -80,6 +80,19 @@ func (g *SSHGitMgr) GetCurrentBranch(projectPath string) string {
 	return branch
 }
 
+// GetChangeLog ...
+func (g *SSHGitMgr) GetChangeLog(projectPath string) (date, changeLog string) {
+	rc, output := g.RunCmd("date")
+	logger.Infof("%d, %s", rc, output)
+	date = strings.Trim(output, "\n")
+
+	cmdSpec := fmt.Sprintf("cd %s && git log --pretty=oneline  ORIG_HEAD..", projectPath)
+	rc, output = g.RunCmd(cmdSpec)
+	logger.Infof("%d, %s", rc, output)
+	changeLog = strings.Trim(output, "\n")
+	return
+}
+
 // MakeFile ...
 func (g *SSHGitMgr) MakeFile(binPath, binName string) string {
 	// make realclean
@@ -103,7 +116,8 @@ func (g *SSHGitMgr) MakeFile(binPath, binName string) string {
 
 	// get new binary MD5
 	md5Cmd := "md5sum " + path.Join(binPath, binName)
-	_, output = g.RunCmd(md5Cmd)
+	rc, output = g.RunCmd(md5Cmd)
+	logger.Infof("%d, %s, %s", rc, binName, md5Cmd)
 	md5sum := strings.Split(strings.TrimRight(output, "\n"), " ")[0]
 	return md5sum
 }

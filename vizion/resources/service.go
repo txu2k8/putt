@@ -29,14 +29,9 @@ type ServiceManager interface {
 	GetNodeNameArrByLabels(nodeLabelArr []string) (nodeNameArr []string)
 	GetNodeIPArrByLabels(nodeLabelArr []string) (nodeIPArr []string)
 
-	EnableNodeLabelByLabels(nodeLabel []string) error
-	DisableNodeLabelByLabels(nodeLabel []string) error
+	EnableNodeLabels(nodeLabel []string) error
+	DisableNodeLabels(nodeLabel []string) error
 	DeletePodsByLabel(podLabel string) (err error)
-	// K8sDisableNodeLabel(nodeName, nodeLabel, podLabel string) error
-	// K8sEnableNodeLabelByType(serviceType int) error
-	// K8sDisableNodeLabelByType(serviceType int) error
-	// K8sStartAll(serviceType int) error
-	// K8sShutdownAll(serviceType int) error
 	Test(podLabel string) error
 }
 
@@ -154,11 +149,11 @@ func (s *svManager) GetNodeIPArrByLabels(nodeLabelArr []string) (nodeIPArr []str
 }
 
 // EnableNodeLabel .
-func (s *svManager) EnableNodeLabelByLabels(nodeLabelArr []string) error {
+func (s *svManager) EnableNodeLabels(nodeLabelArr []string) error {
 	return nil
 }
 
-func (s *svManager) DisableNodeLabelByLabels(nodeLabelArr []string) (err error) {
+func (s *svManager) DisableNodeLabels(nodeLabelArr []string) (err error) {
 	var nodeLabelNameMap map[string][]string
 	for _, nodeLabel := range nodeLabelArr {
 		nodeLabelNameMap[nodeLabel] = s.GetNodeNameArrByLabel(nodeLabel)
