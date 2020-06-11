@@ -59,7 +59,7 @@ func (g *SSHGitMgr) Pull(projectPath string) error {
 
 // Tag ...
 func (g *SSHGitMgr) Tag(projectPath, tagName string) error {
-	tagCmd := fmt.Sprintf("cd %s && git tag -a %s 0m \"tag for test build\"", projectPath, tagName)
+	tagCmd := fmt.Sprintf("cd %s && git tag -a %s -m \"tag for test build\"", projectPath, tagName)
 	rc, output := g.RunCmd(tagCmd)
 	logger.Infof("%d, %s", rc, output)
 
@@ -86,7 +86,12 @@ func (g *SSHGitMgr) GetChangeLog(projectPath string) (date, changeLog string) {
 	logger.Infof("%d, %s", rc, output)
 	date = strings.Trim(output, "\n")
 
-	cmdSpec := fmt.Sprintf("cd %s && git log --pretty=oneline  ORIG_HEAD..", projectPath)
+	getLatestTag := fmt.Sprintf("cd %s && git describe --tags", projectPath)
+	rc, output = g.RunCmd(getLatestTag)
+	logger.Infof("%d, %s", rc, output)
+	latestTag := strings.Trim(output, "\n")
+
+	cmdSpec := fmt.Sprintf("cd %s && git log --pretty=oneline  ORIG_HEAD..%s", projectPath, latestTag)
 	rc, output = g.RunCmd(cmdSpec)
 	logger.Infof("%d, %s", rc, output)
 	changeLog = strings.Trim(output, "\n")

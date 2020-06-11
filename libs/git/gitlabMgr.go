@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"pzatest/libs/retry"
-	"pzatest/libs/retry/backoff"
 	"pzatest/libs/retry/strategy"
 	"pzatest/libs/utils"
 	"time"
@@ -126,7 +125,8 @@ func (g *GitlabMgr) WaitJobStatusExpected(projectID int, tagName, jobName, expec
 	err := retry.Retry(
 		action,
 		strategy.Limit(360),
-		strategy.Backoff(backoff.Fibonacci(20*time.Second)),
+		strategy.Wait(20*time.Second),
+		// strategy.Backoff(backoff.Fibonacci(20*time.Second)),
 	)
 	return err
 }

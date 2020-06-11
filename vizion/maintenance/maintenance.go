@@ -226,7 +226,7 @@ func (maint *Maint) MakeBinary() error {
 		maint.GitCfg.BuildServerKey,
 	)
 	branchName := gitMgr.GetCurrentBranch(maint.GitCfg.BuildPath)
-	tagName := strTime + "_" + branchName
+	tagName := strTime + "-" + branchName
 	if maint.GitCfg.BuildNum == "" {
 		tagName = tagName + "_private"
 	} else {
@@ -313,7 +313,7 @@ func (maint *Maint) MakeImage() error {
 		maint.GitCfg.BuildServerKey,
 	)
 	branchName := gitMgr.GetCurrentBranch(maint.GitCfg.BuildPath)
-	tagName := strTime + "_" + branchName
+	tagName := strTime + "-" + branchName
 	if maint.GitCfg.BuildNum == "" {
 		tagName = tagName + "_notest"
 	} else {

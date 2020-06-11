@@ -52,7 +52,8 @@ func Limit(attemptLimit uint) Strategy {
 func Delay(duration time.Duration) Strategy {
 	return func(attempt uint) bool {
 		if 0 == attempt {
-			time.Sleep(duration)
+			SleepProgressBar(duration)
+			// time.Sleep(duration)
 		}
 
 		return true
@@ -64,14 +65,14 @@ func Delay(duration time.Duration) Strategy {
 // provided, then the strategy uses the last duration provided.
 func Wait(durations ...time.Duration) Strategy {
 	return func(attempt uint) bool {
-		if 0 < attempt && 0 < len(durations) {
+		if 1 < attempt && 0 < len(durations) {
 			durationIndex := int(attempt - 1)
 
 			if len(durations) <= durationIndex {
 				durationIndex = len(durations) - 1
 			}
-			// SleepProgressBar(durations[durationIndex])
-			time.Sleep(durations[durationIndex])
+			SleepProgressBar(durations[durationIndex])
+			// time.Sleep(durations[durationIndex])
 		}
 
 		return true
