@@ -3,7 +3,6 @@ package k8s
 import (
 	"strings"
 
-	"github.com/chenhg5/collection"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -83,19 +82,14 @@ func (c *Client) GetNodeIPArrByLabel(nodeLabel string) (nodeIPArr []string) {
 // UpdateNodeLabel ...
 func (c *Client) UpdateNodeLabel(nodeName string, labels map[string]string) error {
 	node, _ := c.Clientset.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
-	currentLabels := node.ObjectMeta.Labels
-	currentLabelKeys := make([]string, 0, len(currentLabels))
-	for k := range currentLabels {
-		currentLabelKeys = append(currentLabelKeys, k)
-	}
-
-	for k := range labels {
-		if collection.Collect(currentLabelKeys).Contains(k) {
-			logger.Info("Update node label %s -> %s ...", nodeName, labels)
-			// c.Clientset.CoreV1().Nodes().Patch(nodeName, )
+	for k, v := range labels {
+		if _, ok := node.ObjectMeta.Labels[k]; ok {
+			logger.Infof("Update node label %s -> %s:%s ...", nodeName, k, v)
+			node.ObjectMeta.Labels[k] = v
 		}
 	}
-
+	// logger.Debug(node.ObjectMeta.Labels)
+	c.Clientset.CoreV1().Nodes().Update(node)
 	return nil
 }
 

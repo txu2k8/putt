@@ -10,7 +10,7 @@ import (
 func TestGetService(t *testing.T) {
 	sessC := sessCluster{
 		ConfigMap: map[string]db.CassConfig{
-			"0": db.CassConfig{
+			"0": {
 				Hosts:    []string{"10.25.119.87"},
 				Username: "caadmin",
 				Password: "yjSJbEmPXmHfUbRa",

@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"pzatest/libs/retry"
+	"pzatest/libs/retry/strategy"
 	"pzatest/libs/sshmgr"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/chenhg5/collection"
 )
@@ -30,6 +33,9 @@ type NodeInterface interface {
 	DeleteFiles(topPath string) error
 	ChangeDplmanagerShellImage(image, dplmgrPath string) error
 	IsDplmodExist() bool
+	RmModDpl() error
+	IsDplDeviceExist(devName string) bool
+	WaitDplDeviceRemoved(devName string) error
 }
 
 // nodes implements NodeInterface
@@ -174,4 +180,52 @@ func (n *node) IsDplmodExist() bool {
 		return true
 	}
 	return false
+}
+
+// RmModDpl "rmmod dpl" on node
+func (n *node) RmModDpl() error {
+	if n.IsDplmodExist() == false {
+		return nil
+	}
+
+	cmdSpec := "rmmod dpl"
+	rc, output := n.RunCmd(cmdSpec)
+	logger.Infof("%d,%s", rc, output)
+	if n.IsDplmodExist() == false {
+		logger.Infof("PASS：rmmod dpl ---> %s", n.Cfg.Host)
+		return nil
+	}
+	logger.Errorf("FAIL：rmmod dpl ---> %s", n.Cfg.Host)
+	return fmt.Errorf("FAIL: rmmod dpl!(A bug or need reset node)")
+}
+
+// IsDplDeviceExist
+func (n *node) IsDplDeviceExist(devName string) bool {
+	if devName == "" {
+		devName = "/dev/dpl*"
+	}
+	cmdSpec := fmt.Sprintf("ls -lh %s | grep -v /dev/dpl0", devName)
+	rc, output := n.RunCmd(cmdSpec)
+	logger.Infof("%d,%s", rc, output)
+
+	if strings.Contains(output, "No such file or directory") || !strings.Contains(output, "/dev/dpl") {
+		logger.Infof("%s not exist on node %s", devName, n.Cfg.Host)
+		return false
+	}
+	return true
+}
+
+func (n *node) WaitDplDeviceRemoved(devName string) error {
+	action := func(attempt uint) error {
+		if n.IsDplDeviceExist(devName) == true {
+			return fmt.Errorf("%s still exist", devName)
+		}
+		return nil
+	}
+	err := retry.Retry(
+		action,
+		strategy.Limit(30),
+		strategy.Wait(30*time.Second),
+	)
+	return err
 }

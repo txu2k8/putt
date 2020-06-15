@@ -12,7 +12,7 @@ type VizionBaseInput struct {
 	JDGroupIDs     []int    // jd group ids array
 	JcacheGroupIDs []int    // jcache group ids array
 	CmapGroupIDs   []int    // cmap group ids array
+	sshmgr.SSHKey           // ssh keys for connect to nodes
 	K8sNameSpace   string   // k8s namespace
 	KubeConfig     string   // kubeconfig file path
-	sshmgr.SSHKey           // ssh keys for connect to nodes
 }

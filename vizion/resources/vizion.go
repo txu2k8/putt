@@ -19,13 +19,14 @@ type BaseInterface interface {
 	DplmanagerGetter
 	ServiceManagerGetter
 	CassClusterGetter
-	HealthCheckerGetter
 }
 
 // Vizion is used to interact with features provided by the  group.
 type Vizion struct {
-	Base       types.VizionBaseInput
-	KubeConfig string // kubeconfig file path, not use
+	Base         types.VizionBaseInput    // command/args input
+	CassConfig   map[string]db.CassConfig // cassandra configs map
+	KubeConfig   string                   // kubeconfig file path
+	K8sNameSpace string                   // k8s namespace
 }
 
 // Node returns NodeInterface
@@ -66,16 +67,11 @@ func (v *Vizion) Cass() CassCluster {
 	return newSessCluster(v)
 }
 
-// Check returns HealthChecker
-func (v *Vizion) Check() HealthChecker {
-	return newHealthChecker(v)
-}
-
 // GetK8sClient returns a k8s.Client that is used to communicate
 // with K8S API server by this client implementation.
 func (v *Vizion) GetK8sClient() k8s.Client {
 	v.GetKubeConfig()
-	c, err := k8s.NewClientWithRetry(v.Base.KubeConfig)
+	c, err := k8s.NewClientWithRetry(v.KubeConfig)
 	if err != nil {
 		panic(err)
 	}
@@ -85,9 +81,18 @@ func (v *Vizion) GetK8sClient() k8s.Client {
 
 // GetCassConfig returns cassandra cluster configs
 func (v *Vizion) GetCassConfig() map[string]db.CassConfig {
+	// Get once
+	if v.CassConfig != nil {
+		return v.CassConfig
+	}
 	masterCassIPs := v.Service().GetMasterCassIPs()
 	masterUser, masterPwd := v.Service().GetMasterCassUserPwd()
 	masterPort := v.Service().GetMasterCassPort()
+	// master --> vset1
+	// masterCassIPs := v.Service().GetSubCassIPs(1)
+	// masterUser, masterPwd := v.Service().GetSubCassUserPwd(1)
+	// masterPort := v.Service().GetSubCassPort(1)
+
 	cf := map[string]db.CassConfig{}
 	cf["0"] = db.CassConfig{
 		Hosts:    masterCassIPs,
@@ -109,5 +114,6 @@ func (v *Vizion) GetCassConfig() map[string]db.CassConfig {
 		}
 	}
 	// logger.Infof("CassConfig:%s\n", utils.Prettify(cf))
+	v.CassConfig = cf
 	return cf
 }

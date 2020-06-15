@@ -2,8 +2,10 @@ package resources
 
 import (
 	"fmt"
+	"pzatest/config"
 	"pzatest/libs/k8s"
 	"pzatest/libs/utils"
+	"pzatest/types"
 	"strings"
 	"sync"
 	"time"
@@ -28,6 +30,9 @@ type ServiceManager interface {
 	GetAllNodeIPs() (ipArr []string)
 	GetNodeNameArrByLabels(nodeLabelArr []string) (nodeNameArr []string)
 	GetNodeIPArrByLabels(nodeLabelArr []string) (nodeIPArr []string)
+	GetBdNodeIPArr() (nodeIPArr []string)
+	GetESPodPvcVolume(esPodName, volumeName string) (pvcVol string, err error)
+	GetESNodeIPPvcArrMap() (map[string][]string, error)
 
 	EnableNodeLabels(nodeLabel []string) error
 	DisableNodeLabels(nodeLabel []string) error
@@ -45,16 +50,18 @@ type Worker struct {
 // svManager implements NodeInterface
 type svManager struct {
 	k8s.Client
+	Base types.VizionBaseInput
 }
 
 // newServiceMgr returns a Nodes
 func newServiceMgr(v *Vizion) *svManager {
 	return &svManager{
-		v.GetK8sClient(),
+		v.GetK8sClient(), v.Base,
 	}
 }
 
-// K8sGetMasterCassIPs ...
+// ----------- Get Cassandra configs from k8s -----------
+// GetMasterCassIPs ...
 func (s *svManager) GetMasterCassIPs() (ipArr []string) {
 	ipArr, err := s.GetSvcIPs("cassandra-master-expose")
 	if err != nil {
@@ -63,7 +70,7 @@ func (s *svManager) GetMasterCassIPs() (ipArr []string) {
 	return
 }
 
-// K8sGetMasterCassUserPwd ...
+// GetMasterCassUserPwd ...
 func (s *svManager) GetMasterCassUserPwd() (user, pwd string) {
 	scrt, err := s.GetSecretDetail("cassandra-config")
 	if err != nil {
@@ -81,7 +88,7 @@ func (s *svManager) GetMasterCassUserPwd() (user, pwd string) {
 	return
 }
 
-// K8sGetMasterCassIPs ...
+// GetMasterCassPort ...
 func (s *svManager) GetMasterCassPort() (port int) {
 	port, err := s.GetSvcPort("cassandra-master-expose", 9042)
 	if err != nil {
@@ -99,7 +106,7 @@ func (s *svManager) GetSubCassIPs(vsetID int) (ipArr []string) {
 	return
 }
 
-// K8sGetMasterCassUserPwd ...
+// GetSubCassUserPwd ...
 func (s *svManager) GetSubCassUserPwd(vsetID int) (user, pwd string) {
 	scrt, err := s.GetSecretDetail(fmt.Sprintf("cassandra-config-vset%d", vsetID))
 	if err != nil {
@@ -117,7 +124,7 @@ func (s *svManager) GetSubCassUserPwd(vsetID int) (user, pwd string) {
 	return
 }
 
-// K8sGetMasterCassIPs ...
+// GetSubCassPort ...
 func (s *svManager) GetSubCassPort(vsetID int) (port int) {
 	port, err := s.GetSvcPort(fmt.Sprintf("cassandra-vset%d-expose", vsetID), 9042)
 	if err != nil {
@@ -126,6 +133,7 @@ func (s *svManager) GetSubCassPort(vsetID int) (port int) {
 	return
 }
 
+//  ----------- Get node IPs/Names -----------
 func (s *svManager) GetAllNodeIPs() (ipArr []string) {
 	nodeArr := s.GetNodeInfoArr()
 	for _, node := range nodeArr {
@@ -148,23 +156,72 @@ func (s *svManager) GetNodeIPArrByLabels(nodeLabelArr []string) (nodeIPArr []str
 	return
 }
 
-// EnableNodeLabel .
+func (s *svManager) GetBdNodeIPArr() (nodeIPArr []string) {
+	nodeLabelArr, _ := config.Dpldagent.GetNodeLabelArr(s.Base)
+	return s.GetNodeIPArrByLabels(nodeLabelArr)
+}
+
+// GetESNodeIPPvcArrMap ...
+func (s *svManager) GetESPodPvcVolume(esPodName, volumeName string) (pvcVol string, err error) {
+	if volumeName == "" {
+		volumeName = "es-data-store"
+	}
+
+	esPod, err := s.GetPodDetail(esPodName)
+	if err != nil {
+		return pvcVol, err
+	}
+
+	for _, vol := range esPod.Spec.Volumes {
+		volPvc := vol.PersistentVolumeClaim
+		if vol.Name == volumeName && volPvc != nil {
+			pvcVol = volPvc.ClaimName
+			break
+		}
+	}
+	return
+}
+
+// GetESNodeIPPvcArrMap ...
+func (s *svManager) GetESNodeIPPvcArrMap() (map[string][]string, error) {
+	nodeIPPvcArr := map[string][]string{} // ip:pvcArr
+	podLabel := config.ES.GetPodLabel(s.Base)
+	esPods, err := s.GetPodListByLabel(podLabel)
+	if err != nil {
+		return nodeIPPvcArr, err
+	}
+	for _, pod := range esPods.Items {
+		nodeName := pod.Spec.NodeName
+		if nodeName == "" {
+			continue
+		}
+		nodeIP := s.GetNodePriorIPByName(nodeName)
+		pvcName, err := s.GetESPodPvcVolume(pod.ObjectMeta.Name, "es-data-store")
+		if err != nil {
+			return nodeIPPvcArr, err
+		}
+		nodeIPPvcArr[nodeIP] = []string{pvcName}
+	}
+	return nodeIPPvcArr, nil
+}
+
+// ----------- Enable/Disable Node Labels -----------
 func (s *svManager) EnableNodeLabels(nodeLabelArr []string) error {
 	return nil
 }
 
 func (s *svManager) DisableNodeLabels(nodeLabelArr []string) (err error) {
-	var nodeLabelNameMap map[string][]string
+	nodeLabelNameMap := map[string][]string{}
 	for _, nodeLabel := range nodeLabelArr {
 		nodeLabelNameMap[nodeLabel] = s.GetNodeNameArrByLabel(nodeLabel)
 	}
-
-	w := Worker{maxParallel: 100}
+	// logger.Info(nodeLabelNameMap)
+	w := Worker{maxParallel: 10}
 	ch := make(chan struct{}, w.maxParallel)
 
 	for nLable, nodeNameArr := range nodeLabelNameMap {
 		for _, nodeName := range nodeNameArr {
-			time.Sleep(2 * time.Second)
+			// time.Sleep(2 * time.Second)
 			select {
 			case ch <- struct{}{}:
 				w.wg.Add(1)
@@ -181,9 +238,9 @@ func (s *svManager) DisableNodeLabels(nodeLabelArr []string) (err error) {
 			case <-w.done:
 				break
 			}
+			w.wg.Wait()
 		}
 	}
-	w.wg.Wait()
 	return
 }
 

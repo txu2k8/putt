@@ -245,6 +245,15 @@ func (sv *Service) GetLogDirArr(base types.VizionBaseInput) (logDirArr []string)
 	return
 }
 
+// ReverseServiceArr ...
+func ReverseServiceArr(arr []Service) (reverseArr []Service) {
+	length := len(arr)
+	for i := 0; i < length; i++ {
+		reverseArr = append(reverseArr, arr[length-1-i])
+	}
+	return
+}
+
 // ========== Define: Service/Binary ==========
 // ========== DPL Service/Binary ==========
 var (
@@ -669,7 +678,7 @@ var (
 
 // ========== Default: Service/Binary/CleanItem ==========
 var (
-	// Default DPL Service for test/upgrade
+	// Default DPL Service for test/upgrade  -- order by start
 	DefaultDplServiceArray = []Service{
 		Dplmanager,
 		Jddpl,
@@ -684,7 +693,7 @@ var (
 		Dplexporter,
 	}
 
-	// Default DPL Binary for upgrade
+	// Default DPL Binary for upgrade  -- order by start
 	DefaultDplBinaryArray = []Service{
 		Dplmanager,
 		Jddpl,
@@ -704,12 +713,12 @@ var (
 		Libetcdv3,
 	}
 
-	// Default APP Service for test
+	// Default APP Service for test  -- order by start
 	DefaultAppServiceArray = []Service{
+		ES,
+		Nfsprovisioner,
 		Cdcgcs3,
 		Cdcgcbd,
-		Nfsprovisioner,
-		ES,
 	}
 
 	// Default MASTER service for test
@@ -722,8 +731,8 @@ var (
 		MysqlRouter,
 	}
 
-	// Default Core Service Array: DPL + APP
-	DefaultCoreServiceArray = append(DefaultAppServiceArray, DefaultDplServiceArray...)
+	// Default Core Service Array: DPL + APP  -- order by start
+	DefaultCoreServiceArray = append(DefaultDplServiceArray, DefaultAppServiceArray...)
 
 	// Default Service Array: DPL + APP + MASTER
 	DefaultServiceArray = append(DefaultMasterServiceArray, DefaultCoreServiceArray...)

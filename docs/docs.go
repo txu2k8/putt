@@ -64,13 +64,3 @@ func createFile(name string) error {
 	}()
 	return nil
 }
-
-func test() {
-	var log = logging.MustGetLogger("test")
-
-	log.Info("info")
-	log.Notice("notice")
-	log.Warning("warning")
-	log.Error("err")
-	log.Critical("crit")
-}

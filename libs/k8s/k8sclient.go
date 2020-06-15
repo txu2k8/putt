@@ -14,7 +14,7 @@ import (
 // ClientSet .
 type ClientSet interface {
 	// pod ...
-	GetPodDetail(podName string) error
+	GetPodDetail(podName string) (*v1.Pod, error)
 	GetPodListByLabel(podLabel string) (pods *v1.PodList, err error)
 	GetPodNameListByLabel(podLabel string) (podNameArr []string, err error)
 	GetPodImage(podName, containerName string) (image string, err error)
@@ -52,6 +52,15 @@ type ClientSet interface {
 	// Daemonsets
 	GetDaemonsetsNameArrByLabel(labelSelector string) (dsNameArr []string, err error)
 	SetDaemonSetsImage(dsName, containerName, image string) error
+
+	// svc
+	GetSvcDetail(svcName string) (*v1.Service, error)
+	GetSvcIPs(svcName string) (ipArr []string, err error)
+	GetSvcPort(svcName string, targetPort int) (svcPort int, err error)
+
+	// pvc
+	GetPvDetail(pvName string) (*v1.PersistentVolume, error)
+	GetPvcDetail(pvcName string) (*v1.PersistentVolumeClaim, error)
 }
 
 // Client ...

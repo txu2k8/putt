@@ -179,7 +179,8 @@ func (maint *Maint) Cleanup() error {
 // Stop - maint
 func (maint *Maint) Stop() error {
 	var err error
-	err = maint.Vizion.StopServices(maint.ServiceArr)
+	stopServiceArr := config.ReverseServiceArr(maint.ServiceArr)
+	err = maint.Vizion.StopServices(stopServiceArr)
 	if err != nil {
 		return err
 	}

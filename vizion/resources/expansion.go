@@ -50,6 +50,15 @@ func ReplaceKubeServer(cfPath, server string) {
 
 // GetKubeConfig ...
 func (v *Vizion) GetKubeConfig() {
+	// Get once
+	if v.KubeConfig != "" {
+		return
+	}
+	// Use input KubeConfig path
+	if v.Base.KubeConfig != "" {
+		v.KubeConfig = v.Base.KubeConfig
+		return
+	}
 	fqdn := "kubernetes.vizion.local"
 	kubePath := "/tmp/kube"
 	_, err := os.Stat(kubePath)
@@ -65,7 +74,7 @@ func (v *Vizion) GetKubeConfig() {
 		tmpCfPath := path.Join(kubePath, masterIP+".config")
 		_, err = os.Stat(tmpCfPath)
 		if err == nil || os.IsExist(err) {
-			v.Base.KubeConfig = tmpCfPath
+			v.KubeConfig = tmpCfPath
 			return
 		}
 	}
@@ -86,7 +95,7 @@ func (v *Vizion) GetKubeConfig() {
 			ReplaceKubeServer(cfPath, server)
 		}
 	}
-	v.Base.KubeConfig = cfPath
+	v.KubeConfig = cfPath
 }
 
 // ============ Stop/Start/Apply Services ============
@@ -98,6 +107,14 @@ func (v *Vizion) StopServices(svArr []config.Service) error {
 		logger.Infof(">> Stop service %s:%d ...", sv.TypeName, sv.Type)
 		podLabel := sv.GetPodLabel(v.Base)
 		nodeLabelArr, _ := sv.GetNodeLabelArr(v.Base)
+		nodeIPPvcArr := map[string][]string{}
+		if sv.Type == config.ES.Type { // Get es nodeip <-> pvcArr
+			nodeIPPvcArrMap, err := svMgr.GetESNodeIPPvcArrMap()
+			if err != nil {
+				return err
+			}
+			nodeIPPvcArr = nodeIPPvcArrMap
+		}
 
 		switch sv.K8sKind {
 		case config.K8sStatefulsets:
@@ -122,6 +139,16 @@ func (v *Vizion) StopServices(svArr []config.Service) error {
 			svMgr.DisableNodeLabels(nodeLabelArr)
 			svMgr.DeletePodsByLabel(podLabel)
 			svMgr.WaitForAllPodDown(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 30)
+		}
+
+		switch sv.Type {
+		case config.ES.Type: // expected all volume(pvc) status==2
+			v.WaitBdVolumeStatusExpected(2, "", "", []string{})
+			for nodeIP, pvcArr := range nodeIPPvcArr {
+				v.WaitBlockDeviceRemoved("", nodeIP, pvcArr)
+			}
+		case config.Dpldagent.Type: // rmmod dpl after bd pod stop
+			v.RmmodDplOnBD()
 		}
 	}
 	return nil
@@ -450,6 +477,19 @@ func (v *Vizion) CleanEtcd(prefixArr []string) error {
 
 // CleanCdcgc . TODO
 func (v *Vizion) CleanCdcgc() error {
+	return nil
+}
+
+// RmmodDplOnBD "rmmod dpl" on all bd nodes
+func (v *Vizion) RmmodDplOnBD() error {
+	bdNodeIps := v.Service().GetBdNodeIPArr()
+	logger.Info(bdNodeIps)
+	for _, nodeIP := range bdNodeIps {
+		node := v.Node(nodeIP)
+		if err := node.RmModDpl(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

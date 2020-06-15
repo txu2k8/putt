@@ -34,9 +34,8 @@ type IsAllPodReadyInput struct {
 }
 
 // GetPodDetail ...
-func (c *Client) GetPodDetail(podName string) error {
-	_, err := c.Clientset.CoreV1().Pods(c.NameSpace).Get(podName, metav1.GetOptions{})
-	return err
+func (c *Client) GetPodDetail(podName string) (*v1.Pod, error) {
+	return c.Clientset.CoreV1().Pods(c.NameSpace).Get(podName, metav1.GetOptions{})
 }
 
 // GetPodListByLabel ...
