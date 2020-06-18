@@ -465,6 +465,7 @@ func (v *Vizion) CleanEtcd(prefixArr []string) error {
 	cmdArr := []string{}
 	for _, prefix := range prefixArr {
 		cmdArr = append(cmdArr, "etcdctlv3 del --prefix "+prefix)
+		cmdArr = append(cmdArr, "etcdctlv3 get --prefix "+prefix)
 	}
 	masterNode := v.MasterNode()
 	for _, cmd := range cmdArr {
