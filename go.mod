@@ -5,6 +5,8 @@ go 1.14
 require (
 	github.com/aws/aws-sdk-go v1.30.26
 	github.com/chenhg5/collection v0.0.0-20191118032303-cb21bccce4c3
+	github.com/coreos/etcd v3.3.22+incompatible // indirect
+	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/gocql/gocql v0.0.0-20200511135441-57b003a04490
 	github.com/gogo/protobuf v1.3.1 // indirect
@@ -28,6 +30,7 @@ require (
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/cobra v1.0.0
 	github.com/xanzy/go-gitlab v0.32.1
+	go.etcd.io/etcd v3.3.22+incompatible
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e // indirect
 	golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6 // indirect

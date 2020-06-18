@@ -382,30 +382,28 @@ func (v *Vizion) CleanSubCassTables(tableNameArr []string) error {
 	return nil
 }
 
-// UpdateMasterCassTables . Do Nothing
+// UpdateMasterCassTables .
 func (v *Vizion) UpdateMasterCassTables() error {
-	/*
-		var err error
-		masterCass := v.Cass().SetIndex("0")
-		logger.Info("> Updata VPM ...")
-		logger.Info("> Updata DPL ...")
-		logger.Info("> Updata ANCHSERVER ...")
-		logger.Info("> Clean JFS table ...")
+	var err error
+	masterCass := v.Cass().SetIndex("0")
+	logger.Info("> Updata VPM ...")
+	logger.Info("> Updata DPL ...")
+	logger.Info("> Updata ANCHSERVER ...")
+	logger.Info("> Clean JFS table ...")
 
-		logger.Info("> Insert index_map table ...")
-		insertIdxMapCmdArr := []string{
-			"insert into vizion.index_map (id, idx) VALUES (00000000-0000-0000-0000-111111111111, 432345564228567616)",
-			"insert into vizion.index_map (id, idx) VALUES (00000000-0000-0000-0000-222222222222, 1000000)",
-			"insert into vizion.index_map (id, idx) VALUES (00000000-0000-0000-0000-333333333333, 144115188076855872)",
-			"insert into vizion.index_map (id, idx) VALUES (00000000-0000-0000-0000-444444444444, 288230376152711744)",
+	logger.Info("> Insert index_map table ...")
+	insertIdxMapCmdArr := []string{
+		"insert into vizion.index_map (id, idx) VALUES (00000000-0000-0000-0000-111111111111, 432345564228567616)",
+		"insert into vizion.index_map (id, idx) VALUES (00000000-0000-0000-0000-222222222222, 1000000)",
+		"insert into vizion.index_map (id, idx) VALUES (00000000-0000-0000-0000-333333333333, 144115188076855872)",
+		"insert into vizion.index_map (id, idx) VALUES (00000000-0000-0000-0000-444444444444, 288230376152711744)",
+	}
+	for _, cmd := range insertIdxMapCmdArr {
+		err = masterCass.Execute(cmd)
+		if err != nil {
+			return err
 		}
-		for _, cmd := range insertIdxMapCmdArr {
-			err = masterCass.Execute(cmd)
-			if err != nil {
-				return err
-			}
-		}
-	*/
+	}
 	return nil
 }
 

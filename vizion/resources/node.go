@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"pzatest/config"
 	"pzatest/libs/retry"
 	"pzatest/libs/retry/strategy"
 	"pzatest/libs/sshmgr"
@@ -27,6 +28,10 @@ type NodeInterface interface {
 	sshmgr.SSHManager
 	GetKubeConfig(localPath string) error
 	GetKubeVipIP(fqdn string) (vIP string)
+	GetEtcdCertsPathArr() []string
+	GetEtcdCerts(localPath string) (localCertsPathArr []string, err error)
+	PutEtcdCerts(localCertsPathArr []string) error
+
 	GetCrashDirs() (crashArr []string)
 	GetLogDirs(dirFilter []string) (logDirArr []string)
 	CleanLog(dirFilter []string) error
@@ -79,6 +84,88 @@ func (n *node) GetKubeVipIP(fqdn string) (vIP string) {
 		vIP = match[0]
 	}
 	return
+}
+
+func (n *node) GetEtcdCertsPathArr() []string {
+	var certs = []string{}
+	cmdSpec := "find " + path.Join(config.EtcdCertPath, "*")
+	_, output := n.RunCmd(cmdSpec)
+	if strings.Contains(output, "No such file or directory") {
+		cmdMkdir := "mkdir -p " + config.EtcdCertPath
+		n.RunCmd(cmdMkdir)
+	}
+	certs = append(certs, strings.Split(strings.TrimSuffix(output, "\n"), "\n")...)
+	return certs
+}
+
+func (n *node) GetEtcdCerts(localPath string) (localCertsPathArr []string, err error) {
+	localCertTopPath := path.Join(localPath, "etcd", n.Cfg.Host)
+	_, err = os.Stat(localCertTopPath)
+	if os.IsNotExist(err) {
+		err = os.MkdirAll(localCertTopPath, os.ModePerm)
+		if err != nil {
+			return
+		}
+	}
+
+	certsPathArr := n.GetEtcdCertsPathArr()
+	for _, cert := range certsPathArr {
+		certPath := strings.TrimSuffix(cert, "\n")
+		certName := path.Base(certPath)
+		localCertPath := path.Join(localCertTopPath, certName)
+		localCertsPathArr = append(localCertsPathArr, localCertPath)
+
+		_, err = os.Stat(localCertPath)
+		if os.IsNotExist(err) {
+			if n.Cfg.UserName != "root" {
+				tmpPath := "/tmp/" + certName
+				n.RunCmd(fmt.Sprintf("cp %s %s", certPath, tmpPath))
+				n.RunCmd(fmt.Sprintf("chmod 666 %s", tmpPath))
+				n.RunCmd(fmt.Sprintf("chmod -R %s:%s %s", n.Cfg.UserName, n.Cfg.UserName, tmpPath))
+				certPath = tmpPath
+			}
+			n.ConnectSftpClient()
+			err = n.ScpGet(localCertPath, certPath)
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+func (n *node) PutEtcdCerts(localCertsPathArr []string) error {
+	var err error
+	n.ConnectSftpClient()
+	for _, cert := range localCertsPathArr {
+		certName := path.Base(cert)
+		n.MkdirIfNotExist(config.EtcdCertPath)
+		remotePath := config.EtcdCertPath + certName
+		if n.Cfg.UserName == "root" {
+			err = n.ScpPut(cert, remotePath)
+			if err != nil {
+				return err
+			}
+		} else {
+			tmpPath := "/tmp/" + certName
+			err = n.ScpPut(cert, tmpPath)
+			if err != nil {
+				return err
+			}
+			n.RunCmd(fmt.Sprintf("cp %s %s", tmpPath, remotePath))
+		}
+	}
+	return nil
+}
+
+func (n *node) MkdirIfNotExist(remotePath string) error {
+	cmdSpec := "ls " + remotePath
+	_, output := n.RunCmd(cmdSpec)
+	if strings.Contains(output, "No such file or directory") {
+		cmdMkdir := "mkdir -p " + remotePath
+		n.RunCmd(cmdMkdir)
+	}
+	return nil
 }
 
 func (n *node) GetCrashDirs() (crashArr []string) {

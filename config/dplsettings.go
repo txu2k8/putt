@@ -11,6 +11,12 @@ import (
 
 var logger = logging.MustGetLogger("test")
 
+// ========== const: etcd Settings ==========
+const (
+	EtcdPort     = 2379
+	EtcdCertPath = "/etc/kubernetes/pki/etcd/"
+)
+
 // ========== const: K8S Settings ==========
 const (
 	K8sDeployment   = "deployment"
@@ -80,18 +86,20 @@ func (sv *Service) GetPodLabel(base types.VizionBaseInput) (podLabel string) {
 			podLabelValueArr = append(podLabelValueArr, jdLabelValue)
 		}
 	case Servicedpl.Type:
+		podLabelValueArr = []string{labelValue}
 		for _, vsetID := range base.VsetIDs {
 			vsetPodValue := fmt.Sprintf("%s-%d", labelValue, vsetID)
-			podLabelValueArr = []string{labelValue, vsetPodValue}
+			podLabelValueArr = append(podLabelValueArr, vsetPodValue)
 			for _, dplGroupID := range base.DPLGroupIDs {
 				dplLabelValue := fmt.Sprintf("%s-%d-%d", labelValue, vsetID, dplGroupID)
 				podLabelValueArr = append(podLabelValueArr, dplLabelValue)
 			}
 		}
 	case Mjcachedpl.Type, Djcachedpl.Type:
+		podLabelValueArr = []string{labelValue}
 		for _, vsetID := range base.VsetIDs {
 			vsetPodValue := fmt.Sprintf("%s-%d", labelValue, vsetID)
-			podLabelValueArr = []string{labelValue, vsetPodValue}
+			podLabelValueArr = append(podLabelValueArr, vsetPodValue)
 			for _, jcacheGroupID := range base.JcacheGroupIDs {
 				jcacheLabelValue := fmt.Sprintf("%s-%d-%d", labelValue, vsetID, jcacheGroupID)
 				podLabelValueArr = append(podLabelValueArr, jcacheLabelValue)
@@ -196,8 +204,8 @@ func (sv *Service) GetLogDirArr(base types.VizionBaseInput) (logDirArr []string)
 	case Jddpl.Type: // *-1
 		for _, jdGroupID := range base.JDGroupIDs {
 			for _, logPath := range sv.LogPathArr {
-				vsetLogPath := fmt.Sprintf("%s-%d", logPath, jdGroupID)
-				logDirArr = append(logDirArr, vsetLogPath)
+				jdLogPath := fmt.Sprintf("%s-%d", logPath, jdGroupID)
+				logDirArr = append(logDirArr, jdLogPath)
 			}
 		}
 	case Servicedpl.Type: // *-vset1-1
@@ -211,7 +219,7 @@ func (sv *Service) GetLogDirArr(base types.VizionBaseInput) (logDirArr []string)
 		}
 	case Mjcachedpl.Type, Djcachedpl.Type: // *-vset1-1
 		for _, vsetID := range base.VsetIDs {
-			for _, jcacheGroupID := range base.DPLGroupIDs {
+			for _, jcacheGroupID := range base.JcacheGroupIDs {
 				for _, logPath := range sv.LogPathArr {
 					vsetLogPath := fmt.Sprintf("%s-vset%d-%d", logPath, vsetID, jcacheGroupID)
 					logDirArr = append(logDirArr, vsetLogPath)
