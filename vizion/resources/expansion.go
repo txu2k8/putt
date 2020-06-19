@@ -8,8 +8,10 @@ import (
 	"pzatest/config"
 	"pzatest/libs/k8s"
 	"pzatest/libs/utils"
+	"pzatest/types"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/chenhg5/collection"
 )
@@ -469,13 +471,146 @@ func (v *Vizion) CleanEtcd(prefixArr []string) error {
 	}
 	masterNode := v.MasterNode()
 	for _, cmd := range cmdArr {
-		masterNode.RunCmd(cmd)
+		rc, output := masterNode.RunCmd(cmd)
+		logger.Infof("%s, %s", rc, output)
 	}
 	return nil
 }
 
-// CleanCdcgc . TODO
+// CleanCdcSubCass . TODO
+func (v *Vizion) CleanCdcSubCass(vsetIDs []int) error {
+	cmdArr := []string{
+		"nodetool drain",
+		"rm -rf /var/lib/cassandra/cdc_cache/*",
+		"rm -rf /var/lib/cassandra/data/cdc_cache/*",
+		"rm -rf /var/lib/cassandra/data/cdc_raw/*",
+	}
+	subCassContainer := config.SubCass.Container
+	subCassPodLabel := config.SubCass.GetPodLabel(v.Base)
+
+	vk8s := v.Service()
+	subCassPods, err := vk8s.GetPodListByLabel(subCassPodLabel)
+	if err != nil {
+		return err
+	}
+
+	for _, pod := range subCassPods.Items {
+		for _, cmdSpec := range cmdArr {
+			execInput := k8s.ExecInput{
+				PodName:       pod.Name,
+				ContainerName: subCassContainer,
+				Command:       cmdSpec,
+			}
+			output, err := vk8s.Exec(execInput)
+			logger.Info(utils.Prettify(output))
+			if err != nil {
+				return err
+			}
+		}
+		vk8s.DeletePod(pod.Name)
+		utils.SleepProgressBar(20 * time.Second)
+		isReadyInput := k8s.IsPodReadyInput{
+			PodName: pod.Name,
+		}
+		vk8s.WaitForPodReady(isReadyInput, 30)
+	}
+	return nil
+}
+
+// CleanCdcCassMonitor . TODO
+func (v *Vizion) CleanCdcCassMonitor() error {
+	var err error
+	cdcPath := "/var/cassandra/monitor/cdc/updated_volume"
+	logger.Infof("Clean cdc data on Cassandra Monitor, path:%s", cdcPath)
+	cassMonitorPodLabel := config.CassMonitor.GetPodLabel(v.Base)
+	cassMonitorContainer := config.CassMonitor.Container
+	vk8s := v.Service()
+	cassMonitorPods, err := vk8s.GetPodListByLabel(cassMonitorPodLabel)
+	if err != nil {
+		return err
+	}
+	if len(cassMonitorPods.Items) == 0 {
+		return fmt.Errorf("None of cassandra-monitor pods found")
+	}
+	// clean cdcgc by cdcgcPath
+	cmdRm := "rm -rf " + cdcPath
+	cmdLs := "ls -lh " + path.Dir(cdcPath)
+	for _, pod := range cassMonitorPods.Items {
+		rmInput := k8s.ExecInput{
+			PodName:       pod.Name,
+			ContainerName: cassMonitorContainer,
+			Command:       cmdRm,
+		}
+		output, err := vk8s.Exec(rmInput)
+		logger.Info(utils.Prettify(output))
+		if err != nil {
+			return err
+		}
+
+		lsInput := k8s.ExecInput{
+			PodName:       pod.Name,
+			ContainerName: cassMonitorContainer,
+			Command:       cmdLs,
+		}
+		output, _ = vk8s.Exec(lsInput)
+		logger.Info(utils.Prettify(output))
+
+		vk8s.DeletePod(pod.Name)
+		// WaitForPodReady  -- SKIP
+	}
+	return nil
+}
+
+// CleanCdcgc .
+/*If bd-cdcgc-xxx / s3-cdcgc-xxx resource exist:
+1. Clean CDC data in cassandra-vset-xxx pod:
+	nodetool drain
+	rm -rf /var/lib/cassandra/cdc_cache/*
+	rm -rf /var/lib/cassandra/data/cdc_cache/*
+	rm -rf /var/lib/cassandra/data/cdc_raw/*
+2. restart cassandra-vset-xxx pod
+3. Clean CDC data in cassandra-monitor-xxx pod:
+	rm -rf /var/cassandra/monitor/cdc/updated_volume
+	find /var/cassandra/monitor/cdc/updated_volume/result/ -type f -exec rm -rf {} \\; -print
+4. restart cassandra-monitor-xxx pod
+*/
 func (v *Vizion) CleanCdcgc() error {
+	var err error
+	var base types.VizionBaseInput
+	vk8s := v.Service()
+	cdcgcVsetIDs := []int{}
+	for _, vsetID := range v.Base.VsetIDs {
+		utils.DeepCopy(v.Base, base)
+		base.VsetIDs = []int{vsetID}
+		cdcgcBdPodLabel := config.Cdcgcbd.GetPodLabel(base)
+		cdcgcS3PodLabel := config.Cdcgcs3.GetPodLabel(base)
+		cdcgcBdK8sArr, err := vk8s.GetDeploymentsNameArrByLabel(cdcgcBdPodLabel)
+		if err != nil {
+			return err
+		}
+		cdcgcS3K8sArr, err := vk8s.GetDeploymentsNameArrByLabel(cdcgcS3PodLabel)
+		if err != nil {
+			return err
+		}
+		cdcgcK8sArr := append(cdcgcBdK8sArr, cdcgcS3K8sArr...)
+		if len(cdcgcK8sArr) > 0 {
+			cdcgcVsetIDs = append(cdcgcVsetIDs, vsetID)
+		}
+	}
+
+	if len(cdcgcVsetIDs) == 0 {
+		logger.Warningf("None cdcgc config on vsets%v, skipped!!", v.Base.VsetIDs)
+		return nil
+	}
+
+	err = v.CleanCdcSubCass(cdcgcVsetIDs)
+	if err != nil {
+		return err
+	}
+	err = v.CleanCdcCassMonitor()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

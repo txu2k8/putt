@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"pzatest/libs/retry"
-	"pzatest/libs/retry/backoff"
 	"pzatest/libs/retry/strategy"
 	"pzatest/libs/testErr"
 	"pzatest/libs/utils"
@@ -320,7 +319,8 @@ func UploadFileRetry(sess *session.Session, s3Bucket string, localFilePath strin
 	err := retry.Retry(
 		action,
 		strategy.Limit(25),
-		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+		strategy.Wait(30*time.Second),
+		// strategy.Backoff(backoff.Fibonacci(30*time.Second)),
 	)
 	return err
 }
@@ -377,7 +377,8 @@ func UploadFileWithProcessRetry(sess *session.Session, s3Bucket string, localFil
 	err := retry.Retry(
 		action,
 		strategy.Limit(5),
-		strategy.Backoff(backoff.Fibonacci(30*time.Microsecond)),
+		strategy.Wait(30*time.Second),
+		// strategy.Backoff(backoff.Fibonacci(30*time.Microsecond)),
 	)
 	return err
 }
@@ -419,7 +420,8 @@ func DownloadFileRetry(svc *s3.S3, s3Bucket string, s3Path string, localDir stri
 	err := retry.Retry(
 		action,
 		strategy.Limit(25),
-		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+		strategy.Wait(30*time.Second),
+		// strategy.Backoff(backoff.Fibonacci(30*time.Second)),
 	)
 	return err
 }
@@ -467,7 +469,8 @@ func DownloadFileWithProcessRetry(svc *s3.S3, s3Bucket string, s3Path string, lo
 	err := retry.Retry(
 		action,
 		strategy.Limit(25),
-		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+		strategy.Wait(30*time.Second),
+		// strategy.Backoff(backoff.Fibonacci(30*time.Second)),
 	)
 	return err
 }
@@ -491,7 +494,8 @@ func ListBucketsRetry(svc *s3.S3) error {
 	err := retry.Retry(
 		action,
 		strategy.Limit(25),
-		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+		strategy.Wait(30*time.Second),
+		// strategy.Backoff(backoff.Fibonacci(30*time.Second)),
 	)
 	return err
 }
@@ -526,7 +530,8 @@ func ListBucketFilesRetry(svc *s3.S3, s3Bucket string) error {
 	err := retry.Retry(
 		action,
 		strategy.Limit(25),
-		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+		strategy.Wait(30*time.Second),
+		// strategy.Backoff(backoff.Fibonacci(30*time.Second)),
 	)
 	return err
 }
@@ -566,7 +571,8 @@ func DeleteBucketFileRetry(svc *s3.S3, s3Bucket string, s3Path string) error {
 	err := retry.Retry(
 		action,
 		strategy.Limit(25),
-		strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+		strategy.Wait(30*time.Second),
+		// strategy.Backoff(backoff.Fibonacci(30*time.Second)),
 	)
 	return err
 }

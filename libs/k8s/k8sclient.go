@@ -1,18 +1,24 @@
 package k8s
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/op/go-logging"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 // ClientSet .
 type ClientSet interface {
+	Exec(input ExecInput) (ExecOutPut, error)
 	// pod ...
 	GetPodDetail(podName string) (*v1.Pod, error)
 	GetPodListByLabel(podLabel string) (pods *v1.PodList, err error)
@@ -145,60 +151,59 @@ loop:
 }
 
 // Exec ...
-// func (k *Clientset) Exec(input ExecInput) (ExecOutPut, error) {
-// 	if input.PodName == "" {
-// 		return ExecOutPut{}, fmt.Errorf("%+v", input)
-// 	}
-// 	pod, _ := k.CoreV1().Pods("").Get(input.PodName, metav1.GetOptions{})
-// 	if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed {
-// 		return ExecOutPut{}, fmt.Errorf("cannot exec into a container in a completed pod; current phase is %s", pod.Status.Phase)
-// 	}
-// 	var containerName string
-// 	if input.ContainerName != "" {
-// 		containerName = input.ContainerName
-// 	} else {
-// 		if len(pod.Spec.Containers) > 1 {
-// 			return ExecOutPut{}, errors.New("please input the Container name")
-// 		}
-// 		logger.Errorf("%+v", pod.Spec.Containers)
-// 		containerName = pod.Spec.Containers[0].Name
-// 	}
+func (c *Client) Exec(input ExecInput) (ExecOutPut, error) {
+	if input.PodName == "" {
+		return ExecOutPut{}, fmt.Errorf("%+v", input)
+	}
+	pod, _ := c.GetPodDetail(input.PodName)
+	if pod.Status.Phase == v1.PodSucceeded || pod.Status.Phase == v1.PodFailed {
+		return ExecOutPut{}, fmt.Errorf("cannot exec into a container in a completed pod; current phase is %s", pod.Status.Phase)
+	}
+	var containerName string
+	if input.ContainerName != "" {
+		containerName = input.ContainerName
+	} else {
+		if len(pod.Spec.Containers) > 1 {
+			return ExecOutPut{}, errors.New("please input the Container name")
+		}
+		logger.Errorf("%+v", pod.Spec.Containers)
+		containerName = pod.Spec.Containers[0].Name
+	}
 
-// 	req := k.CoreV1().RESTClient().
-// 		Post().
-// 		Namespace(pod.Namespace).
-// 		Resource("pods").
-// 		Name(pod.Name).
-// 		Param("container", containerName).
-// 		SubResource("exec").VersionedParams(&corev1.PodExecOptions{
-// 		Container: containerName,
-// 		Command:   []string{"/bin/sh", "-c", input.Command},
-// 		Stdin:     true,
-// 		Stdout:    true,
-// 		// Stderr:    true,
-// 		// TTY: true,
-// 	}, scheme.ParameterCodec)
-// 	logger.Infof("%+v", req.URL())
+	req := c.Clientset.CoreV1().RESTClient().
+		Post().
+		Namespace(pod.Namespace).
+		Resource("pods").
+		Name(pod.Name).
+		Param("container", containerName).
+		SubResource("exec").VersionedParams(&v1.PodExecOptions{
+		Container: containerName,
+		Command:   []string{"/bin/sh", "-c", input.Command},
+		Stdin:     true,
+		Stdout:    true,
+		// Stderr:    true,
+		// TTY: true,
+	}, scheme.ParameterCodec)
+	logger.Infof("%+v", req.URL())
 
-// 	logger.Errorf("%+v", req.URL())
-// 	exec, err := remotecommand.NewSPDYExecutor(k.Config, "POST", req.URL())
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	var stdout, stderr bytes.Buffer
-// 	err = exec.Stream(remotecommand.StreamOptions{
-// 		Stdin:  os.Stdin,
-// 		Stdout: &stdout,
-// 		// Stderr: &stderr,
-// 		// Tty: true,
-// 	})
-// 	if err != nil {
-// 		logger.Errorf("out :%+v, err:%+v", stdout, stderr)
-// 		return ExecOutPut{Code: 1, Stdout: stdout.String(), Stderr: stderr.String()}, err
-// 	}
-// 	return ExecOutPut{Code: 0, Stdout: stdout.String(), Stderr: stderr.String()}, nil
-
-// }
+	logger.Errorf("%+v", req.URL())
+	exec, err := remotecommand.NewSPDYExecutor(c.Config, "POST", req.URL())
+	if err != nil {
+		panic(err)
+	}
+	var stdout, stderr bytes.Buffer
+	err = exec.Stream(remotecommand.StreamOptions{
+		Stdin:  os.Stdin,
+		Stdout: &stdout,
+		// Stderr: &stderr,
+		// Tty: true,
+	})
+	if err != nil {
+		logger.Errorf("out :%+v, err:%+v", stdout, stderr)
+		return ExecOutPut{Code: 1, Stdout: stdout.String(), Stderr: stderr.String()}, err
+	}
+	return ExecOutPut{Code: 0, Stdout: stdout.String(), Stderr: stderr.String()}, nil
+}
 
 func intPtr(i int) *int       { return &i }
 func int32Ptr(i int32) *int32 { return &i }

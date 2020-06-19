@@ -57,6 +57,7 @@ action := func(attempt uint) error {
 err := retry.Retry(
 	action,
 	strategy.Limit(5),
+	// strategy.Wait(30*time.Second),
 	strategy.Backoff(backoff.Fibonacci(10*time.Millisecond)),
 )
 

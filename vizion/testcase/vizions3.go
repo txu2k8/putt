@@ -8,7 +8,6 @@ import (
 	"path"
 	"pzatest/libs/prettytable"
 	"pzatest/libs/retry"
-	"pzatest/libs/retry/backoff"
 	"pzatest/libs/retry/strategy"
 	"pzatest/libs/s3client"
 	"pzatest/libs/utils"
@@ -314,7 +313,8 @@ func (conf *S3TestInput) S3DeleteBucketFiles(uploadFiles []UploadFile) error {
 		err := retry.Retry(
 			action,
 			strategy.Limit(5),
-			strategy.Backoff(backoff.Fibonacci(10*time.Millisecond)),
+			strategy.Wait(30*time.Second),
+			// strategy.Backoff(backoff.Fibonacci(10*time.Millisecond)),
 		)
 		if err != nil {
 			return err

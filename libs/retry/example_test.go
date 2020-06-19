@@ -3,11 +3,11 @@ package retry_test
 import (
 	"errors"
 	"fmt"
-	"pzatest/libs/retry"
 	"log"
 	"math/rand"
 	"net/http"
 	"os"
+	"pzatest/libs/retry"
 
 	"pzatest/libs/retry/backoff"
 	"pzatest/libs/retry/jitter"
@@ -59,7 +59,8 @@ func Example_httpGetWithStrategies() {
 	err := retry.Retry(
 		action,
 		strategy.Limit(5),
-		strategy.Backoff(backoff.Fibonacci(10*time.Millisecond)),
+		strategy.Wait(30*time.Second),
+		// strategy.Backoff(backoff.Fibonacci(10*time.Millisecond)),
 	)
 
 	if nil != err {

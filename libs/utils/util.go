@@ -437,7 +437,7 @@ func prettify(v reflect.Value, indent int, buf *bytes.Buffer) {
 }
 
 // DeepCopy ...
-func DeepCopy(dst, src interface{}) error {
+func DeepCopy(src, dst interface{}) error {
 	var buf bytes.Buffer
 	if err := gob.NewEncoder(&buf).Encode(src); err != nil {
 		return err

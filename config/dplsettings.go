@@ -589,10 +589,24 @@ var (
 		GetPid:    "",
 	}
 
+	// CassMonitor .
+	CassMonitor = Service{
+		Name:      "CassandraMonitor",
+		Type:      104,
+		TypeName:  "CassandraMonitor",
+		NameSpace: "vizion",
+		K8sKind:   K8sDeployment,
+		PodLabel:  "app=cassandra-monitor",  // k=v
+		NodeLabel: "cassandra-monitor=true", // k=v
+		Container: "cassandra",
+		Replicas:  1,
+		GetPid:    "",
+	}
+
 	// MysqlCluster .
 	MysqlCluster = Service{
 		Name:      "MysqlCluster",
-		Type:      104,
+		Type:      105,
 		TypeName:  "MysqlCluster",
 		NameSpace: "vizion",
 		K8sKind:   K8sStatefulsets,
@@ -606,7 +620,7 @@ var (
 	// MysqlOperator .
 	MysqlOperator = Service{
 		Name:      "MysqlOperator",
-		Type:      105,
+		Type:      106,
 		TypeName:  "MysqlOperator",
 		NameSpace: "vizion",
 		K8sKind:   K8sDeployment,
@@ -620,7 +634,7 @@ var (
 	// MysqlRouter .
 	MysqlRouter = Service{
 		Name:      "MysqlRouter",
-		Type:      106,
+		Type:      107,
 		TypeName:  "MysqlRouter",
 		NameSpace: "vizion",
 		K8sKind:   K8sDeployment,
