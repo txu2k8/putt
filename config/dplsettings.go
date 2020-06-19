@@ -111,6 +111,12 @@ func (sv *Service) GetPodLabel(base types.VizionBaseInput) (podLabel string) {
 			cmapLabelValue := fmt.Sprintf("%s-%d", labelValue, cmapGroupID)
 			podLabelValueArr = append(podLabelValueArr, cmapLabelValue)
 		}
+	case ES.Type:
+		podLabelValueArr = []string{labelValue}
+		for _, vsetID := range base.VsetIDs {
+			vsetPodValue := fmt.Sprintf("%s-%d", labelValue, vsetID)
+			podLabelValueArr = append(podLabelValueArr, vsetPodValue)
+		}
 
 	default:
 		for _, vsetID := range base.VsetIDs {

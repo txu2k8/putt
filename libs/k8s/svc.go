@@ -53,16 +53,14 @@ func (c *Client) GetSvcPort(svcName string, targetPort int) (svcPort int, err er
 		if len(svc.Spec.ExternalIPs) == 0 {
 			for _, portInfo := range svc.Spec.Ports {
 				if portInfo.Port == int32(targetPort) {
-					svcPort = targetPort
+					svcPort = int(portInfo.NodePort)
 				}
 			}
 		} else {
 			svcPort = targetPort
-
 		}
 	default:
 		svcPort = targetPort
 	}
-
 	return
 }

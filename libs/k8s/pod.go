@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"pzatest/libs/retry"
 	"pzatest/libs/retry/strategy"
+	"pzatest/libs/utils"
 	"strings"
 	"time"
 
@@ -39,6 +40,7 @@ func (c *Client) GetPodDetail(podName string) (*v1.Pod, error) {
 
 // GetPodListByLabel ...
 func (c *Client) GetPodListByLabel(podLabel string) (pods *v1.PodList, err error) {
+
 	pods, err = c.Clientset.CoreV1().Pods(c.NameSpace).List(metav1.ListOptions{LabelSelector: podLabel})
 	if err != nil {
 		logger.Errorf("%+v", err)
@@ -113,7 +115,7 @@ func (c *Client) IsPodReady(input IsPodReadyInput) error {
 			}
 		}
 
-		// Image matched
+		// Check if Image matched
 		if input.Image != "" {
 			image, err := c.GetPodImage(pName, input.ContainerName)
 			if err != nil {
@@ -121,9 +123,10 @@ func (c *Client) IsPodReady(input IsPodReadyInput) error {
 			} else if image != input.Image {
 				return fmt.Errorf("Pod %s container [%s] image not matched!:%s", pName, input.ContainerName, input.Image)
 			}
+			logger.Infof("Image matched: %s", image)
 		}
 
-		// ContainerStatuses
+		// ContainerStatuses: ready
 		if value.Status.ContainerStatuses != nil {
 			for _, cStatus := range value.Status.ContainerStatuses {
 				cName := cStatus.Name
@@ -133,16 +136,18 @@ func (c *Client) IsPodReady(input IsPodReadyInput) error {
 					return fmt.Errorf("Pod %s container [%s] not ready", pName, cName)
 				}
 			}
+			// all pod-containers status: ready
 		} else {
 			return fmt.Errorf("Pod %s containers not ready", pName)
 		}
-		// Phase
+		// Phase: Running
 		pPhase := value.Status.Phase
 		if pPhase == "Running" {
 			logger.Infof("Pod %s status: Running!", pName)
 		} else {
 			return fmt.Errorf("Pod %s status: %s", pName, pPhase)
 		}
+		return nil
 	}
 
 	// Got no pods
@@ -235,7 +240,7 @@ func (c *Client) IsPodTerminated(input IsPodReadyInput) error {
 
 // IsAllPodReady ...
 func (c *Client) IsAllPodReady(input IsAllPodReadyInput) error {
-	allPods, err := c.Clientset.CoreV1().Pods(c.NameSpace).List(metav1.ListOptions{LabelSelector: input.PodLabel})
+	allPods, err := c.GetPodListByLabel(input.PodLabel)
 	if err != nil {
 		logger.Errorf("%+v", err)
 		return err
@@ -267,7 +272,7 @@ func (c *Client) IsAllPodReady(input IsAllPodReadyInput) error {
 			}
 		}
 
-		// ContainerStatuses
+		// ContainerStatuses: ready
 		if value.Status.ContainerStatuses != nil {
 			for _, cStatus := range value.Status.ContainerStatuses {
 				cName := cStatus.Name
@@ -286,7 +291,7 @@ func (c *Client) IsAllPodReady(input IsAllPodReadyInput) error {
 
 // IsAllPodDown ...
 func (c *Client) IsAllPodDown(input IsAllPodReadyInput) error {
-	allPods, err := c.Clientset.CoreV1().Pods(c.NameSpace).List(metav1.ListOptions{LabelSelector: input.PodLabel})
+	allPods, err := c.GetPodListByLabel(input.PodLabel)
 	if err != nil {
 		logger.Errorf("%+v", err)
 		return err
@@ -355,6 +360,7 @@ func (c *Client) WaitForPod(fn checkFn, input map[string]interface{}, tries int)
 
 // WaitForPodReady ...
 func (c *Client) WaitForPodReady(input IsPodReadyInput, tries int) error {
+	logger.Infof("Wait For Pod Ready:%s", utils.Prettify(input))
 	action := func(attempt uint) error {
 		return c.IsPodReady(input)
 	}
@@ -369,6 +375,7 @@ func (c *Client) WaitForPodReady(input IsPodReadyInput, tries int) error {
 
 // WaitForPodDown ...
 func (c *Client) WaitForPodDown(input IsPodReadyInput, tries int) error {
+	logger.Infof("Wait For Pod Down:%s", utils.Prettify(input))
 	action := func(attempt uint) error {
 		return c.IsPodDown(input)
 	}
@@ -383,6 +390,7 @@ func (c *Client) WaitForPodDown(input IsPodReadyInput, tries int) error {
 
 // WaitForAllPodReady ...
 func (c *Client) WaitForAllPodReady(input IsAllPodReadyInput, tries int) error {
+	logger.Infof("Wait For All Pod Ready:%s", utils.Prettify(input))
 	action := func(attempt uint) error {
 		return c.IsAllPodReady(input)
 	}
@@ -397,6 +405,7 @@ func (c *Client) WaitForAllPodReady(input IsAllPodReadyInput, tries int) error {
 
 // WaitForAllPodDown ...
 func (c *Client) WaitForAllPodDown(input IsAllPodReadyInput, tries int) error {
+	logger.Infof("Wait For All Pod Down:%s", utils.Prettify(input))
 	action := func(attempt uint) error {
 		return c.IsAllPodDown(input)
 	}

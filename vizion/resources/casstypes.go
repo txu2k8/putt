@@ -95,6 +95,13 @@ type Volume struct {
 	TbhLow             time.Time      `db:"tbh_low"`
 	TbhHigh            time.Time      `db:"tbh_high"`
 	CsiFlag            string         `db:"csi_flag"`
+	DcmapIdx           int            `db:"dcmap_idx"`
+	McmapIdx           int            `db:"mcmap_idx"`
+	DjcacheIdx         int            `db:"djcache_idx"`
+	DplGroup           int            `db:"dpl_group"`
+	JdGroup            int            `db:"jd_group"`
+	PxsJdGroup         []int          `db:"pxs_jd_group"`
+	Policy             string         `db:"policy"`
 }
 
 // Tenant ...

@@ -85,15 +85,13 @@ func (v *Vizion) GetCassConfig() map[string]db.CassConfig {
 	if v.CassConfig != nil {
 		return v.CassConfig
 	}
-	masterCassIPs := v.Service().GetMasterCassIPs()
-	masterUser, masterPwd := v.Service().GetMasterCassUserPwd()
-	masterPort := v.Service().GetMasterCassPort()
-	// master --> vset1
-	// masterCassIPs := v.Service().GetSubCassIPs(1)
-	// masterUser, masterPwd := v.Service().GetSubCassUserPwd(1)
-	// masterPort := v.Service().GetSubCassPort(1)
 
 	cf := map[string]db.CassConfig{}
+	vk8s := v.Service()
+	/* // masterCass -> SubCass-1
+	masterCassIPs := vk8s.GetMasterCassIPs()
+	masterUser, masterPwd := vk8s.GetMasterCassUserPwd()
+	masterPort := vk8s.GetMasterCassPort()
 	cf["0"] = db.CassConfig{
 		Hosts:    masterCassIPs,
 		Username: masterUser,
@@ -101,16 +99,20 @@ func (v *Vizion) GetCassConfig() map[string]db.CassConfig {
 		Port:     masterPort,
 		Keyspace: "vizion",
 	}
+	*/
 	for _, vsetID := range v.Base.VsetIDs {
-		vsetCassIPs := v.Service().GetSubCassIPs(vsetID)
-		vsetUser, vsetPwd := v.Service().GetSubCassUserPwd(vsetID)
-		vsetPort := v.Service().GetSubCassPort(vsetID)
+		vsetCassIPs := vk8s.GetSubCassIPs(vsetID)
+		vsetUser, vsetPwd := vk8s.GetSubCassUserPwd(vsetID)
+		vsetPort := vk8s.GetSubCassPort(vsetID)
 		cf[strconv.Itoa(vsetID)] = db.CassConfig{
 			Hosts:    vsetCassIPs,
 			Username: vsetUser,
 			Password: vsetPwd,
 			Port:     vsetPort,
 			Keyspace: "vizion",
+		}
+		if vsetID == 1 {
+			cf["0"] = cf["1"]
 		}
 	}
 	// logger.Infof("CassConfig:%s\n", utils.Prettify(cf))

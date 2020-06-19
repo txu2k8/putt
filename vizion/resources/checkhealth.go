@@ -6,6 +6,7 @@ import (
 	"pzatest/libs/retry"
 	"pzatest/libs/retry/strategy"
 	"pzatest/libs/utils"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,7 +45,7 @@ func (v *Vizion) IsBdVolumeStatusExpected(expectStatus int, nodeName, nodeIP str
 	}
 	expectedVol := 0
 	for _, vsetID := range v.Base.VsetIDs {
-		subCass := v.Cass().SetIndex(string(vsetID))
+		subCass := v.Cass().SetIndex(strconv.Itoa(vsetID))
 		volumeArr, err := subCass.GetVolume()
 		if err != nil {
 			return err

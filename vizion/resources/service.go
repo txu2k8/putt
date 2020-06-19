@@ -206,8 +206,38 @@ func (s *svManager) GetESNodeIPPvcArrMap() (map[string][]string, error) {
 }
 
 // ----------- Enable/Disable Node Labels -----------
-func (s *svManager) EnableNodeLabels(nodeLabelArr []string) error {
-	return nil
+func (s *svManager) EnableNodeLabels(nodeLabelArr []string) (err error) {
+	nodeLabelNameMap := map[string][]string{}
+	for _, nodeLabel := range nodeLabelArr {
+		nodeLabelNameMap[nodeLabel] = s.GetNodeNameArrByLabel(nodeLabel)
+	}
+	// logger.Info(nodeLabelNameMap)
+	w := Worker{maxParallel: 10}
+	ch := make(chan struct{}, w.maxParallel)
+
+	for nLable, nodeNameArr := range nodeLabelNameMap {
+		for _, nodeName := range nodeNameArr {
+			// time.Sleep(2 * time.Second)
+			select {
+			case ch <- struct{}{}:
+				w.wg.Add(1)
+				go func() {
+					nLables := strings.Split(nLable, ",")
+					err = s.EnableNodeLabel(nodeName, nLables[len(nLables)-1])
+					if err != nil {
+						w.wg.Done()
+						w.done <- struct{}{}
+					}
+					<-ch
+					w.wg.Done()
+				}()
+			case <-w.done:
+				break
+			}
+			w.wg.Wait()
+		}
+	}
+	return
 }
 
 func (s *svManager) DisableNodeLabels(nodeLabelArr []string) (err error) {
@@ -261,7 +291,7 @@ func (s *svManager) DeletePodsByLabel(podLabel string) (err error) {
 		case ch <- struct{}{}:
 			w.wg.Add(1)
 			go func() {
-				logger.Info("Kubectl delete pod %s ...(%s)", podName, nodeName)
+				logger.Infof("Kubectl delete pod %s ...(%s)", podName, nodeName)
 				err = s.DeletePod(podName)
 				if err != nil {
 					w.wg.Done()
