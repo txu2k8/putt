@@ -291,7 +291,7 @@ func (s *svManager) DeletePodsByLabel(podLabel string) (err error) {
 		case ch <- struct{}{}:
 			w.wg.Add(1)
 			go func() {
-				logger.Infof("Kubectl delete pod %s ...(%s)", podName, nodeName)
+				logger.Infof("Delete pod %s on %s ...", podName, nodeName)
 				err = s.DeletePod(podName)
 				if err != nil {
 					w.wg.Done()

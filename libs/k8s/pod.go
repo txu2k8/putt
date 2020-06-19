@@ -84,6 +84,7 @@ func (c *Client) GetPodImage(podName, containerName string) (image string, err e
 
 // DeletePod ...
 func (c *Client) DeletePod(podName string) error {
+	logger.Infof("kubectl delete pod %s", podName)
 	return c.Clientset.CoreV1().Pods(c.NameSpace).Delete(podName, &metav1.DeleteOptions{GracePeriodSeconds: int64Ptr(5184000)})
 }
 
