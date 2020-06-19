@@ -292,7 +292,8 @@ func (c *Client) IsAllPodDown(input IsAllPodReadyInput) error {
 		return err
 	}
 	if !input.IgnoreEmpty && len(allPods.Items) == 0 {
-		return fmt.Errorf("Got None pods")
+		logger.Info("Got None pods")
+		return nil
 	}
 
 	for _, value := range allPods.Items {
@@ -346,8 +347,8 @@ func (c *Client) WaitForPod(fn checkFn, input map[string]interface{}, tries int)
 	err := retry.Retry(
 		action,
 		strategy.Limit(uint(tries)),
-		strategy.Wait(30*time.Second),
-		// strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+		strategy.Wait(20*time.Second),
+		// strategy.Backoff(backoff.Fibonacci(20*time.Second)),
 	)
 	return err
 }
@@ -360,8 +361,8 @@ func (c *Client) WaitForPodReady(input IsPodReadyInput, tries int) error {
 	err := retry.Retry(
 		action,
 		strategy.Limit(uint(tries)),
-		strategy.Wait(30*time.Second),
-		// strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+		strategy.Wait(20*time.Second),
+		// strategy.Backoff(backoff.Fibonacci(20*time.Second)),
 	)
 	return err
 }
@@ -374,8 +375,8 @@ func (c *Client) WaitForPodDown(input IsPodReadyInput, tries int) error {
 	err := retry.Retry(
 		action,
 		strategy.Limit(uint(tries)),
-		strategy.Wait(30*time.Second),
-		// strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+		strategy.Wait(20*time.Second),
+		// strategy.Backoff(backoff.Fibonacci(20*time.Second)),
 	)
 	return err
 }
@@ -388,8 +389,8 @@ func (c *Client) WaitForAllPodReady(input IsAllPodReadyInput, tries int) error {
 	err := retry.Retry(
 		action,
 		strategy.Limit(uint(tries)),
-		strategy.Wait(30*time.Second),
-		// strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+		strategy.Wait(20*time.Second),
+		// strategy.Backoff(backoff.Fibonacci(20*time.Second)),
 	)
 	return err
 }
@@ -402,8 +403,8 @@ func (c *Client) WaitForAllPodDown(input IsAllPodReadyInput, tries int) error {
 	err := retry.Retry(
 		action,
 		strategy.Limit(uint(tries)),
-		strategy.Wait(30*time.Second),
-		// strategy.Backoff(backoff.Fibonacci(30*time.Second)),
+		strategy.Wait(20*time.Second),
+		// strategy.Backoff(backoff.Fibonacci(20*time.Second)),
 	)
 	return err
 }

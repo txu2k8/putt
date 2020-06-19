@@ -123,24 +123,24 @@ func (v *Vizion) StopServices(svArr []config.Service) error {
 			if sv.Type == config.ES.Type { // disable label
 				svMgr.DisableNodeLabels(nodeLabelArr)
 				svMgr.DeletePodsByLabel(podLabel)
-				svMgr.WaitForAllPodDown(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 30)
+				svMgr.WaitForAllPodDown(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 60)
 			}
 			// set replicas
 			k8sNameArr, _ := svMgr.GetStatefulSetsNameArrByLabel(podLabel)
 			for _, k8sName := range k8sNameArr {
 				svMgr.SetStatefulSetsReplicas(k8sName, 0)
-				svMgr.WaitForPodDown(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 30)
+				svMgr.WaitForPodDown(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 60)
 			}
 		case config.K8sDeployment: // set replicas
 			k8sNameArr, _ := svMgr.GetDeploymentsNameArrByLabel(podLabel)
 			for _, k8sName := range k8sNameArr {
 				svMgr.SetDeploymentsReplicas(k8sName, 0)
-				svMgr.WaitForPodDown(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 30)
+				svMgr.WaitForPodDown(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 60)
 			}
 		default: // disable label
 			svMgr.DisableNodeLabels(nodeLabelArr)
 			svMgr.DeletePodsByLabel(podLabel)
-			svMgr.WaitForAllPodDown(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 30)
+			svMgr.WaitForAllPodDown(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 60)
 		}
 
 		switch sv.Type {
@@ -180,7 +180,7 @@ func (v *Vizion) StartServices(svArr []config.Service) error {
 		case config.K8sStatefulsets:
 			if sv.Type == config.ES.Type { // disable label
 				svMgr.EnableNodeLabels(nodeLabelArr)
-				svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 30)
+				svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 60)
 			}
 			// set replicas
 			if replicas == 0 {
@@ -189,7 +189,7 @@ func (v *Vizion) StartServices(svArr []config.Service) error {
 			k8sNameArr, _ := svMgr.GetStatefulSetsNameArrByLabel(podLabel)
 			for _, k8sName := range k8sNameArr {
 				svMgr.SetStatefulSetsReplicas(k8sName, replicas)
-				svMgr.WaitForPodReady(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 30)
+				svMgr.WaitForPodReady(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 60)
 			}
 		case config.K8sDeployment: // set replicas
 			if replicas == 0 {
@@ -198,11 +198,11 @@ func (v *Vizion) StartServices(svArr []config.Service) error {
 			k8sNameArr, _ := svMgr.GetDeploymentsNameArrByLabel(podLabel)
 			for _, k8sName := range k8sNameArr {
 				svMgr.SetDeploymentsReplicas(k8sName, replicas)
-				svMgr.WaitForPodReady(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 30)
+				svMgr.WaitForPodReady(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 60)
 			}
 		default: // disable label
 			svMgr.EnableNodeLabels(nodeLabelArr)
-			svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 30)
+			svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 60)
 		}
 	}
 
@@ -512,7 +512,7 @@ func (v *Vizion) CleanCdcSubCass(vsetIDs []int) error {
 		isReadyInput := k8s.IsPodReadyInput{
 			PodName: pod.Name,
 		}
-		vk8s.WaitForPodReady(isReadyInput, 30)
+		vk8s.WaitForPodReady(isReadyInput, 60)
 	}
 	return nil
 }

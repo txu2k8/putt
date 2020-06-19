@@ -71,9 +71,33 @@ func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
 	var svArr, binArr []config.Service
 	var cleanArr []config.CleanItem
 
+	// clean Array
+	if len(mt.CleanNameArr) == 0 {
+		cleanArr = []config.CleanItem{}
+	} else if collection.Collect(mt.CleanNameArr).Contains("all") {
+		cleanArr = config.DefaultCleanArray
+	} else {
+		for _, item := range config.DefaultCleanArray {
+			if collection.Collect(mt.CleanNameArr).Contains(item.Name) {
+				cleanArr = append(cleanArr, item)
+			}
+		}
+	}
+
 	// service Array
 	if len(mt.SvNameArr) == 0 {
 		svArr = config.DefaultCoreServiceArray
+		if !collection.Collect(mt.CleanNameArr).Contains("all") {
+			// Skip Opt cdcgc pods
+			newSvArr := []config.Service{}
+			cdcgcTypeArr := []int{config.Cdcgcbd.Type, config.Cdcgcs3.Type}
+			for _, sv := range svArr {
+				if !collection.Collect(cdcgcTypeArr).Contains(sv.Type) {
+					newSvArr = append(newSvArr, sv)
+				}
+			}
+			svArr = newSvArr
+		}
 	} else {
 		for _, item := range config.DefaultCoreServiceArray {
 			if collection.Collect(mt.SvNameArr).Contains(item.Name) {
@@ -89,19 +113,6 @@ func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
 		for _, item := range config.DefaultDplBinaryArray {
 			if collection.Collect(mt.BinNameArr).Contains(item.Name) {
 				binArr = append(binArr, item)
-			}
-		}
-	}
-
-	// clean Array
-	if len(mt.CleanNameArr) == 0 {
-		cleanArr = []config.CleanItem{}
-	} else if collection.Collect(mt.CleanNameArr).Contains("all") {
-		cleanArr = config.DefaultCleanArray
-	} else {
-		for _, item := range config.DefaultCleanArray {
-			if collection.Collect(mt.CleanNameArr).Contains(item.Name) {
-				cleanArr = append(cleanArr, item)
 			}
 		}
 	}
