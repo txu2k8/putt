@@ -39,6 +39,13 @@ const (
 	JDevicePath         = "/dev/j_device"
 )
 
+// ========== const: DPL Settings ==========
+const (
+	// DPL Channel type
+	CHTYPEBD = "CH_TYPE_BD"
+	CHTYPES3 = "CH_TYPE_S3"
+)
+
 // Service define the service information
 type Service struct {
 	Name       string   // service name
@@ -457,7 +464,7 @@ var (
 	}
 )
 
-// ========== DPL Binary ==========
+// ========== Define: DPL Binary ==========
 var (
 	// Dplko .
 	Dplko = Service{
@@ -488,7 +495,7 @@ var (
 	}
 )
 
-// ========== APP Service ==========
+// ========== Define: APP Service ==========
 var (
 	// ES .
 	ES = Service{
@@ -551,7 +558,7 @@ var (
 	}
 )
 
-// ========== MASTER Services ==========
+// ========== Define: MASTER Services ==========
 var (
 	// ETCD .
 	ETCD = Service{
@@ -652,7 +659,7 @@ var (
 	}
 )
 
-// ========== Clean Item ==========
+// ========== Define: Clean Item ==========
 var (
 	CleanLog = CleanItem{
 		Name: "log",
@@ -704,7 +711,7 @@ var (
 	}
 )
 
-// ========== Default: Service/Binary/CleanItem ==========
+// ========== Default: Service/Binary ==========
 var (
 	// Default DPL Service for test/upgrade  -- order by start
 	DefaultDplServiceArray = []Service{
@@ -764,7 +771,10 @@ var (
 
 	// Default Service Array: DPL + APP + MASTER
 	DefaultServiceArray = append(DefaultMasterServiceArray, DefaultCoreServiceArray...)
+)
 
+// ========== Default: CleanItem ==========
+var (
 	// DefaultCleanArray define the default cleanup item for maint/upgrade
 	DefaultCleanArray = []CleanItem{
 		CleanLog,
@@ -775,12 +785,6 @@ var (
 		CleanSubCass,
 		CleanEtcd,
 	}
-)
-
-// ========== const: DPL Channel type ==========
-const (
-	CHTYPEBD = "CH_TYPE_BD"
-	CHTYPES3 = "CH_TYPE_S3"
 )
 
 // DefaultCHTYPEArray define the default CH_TYPE list

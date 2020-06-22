@@ -308,7 +308,7 @@ func (c *Client) IsAllPodDown(input IsAllPodReadyInput) error {
 		// Phase
 		pPhase := value.Status.Phase
 		if pPhase == "Pending" {
-			return fmt.Errorf("Pod %s status: Pending", pName)
+			return nil
 		}
 
 		if input.NodeName != "" && input.NodeName != value.Spec.NodeName {
@@ -330,14 +330,14 @@ func (c *Client) IsAllPodDown(input IsAllPodReadyInput) error {
 			for _, cStatus := range value.Status.ContainerStatuses {
 				cName := cStatus.Name
 				if cStatus.Ready {
-					logger.Infof("Pod %s container [%s] ready!", pName, cName)
-				} else {
-					return fmt.Errorf("Pod %s container [%s] not ready", pName, cName)
+					return fmt.Errorf("Pod %s container [%s] status is still ready", pName, cName)
 				}
+				logger.Infof("Pod %s container [%s] is not ready", pName, cName)
 			}
 		} else {
-			return fmt.Errorf("Pod %s containers not ready", pName)
+			logger.Infof("Pod %s containers is not ready", pName)
 		}
+		logger.Infof("Pod %s is down", pName)
 	}
 	return nil
 }
