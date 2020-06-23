@@ -109,9 +109,6 @@ func (v *Vizion) StopServices(svArr []config.Service) error {
 		logger.Infof(">> Stop service %s:%d ...", sv.TypeName, sv.Type)
 		podLabel := sv.GetPodLabel(v.Base)
 		nodeLabelArr, _ := sv.GetNodeLabelArr(v.Base)
-		logger.Debug(podLabel)
-		logger.Debug(nodeLabelArr)
-
 		nodeIPPvcArr := map[string][]string{}
 		if sv.Type == config.ES.Type { // Get es nodeip <-> pvcArr
 			nodeIPPvcArrMap, err := svMgr.GetESNodeIPPvcArrMap()
@@ -167,8 +164,6 @@ func (v *Vizion) StartServices(svArr []config.Service) error {
 		logger.Infof(">> Start service %s:%d ...", sv.TypeName, sv.Type)
 		podLabel := sv.GetPodLabel(v.Base)
 		nodeLabelArr, nodeLabelKVArr := sv.GetNodeLabelArr(v.Base)
-		logger.Debug(podLabel)
-		logger.Debug(nodeLabelKVArr)
 
 		var replicas int
 		switch sv.Type {

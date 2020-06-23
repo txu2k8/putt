@@ -35,13 +35,9 @@ var stopCmd = &cobra.Command{
 		logger.Infof("maint stop services ...")
 		var maintainer maintenance.Maintainer
 		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
-		stop := func() error {
-			err := maintainer.Stop()
-			return err
-		}
 		jobs := []stress.Job{
 			{
-				Fn:       stop,
+				Fn:       maintainer.Stop,
 				Name:     "Stop-Service",
 				RunTimes: 1,
 			},
@@ -59,13 +55,9 @@ var startCmd = &cobra.Command{
 		logger.Infof("maint start services ...")
 		var maintainer maintenance.Maintainer
 		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
-		start := func() error {
-			err := maintainer.Start()
-			return err
-		}
 		jobs := []stress.Job{
 			{
-				Fn:       start,
+				Fn:       maintainer.Start,
 				Name:     "Start-Service",
 				RunTimes: 1,
 			},
@@ -83,13 +75,9 @@ var restartCmd = &cobra.Command{
 		logger.Infof("maint restart services ...")
 		var maintainer maintenance.Maintainer
 		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
-		restart := func() error {
-			err := maintainer.Restart()
-			return err
-		}
 		jobs := []stress.Job{
 			{
-				Fn:       restart,
+				Fn:       maintainer.Restart,
 				Name:     "Restart-Service",
 				RunTimes: 1,
 			},
@@ -107,13 +95,9 @@ var cleanupCmd = &cobra.Command{
 		logger.Infof("maint clean up ...")
 		var maintainer maintenance.Maintainer
 		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
-		cleanup := func() error {
-			err := maintainer.Cleanup()
-			return err
-		}
 		jobs := []stress.Job{
 			{
-				Fn:       cleanup,
+				Fn:       maintainer.Cleanup,
 				Name:     "Clean Up",
 				RunTimes: 1,
 			},
@@ -131,13 +115,9 @@ var makeBinaryCmd = &cobra.Command{
 		logger.Infof("maint Make Binary ...")
 		var maintainer maintenance.Maintainer
 		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
-		makeBin := func() error {
-			err := maintainer.MakeBinary()
-			return err
-		}
 		jobs := []stress.Job{
 			{
-				Fn:       makeBin,
+				Fn:       maintainer.MakeBinary,
 				Name:     "Make Binary",
 				RunTimes: 1,
 			},
@@ -155,13 +135,9 @@ var makeImageCmd = &cobra.Command{
 		logger.Infof("maint make image ...")
 		var maintainer maintenance.Maintainer
 		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
-		makeImg := func() error {
-			err := maintainer.MakeImage()
-			return err
-		}
 		jobs := []stress.Job{
 			{
-				Fn:       makeImg,
+				Fn:       maintainer.MakeImage,
 				Name:     "Apply Service Image",
 				RunTimes: 1,
 			},
@@ -179,13 +155,9 @@ var applyImageCmd = &cobra.Command{
 		logger.Infof("maint apply service image ...")
 		var maintainer maintenance.Maintainer
 		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
-		applyImg := func() error {
-			err := maintainer.ApplyImage()
-			return err
-		}
 		jobs := []stress.Job{
 			{
-				Fn:       applyImg,
+				Fn:       maintainer.ApplyImage,
 				Name:     "Apply Service Image",
 				RunTimes: 1,
 			},

@@ -7,6 +7,7 @@ import (
 	"path"
 	"pzatest/config"
 	"pzatest/libs/git"
+	"pzatest/libs/runner/schedule"
 	"pzatest/types"
 	"pzatest/vizion/resources"
 	"strings"
@@ -39,6 +40,10 @@ type Maint struct {
 	CleanArr          []config.CleanItem
 	Image             string
 	GitCfg            GitInput
+	ServiceNameArr    []string
+	BinaryNameArr     []string
+	CleanNameArr      []string
+	Schedule          schedule.Schedule
 }
 
 // GitInput ...
@@ -84,6 +89,11 @@ func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
 		}
 	}
 
+	cleanNameArr := []string{}
+	for _, clean := range cleanArr {
+		cleanNameArr = append(cleanNameArr, clean.Name)
+	}
+
 	// service Array
 	if len(mt.SvNameArr) == 0 {
 		svArr = config.DefaultCoreServiceArray
@@ -106,6 +116,11 @@ func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
 		}
 	}
 
+	svNameArr := []string{}
+	for _, sv := range svArr {
+		svNameArr = append(svNameArr, sv.Name)
+	}
+
 	// binary Array
 	if len(mt.BinNameArr) == 0 {
 		binArr = svArr
@@ -117,13 +132,21 @@ func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
 		}
 	}
 
+	binNameArr := []string{}
+	for _, bin := range binArr {
+		binNameArr = append(binNameArr, bin.Name)
+	}
+
 	return &Maint{
-		Vizion:     resources.Vizion{Base: base},
-		ServiceArr: svArr,
-		BinaryArr:  binArr,
-		CleanArr:   cleanArr,
-		Image:      mt.Image,
-		GitCfg:     mt.GitCfg,
+		Vizion:         resources.Vizion{Base: base},
+		ServiceArr:     svArr,
+		BinaryArr:      binArr,
+		CleanArr:       cleanArr,
+		Image:          mt.Image,
+		GitCfg:         mt.GitCfg,
+		ServiceNameArr: svNameArr,
+		BinaryNameArr:  binNameArr,
+		CleanNameArr:   cleanNameArr,
 	}
 }
 
@@ -190,39 +213,28 @@ func (maint *Maint) Cleanup() error {
 // Stop - maint
 func (maint *Maint) Stop() error {
 	var err error
-	stopServiceArr := config.ReverseServiceArr(maint.ServiceArr)
-	err = maint.Vizion.StopServices(stopServiceArr)
-	if err != nil {
-		return err
-	}
+	// stopServiceArr := config.ReverseServiceArr(maint.ServiceArr)
+	// err = maint.Vizion.StopServices(stopServiceArr)
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = maint.Cleanup()
-	if err != nil {
-		return err
-	}
+	// strclNameArr := strings.Join(maint.CleanNameArr, ",")
+	// err = maint.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strclNameArr))
 
-	return nil
+	// err = maint.Cleanup()
+	// if err != nil {
+	// 	return err
+	// }
+
+	return err
 }
 
 // Start - maint
 func (maint *Maint) Start() error {
 	// logger.Info(utils.Prettify(maint))
-	err := maint.Vizion.StartServices(maint.ServiceArr)
-	return err
-}
-
-// Restart - maint
-func (maint *Maint) Restart() error {
-	var err error
-	err = maint.Stop()
-	if err != nil {
-		return err
-	}
-	err = maint.Start()
-	if err != nil {
-		return err
-	}
-
+	// err := maint.Vizion.StartServices(maint.ServiceArr)
+	// return err
 	return nil
 }
 
@@ -373,19 +385,9 @@ func (maint *Maint) MakeImage() error {
 	return nil
 }
 
-// ApplyImage - maint TODO
-func (maint *Maint) ApplyImage() error {
+// SetImage - maint set sts/deployment/xxx Image
+func (maint *Maint) SetImage() error {
 	var err error
-	// wait for image OK on gitlab
-	if err = maint.isImageOK(); err != nil {
-		return err
-	}
-
-	err = maint.Stop()
-	if err != nil {
-		return err
-	}
-
 	err = maint.Vizion.ApplyServicesImage(maint.ServiceArr, maint.Image)
 	if err != nil {
 		return err
@@ -395,8 +397,53 @@ func (maint *Maint) ApplyImage() error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
 
-	err = maint.Start()
+// Restart - maint
+func (maint *Maint) Restart() error {
+	var err error
+
+	// err = maint.Stop()
+	strSvNameArr := strings.Join(maint.ServiceNameArr, ",")
+	err = maint.Schedule.RunPhase(maint.Stop, schedule.Desc(strSvNameArr))
+	if err != nil {
+		return err
+	}
+	// err = maint.Start()
+	err = maint.Schedule.RunPhase(maint.Start, schedule.Desc(strSvNameArr))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ApplyImage - maint
+func (maint *Maint) ApplyImage() error {
+	var err error
+	// wait for image OK on gitlab
+	// err = maint.isImageOK()
+	err = maint.Schedule.RunPhase(maint.isImageOK, schedule.Desc(maint.Image))
+	if err != nil {
+		return err
+	}
+
+	// err = maint.Stop()
+	strSvNameArr := strings.Join(maint.ServiceNameArr, ",")
+	err = maint.Schedule.RunPhase(maint.Stop, schedule.Desc(strSvNameArr))
+	if err != nil {
+		return err
+	}
+
+	// err = maint.SetImage()
+	err = maint.Schedule.RunPhase(maint.SetImage, schedule.Desc(maint.Image))
+	if err != nil {
+		return err
+	}
+
+	// err = maint.Start()
+	err = maint.Schedule.RunPhase(maint.Start, schedule.Desc(strSvNameArr))
 	if err != nil {
 		return err
 	}
@@ -407,17 +454,15 @@ func (maint *Maint) ApplyImage() error {
 // UpgradeCore - maint
 func (maint *Maint) UpgradeCore() error {
 	var err error
-	err = maint.MakeImage()
+
+	// err = maint.MakeImage()
+	err = maint.Schedule.RunPhase(maint.MakeImage)
 	if err != nil {
 		return err
 	}
 
-	err = maint.Stop()
-	if err != nil {
-		return err
-	}
-
-	err = maint.ApplyImage()
+	// err = maint.ApplyImage()
+	err = maint.Schedule.RunPhase(maint.ApplyImage, schedule.Desc(maint.Image))
 	if err != nil {
 		return err
 	}

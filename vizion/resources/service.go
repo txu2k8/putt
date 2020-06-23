@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// ServiceManagerGetter has a method to return a ServiceManager.
+// ServiceManagerGetter has a method to return a k8s ServiceManager.
 type ServiceManagerGetter interface {
 	Service() ServiceManager
 }

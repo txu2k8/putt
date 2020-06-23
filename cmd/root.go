@@ -51,7 +51,7 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().IntVar(&runTimes, "run_times", 1, "Run test case with iteration loop")
-	rootCmd.PersistentFlags().StringArrayVar(&caseList, "case", []string{}, "Test Case Array")
+	rootCmd.PersistentFlags().StringArrayVar(&caseList, "case", []string{}, "Test Case Array (default value in sub-command)")
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.vztest.yaml)")
 	rootCmd.PersistentFlags().StringArrayVar(&vizionBaseConf.MasterIPs, "master_ips", []string{}, "Master nodes IP address Array")
@@ -68,7 +68,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&vizionBaseConf.SSHKey.UserName, "ssh_user", "root", "ssh login user")
 	rootCmd.PersistentFlags().StringVar(&vizionBaseConf.SSHKey.Password, "ssh_pwd", "password", "ssh login password")
 	rootCmd.PersistentFlags().IntVar(&vizionBaseConf.SSHKey.Port, "ssh_port", 22, "ssh login port")
-	rootCmd.PersistentFlags().StringVar(&vizionBaseConf.SSHKey.KeyFile, "ssh_key", "", "ssh login PrivateKey file full path")
+	rootCmd.PersistentFlags().StringVar(&vizionBaseConf.SSHKey.KeyFile, "ssh_key", "", "ssh login PrivateKey file full path (default \"\")")
 }
 
 // initConfig reads in config file and ENV variables if set.

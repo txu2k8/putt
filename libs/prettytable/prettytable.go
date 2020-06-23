@@ -184,7 +184,7 @@ func (t *Table) Bytes() []byte {
 			cell.WriteString(sp + s)
 		} else {
 			cell.WriteString(s)
-			if i < max {
+			if i <= max {
 				cell.WriteString(sp)
 			}
 		}
