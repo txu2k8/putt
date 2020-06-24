@@ -37,7 +37,7 @@ var stopCmd = &cobra.Command{
 		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
 		jobs := []stress.Job{
 			{
-				Fn:       maintainer.Stop,
+				Fn:       maintainer.StopC,
 				Name:     "Stop-Service",
 				RunTimes: 1,
 			},

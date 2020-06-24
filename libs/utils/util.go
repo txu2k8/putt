@@ -554,3 +554,45 @@ func MaxInt(x, y int) int {
 	}
 	return y
 }
+
+// StrNumToIntArr .
+func StrNumToIntArr(strN, sep string, lenArr int) []int {
+	intArr := []int{}
+	patten := fmt.Sprintf("[^0-9%s|\\-1\\-\\-9]", sep)
+	reg := regexp.MustCompile(patten)
+	matched := reg.FindStringSubmatch(strN)
+	if matched != nil {
+		panic(fmt.Sprintf("non-integer in strN:%s", strN))
+	}
+	strSplit := strings.Split(strN, sep)
+	for _, s := range strSplit {
+		si, _ := strconv.Atoi(s)
+		intArr = append(intArr, si)
+	}
+	n := len(intArr)
+	if lenArr > n {
+		end := intArr[n-1]
+		for i := n; i < lenArr; i++ {
+			intArr = append(intArr, end)
+		}
+	}
+	return intArr
+}
+
+// UniqArr Remove Repeated Element in Array
+func UniqArr(arr []string) (newArr []string) {
+	newArr = make([]string, 0)
+	for i := 0; i < len(arr); i++ {
+		repeat := false
+		for j := i + 1; j < len(arr); j++ {
+			if arr[i] == arr[j] {
+				repeat = true
+				break
+			}
+		}
+		if !repeat {
+			newArr = append(newArr, arr[i])
+		}
+	}
+	return
+}

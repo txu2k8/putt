@@ -1,10 +1,14 @@
 package testcase
 
 import (
+	"fmt"
 	"pzatest/config"
+	"pzatest/libs/random"
+	"pzatest/libs/runner/schedule"
 	"pzatest/libs/utils"
 	"pzatest/types"
 	"pzatest/vizion/resources"
+	"strings"
 )
 
 // HATester ...
@@ -21,53 +25,72 @@ type HABase struct {
 	NFSOK          bool         // NFS service status
 	SurviveS3Files []UploadFile // S3 upload files info after powerdown node/service/ch ...
 	SurviveBDFiles []UploadFile // BD write files info after powerdown node/service/ch ...
+	Schedule       schedule.Schedule
 }
 
-func (job *HABase) diffPods() {
+func action() error { return nil }
+
+func (ha *HABase) diffPods() error {
 	logger.Info("HABase: diffPods")
+	return nil
 }
 
-func (job *HABase) surviveS3Upload() {
+func (ha *HABase) surviveS3Upload() error {
 	logger.Info("HABase: surviveS3Upload")
-	job.SurviveS3Files = append(job.SurviveS3Files, UploadFile{FileName: "testfile-1.txt"})
+	ha.SurviveS3Files = append(ha.SurviveS3Files, UploadFile{FileName: "testfile-1.txt"})
+	return nil
 }
 
-func (job *HABase) surviveS3Download() {
+func (ha *HABase) surviveS3Download() error {
 	logger.Info("HABase: surviveS3Download")
+	return nil
 }
 
-func (job *HABase) surviveESIndex() {
+func (ha *HABase) surviveESIndex() error {
 	logger.Info("HABase: surviveESIndex")
+	return nil
 }
 
-func (job *HABase) surviveBDWrite() {
+func (ha *HABase) surviveBDWrite() error {
 	logger.Info("HABase: surviveBDWrite")
+	return nil
 }
 
-func (job *HABase) surviveStress() {
+func (ha *HABase) surviveStress() error {
 	logger.Info("HABase: surviveStress")
+	return nil
 }
 
 // HAWorkflow ...
-func (job *HABase) HAWorkflow(fn func() error) error {
-	logger.Info("Eneter HAWorkflow ...")
-	logger.Info(utils.Prettify(&job))
-	logger.Info("STEP1: Check health before HA test...")
-	logger.Info("STEP2: S3 upload/download before HA test ...")
-	logger.Info("STEP3: ES index before HA test ...")
-	logger.Info("STEP4: BlockDevice Write/Read before HA test ...")
+func (ha *HABase) HAWorkflow(fn func() error) error {
+	// logger.Info("Eneter HAWorkflow ...")
+	ha.Schedule.RunPhase(action, schedule.Desc("Eneter HAWorkflow ..."))
+	// logger.Info(utils.Prettify(&ha))
+	// logger.Info("STEP1: Check health before HA test...")
+	// logger.Info("STEP2: S3 upload/download before HA test ...")
+	// logger.Info("STEP3: ES index before HA test ...")
+	// logger.Info("STEP4: BlockDevice Write/Read before HA test ...")
+	ha.Schedule.RunPhase(action, schedule.Desc("Check health before HA test ..."))
+	ha.Schedule.RunPhase(action, schedule.Desc("S3 upload/download before HA test ..."))
+	ha.Schedule.RunPhase(action, schedule.Desc("ES index before HA test ..."))
+	ha.Schedule.RunPhase(action, schedule.Desc("BlockDevice Write/Read before HA test ..."))
 
-	logger.Info("STEP5: HA and Survive opt ...")
-	job.diffPods()
+	// logger.Info("STEP5: HA and Survive opt ...")
+	ha.Schedule.RunPhase(action, schedule.Desc("Eneter HA and Survive opt ..."))
+	ha.Schedule.RunPhase(ha.diffPods, schedule.Desc("diffPods ..."))
 	err := fn()
 	if err != nil {
 		return err
 	}
-	logger.Info("STEP6: Check health after HA test ...")
-	job.diffPods()
-	logger.Info("STEP7: Download and Check S3 original data(upload by STEP2) MD5 after HA test ...")
-	logger.Info("STEP8: Read and Check block device data(write by STEP4) MD5 after HA test ...")
-	logger.Info("STEP9: Check && Make sure es OK after HA test ...")
+	// logger.Info("STEP6: Check health after HA test ...")
+	ha.Schedule.RunPhase(action, schedule.Desc("Check health after HA test ..."))
+	ha.Schedule.RunPhase(ha.diffPods, schedule.Desc("diffPods ..."))
+	// logger.Info("STEP7: Download and Check S3 original data(upload by STEP2) MD5 after HA test ...")
+	// logger.Info("STEP8: Read and Check block device data(write by STEP4) MD5 after HA test ...")
+	// logger.Info("STEP9: Check && Make sure es OK after HA test ...")
+	ha.Schedule.RunPhase(action, schedule.Desc("Download and Check S3 original data(upload by STEP2) MD5 after HA test ..."))
+	ha.Schedule.RunPhase(action, schedule.Desc("Read and Check block device data(write by STEP4) MD5 after HA test ..."))
+	ha.Schedule.RunPhase(action, schedule.Desc("Check && Make sure es OK after HA test ..."))
 
 	return nil
 }
@@ -76,17 +99,13 @@ func (job *HABase) HAWorkflow(fn func() error) error {
 
 // RestartNodeTestInput ...
 type RestartNodeTestInput struct {
-	// TestInput
-	NodeIPs    []string // To restart node IP address Array
-	VMNames    []string // To restart node VM name Array
-	Platform   string   // Test VM platfor: vsphere | aws
-	PowerOpts  []string // Power opts: shoutdwon|poweroff|reset|reboot
-	RestartNum int      // Restart VM number
-
-	// job
-	HABase
-	TestNodes       []RestartNodeInfo
-	RandomTestNodes []RestartNodeInfo
+	NodeIPs       []string      // To restart node IP address Array
+	VMNames       []string      // To restart node VM name Array
+	Platform      string        // Test VM platfor: vsphere | aws
+	PowerOpts     []string      // Power opts: shoutdwon|poweroff|reset|reboot
+	RestartNumMin int           // Min Restart VM number
+	RestartNumMax int           // Max Restart VM number
+	Vsphere       types.Vsphere // Vsphere
 }
 
 // RestartNodeInfo ...
@@ -97,52 +116,141 @@ type RestartNodeInfo struct {
 	PowerOpt string
 }
 
-func (job *RestartNodeTestInput) parseRestartNodes() {
-	logger.Info("Run parseRestartNodes")
-	job.TestNodes = append(job.TestNodes, RestartNodeInfo{VMName: "VMName-1"})
-	logger.Info(utils.Prettify(&job))
+// HANode .
+type HANode struct {
+	HABase
+	RestartNodeTestInput
+	TestNodes       []RestartNodeInfo
+	RandomTestNodes []RestartNodeInfo
 }
 
-func (job *RestartNodeTestInput) powerDownNodes() {
+// NewHANode ...
+func NewHANode(input RestartNodeTestInput) *HANode {
+	return &HANode{
+		RestartNodeTestInput: input,
+	}
+}
+
+func (job *HANode) parseRestartNodes() error {
+	powerOpt := random.ChoiceStrArr(job.PowerOpts)
+	logger.Info(">> Parse Test Nodes by input args ...")
+	inputNodes := []string{}
+	switch {
+	case len(job.NodeIPs) > 0:
+		inputNodes = job.NodeIPs
+	case len(job.VMNames) > 0:
+		inputNodes = job.VMNames
+	default:
+		return fmt.Errorf("Please input NodeIPs or VMNames")
+	}
+
+	testNodes := []string{}
+	if strings.Contains(strings.Join(inputNodes, ""), ",") {
+		for _, inputNode := range inputNodes {
+			nodeSplit := strings.Split(inputNode, ":")
+			rNum := 0
+			if len(nodeSplit) >= 2 {
+				rNums := utils.StrNumToIntArr(nodeSplit[1], ",", 2)
+				rMin := rNums[0]
+				rMax := rNums[1]
+				rNum = random.RandRangeInt(rMin, rMax)
+			} else {
+				rNum = random.RandRangeInt(job.RestartNumMin, job.RestartNumMax)
+			}
+			tmpNodes := strings.Split(nodeSplit[0], ",")
+			testNodes = append(testNodes, random.SampleStrArr(tmpNodes, rNum)...)
+		}
+	} else {
+		rNum := random.RandRangeInt(job.RestartNumMin, job.RestartNumMax)
+		testNodes = random.SampleStrArr(inputNodes, rNum)
+	}
+	testNodes = utils.UniqArr(testNodes)
+	if job.Platform == "vsphere" {
+		// TODO
+		for _, node := range testNodes {
+			vmName, vmIP := "", ""
+			if job.NodeIPs != nil {
+				vmIP = node
+				vmName = "" // TODO
+			} else {
+				vmIP = node
+				vmName = "" // TODO
+			}
+			nodeInfo := RestartNodeInfo{
+				VMName:   vmName,
+				VMIP:     vmIP,
+				PowerOpt: powerOpt,
+			}
+			job.TestNodes = append(job.TestNodes, nodeInfo)
+		}
+	}
+
+	job.TestNodes = append(job.TestNodes, RestartNodeInfo{VMName: "VMName-1"})
+	logger.Info(utils.Prettify(job.TestNodes))
+	// logger.Info(utils.Prettify(&job))
+	return fmt.Errorf("stop")
+}
+
+func (job *HANode) powerDownNodes() error {
 	logger.Info("Run powerDownNodes")
 	job.PhaseList = append(job.PhaseList, "powerDownNodes")
+	return nil
 }
 
-func (job *RestartNodeTestInput) powerOnNodes() {
+func (job *HANode) powerOnNodes() error {
 	logger.Info("Run powerOnNodes")
 	job.PhaseList = append(job.PhaseList, "powerOnNodes")
+	return nil
 }
 
-func (job *RestartNodeTestInput) isSurviveOK() {
+func (job *HANode) isSurviveOK() error {
 	logger.Info("Run isSurviveOK")
 	job.S3OK = true
 	job.ESOK = false
+	return nil
 }
 
-func (job *RestartNodeTestInput) runJob() error {
+func (job *HANode) runJob() error {
+	var err error
 	logger.Info("Run RestartNodeJob")
-	job.parseRestartNodes()
-	job.powerDownNodes()
-	job.isSurviveOK()
+	if err = job.Schedule.RunPhase(job.parseRestartNodes, schedule.Desc("Parse Restart Nodes Input ...")); err != nil {
+		return err
+	}
+	if err = job.Schedule.RunPhase(job.powerDownNodes, schedule.Desc("Powerdown nodes ...")); err != nil {
+		return err
+	}
+	if err = job.Schedule.RunPhase(job.isSurviveOK, schedule.Desc("Judge is Survived s3/bd/es/nfs shoudld OK ...")); err != nil {
+		return err
+	}
 	if job.S3OK {
-		job.surviveS3Upload()
+		if err = job.Schedule.RunPhase(job.surviveS3Upload, schedule.Desc("Survived S3Upload ...")); err != nil {
+			return err
+		}
 	}
 	if job.ESOK {
-		job.surviveESIndex()
+		if err = job.Schedule.RunPhase(job.surviveESIndex, schedule.Desc("Survived ESIndex ...")); err != nil {
+			return err
+		}
 	}
 	if job.DagentOK {
-		job.surviveBDWrite()
+		if err = job.Schedule.RunPhase(job.surviveBDWrite, schedule.Desc("Survived BDWrite ...")); err != nil {
+			return err
+		}
 	}
-	job.powerOnNodes()
+
+	if err = job.Schedule.RunPhase(job.powerOnNodes, schedule.Desc("PowerOn nodes ...")); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // Run RestartNodeJob With HAWorkflow
-func (job *RestartNodeTestInput) Run() error {
+func (job *HANode) Run() error {
 	logger.Info("RestartNodeJob: Run With HAWorkflow")
-	job.HAWorkflow(job.runJob)
-	logger.Info(utils.Prettify(&job))
-	return nil
+	err := job.HAWorkflow(job.runJob)
+	// logger.Info(utils.Prettify(&job))
+	return err
 }
 
 // ============================= RestartService =============================

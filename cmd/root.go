@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"pzatest/config"
 	"pzatest/libs/tlog"
 	"pzatest/libs/utils"
 	"pzatest/types"
@@ -20,6 +21,7 @@ var (
 	debug          bool     // debug modle
 	caseList       []string // Case List
 	vizionBaseConf types.VizionBaseInput
+	vsphere        types.Vsphere
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -164,4 +166,15 @@ func stripArgs() []string {
 	}
 
 	return commands
+}
+
+// AddFlagsVsphere Vsphere Informations -- vc_ip, vc_user, vc_pwd
+func AddFlagsVsphere(cmd *cobra.Command) {
+	var DefaultCoreServiceNameArray = []string{}
+	for _, sv := range config.DefaultCoreServiceArray {
+		DefaultCoreServiceNameArray = append(DefaultCoreServiceNameArray, sv.Name)
+	}
+	cmd.PersistentFlags().StringVar(&vsphere.VcIP, "vc_ip", "", fmt.Sprintf("Vcenter IP address (default \"\")"))
+	cmd.PersistentFlags().StringVar(&vsphere.VcUser, "vc_user", "", fmt.Sprintf("Vcenter user (default \"\")"))
+	cmd.PersistentFlags().StringVar(&vsphere.VcPwd, "vc_pwd", "", fmt.Sprintf("Vcenter password (default \"\")"))
 }

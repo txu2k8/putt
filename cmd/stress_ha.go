@@ -37,7 +37,7 @@ var restartNodeCmd = &cobra.Command{
 			jobs := []stress.Job{}
 			switch tc {
 			case "restart_node":
-				haTester = &RestartNodeTestConf
+				haTester = testcase.NewHANode(RestartNodeTestConf)
 				jobs = []stress.Job{
 					{
 						Fn:       haTester.Run,
@@ -89,9 +89,11 @@ func init() {
 	haCmd.AddCommand(restartNodeCmd)
 	restartNodeCmd.PersistentFlags().StringArrayVar(&RestartNodeTestConf.NodeIPs, "node_ip", []string{}, "To restart node IP address Array")
 	restartNodeCmd.PersistentFlags().StringArrayVar(&RestartNodeTestConf.VMNames, "vm_name", []string{}, "To restart node VM name Array")
-	restartNodeCmd.PersistentFlags().StringVar(&RestartNodeTestConf.Platform, "platform", "", "Test VM platfor: vsphere | aws")
+	restartNodeCmd.PersistentFlags().StringVar(&RestartNodeTestConf.Platform, "platform", "vsphere", "Test VM platfor: vsphere | aws")
 	restartNodeCmd.PersistentFlags().StringArrayVar(&RestartNodeTestConf.PowerOpts, "power_opt", []string{}, "Power opts: shoutdwon|poweroff|reset|reboot")
-	restartNodeCmd.PersistentFlags().IntVar(&RestartNodeTestConf.RestartNum, "restart_num", 0, "Restart VM number")
+	restartNodeCmd.PersistentFlags().IntVar(&RestartNodeTestConf.RestartNumMin, "restart_num_min", 0, "Min Restart VM number")
+	restartNodeCmd.PersistentFlags().IntVar(&RestartNodeTestConf.RestartNumMax, "restart_num_max", 0, "Max Restart VM number")
+	AddFlagsVsphere(restartNodeCmd)
 
 	haCmd.AddCommand(restartServiceCmd)
 }

@@ -16,3 +16,10 @@ type VizionBaseInput struct {
 	K8sNameSpace   string   // k8s namespace
 	KubeConfig     string   // kubeconfig file path
 }
+
+// Vsphere ...
+type Vsphere struct {
+	VcIP   string //  Vcenter IP
+	VcUser string //  Vcenter User
+	VcPwd  string //  Vcenter Password
+}

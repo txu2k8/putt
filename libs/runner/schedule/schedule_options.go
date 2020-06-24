@@ -26,3 +26,11 @@ func Desc(d string) OptionFunc {
 		return nil
 	}
 }
+
+// FnArgs Input the args for Fn(arg ...interface{})
+func FnArgs(args ...interface{}) OptionFunc {
+	return func(sc *Schedule) error {
+		sc.Input.FnArgs = args
+		return nil
+	}
+}

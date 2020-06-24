@@ -24,9 +24,10 @@ type Scheduler interface {
 
 // Input .
 type Input struct {
-	Verbosity int    // Print Phase in Teardown If > 0
-	Skip      bool   // Skip the phase if true
-	Desc      string // The phase description
+	Verbosity int           // Print Phase in Teardown If > 0
+	Skip      bool          // Skip the phase if true
+	Desc      string        // The phase description
+	FnArgs    []interface{} // The args for Fn(args ...interface{})
 }
 
 // Phase .
@@ -191,7 +192,10 @@ func (sc *Schedule) RunPhase(action Action, options ...OptionFunc) error {
 	if sc.Input.Skip == true {
 		status = "SKIP"
 	}
-	description := sc.Input.Desc
+	description := "nil"
+	if sc.Input.Desc != "" {
+		description = sc.Input.Desc
+	}
 	idx := len(sc.PhaseArr) + 1
 	fName := strings.TrimSuffix(runtime.FuncForPC(reflect.ValueOf(action).Pointer()).Name(), "-fm")
 	fNameSplit := strings.Split(fName, ".")
@@ -207,8 +211,10 @@ func (sc *Schedule) RunPhase(action Action, options ...OptionFunc) error {
 		sc.PhaseArr = append(sc.PhaseArr, phase)
 	} else {
 		lastPhase := sc.PhaseArr[idx-2]
-		if lastPhase.Name != pName && lastPhase.Status != status {
+		if pName == "action" || (lastPhase.Name != pName && lastPhase.Status != status) {
 			sc.PhaseArr = append(sc.PhaseArr, phase)
+		} else {
+			idx--
 		}
 	}
 
@@ -216,6 +222,7 @@ func (sc *Schedule) RunPhase(action Action, options ...OptionFunc) error {
 		sc.PrintPhase()
 	} else {
 		logger.Infof("%s: %s", status, fName)
+		logger.Infof("Description: %s", description)
 	}
 	// Run func
 	err := action()
@@ -224,10 +231,17 @@ func (sc *Schedule) RunPhase(action Action, options ...OptionFunc) error {
 		status = "FAIL"
 	}
 	sc.PhaseArr[idx-1].Status = status
-	if sc.Input.Verbosity > 0 {
+	if sc.Input.Verbosity > 1 {
 		sc.PrintPhase()
 	} else {
-		logger.Infof("%s: %s", status, fName)
+		if status == "FAIL" {
+			logger.Errorf("%s: %s", status, fName)
+			logger.Errorf("Description: %s", description)
+		} else {
+			logger.Infof("%s: %s", status, fName)
+			logger.Infof("Description: %s", description)
+		}
+
 	}
 	return err
 }

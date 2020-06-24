@@ -23,6 +23,7 @@ var logger = logging.MustGetLogger("test")
 type Maintainer interface {
 	Cleanup() error
 	Stop() error
+	StopC() error
 	Start() error
 	Restart() error
 	MakeBinary() error
@@ -150,91 +151,41 @@ func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
 	}
 }
 
-// Cleanup - maint
-func (maint *Maint) Cleanup() error {
-	var err error
-	formatBD := false
-	for _, clean := range maint.CleanArr {
-		switch clean.Name {
-		case "log":
-			err = maint.Vizion.CleanLog(maint.ServiceArr)
-			if err != nil {
-				return err
-			}
-		case "journal":
-			err = maint.Vizion.CleanEtcd(clean.Arg)
-			if err != nil {
-				return err
-			}
-			err = maint.Vizion.CleanJournal()
-			if err != nil {
-				return err
-			}
-		case "storage_cache":
-			err = maint.Vizion.CleanStorageCache(clean.Arg[0], false)
-			if err != nil {
-				return err
-			}
-		case "master_cassandra":
-			formatBD = true
-			err = maint.Vizion.UpdateMasterCassTables()
-			if err != nil {
-				return err
-			}
-		case "sub_cassandra":
-			formatBD = true
-			err = maint.Vizion.CleanSubCassTables(clean.Arg)
-			if err != nil {
-				return err
-			}
-		case "etcd":
-			formatBD = true
-			err = maint.Vizion.CleanEtcd(clean.Arg)
-			if err != nil {
-				return err
-			}
-		case "cdcgc":
-			err = maint.Vizion.CleanCdcgc()
-			if err != nil {
-				return err
-			}
-		}
+// isImageOK - Check is image OK on gitlab
+func (maint *Maint) isImageOK() error {
+	logger.Infof("Wait for Image Availabel: %s", maint.Image)
+	if maint.Image == "" {
+		return errors.New("image name is nul")
 	}
+	tagName := strings.Split(maint.Image, ":")[1]
 
-	if formatBD == true {
-		err = maint.Vizion.UpdateSubCassTables()
-		if err != nil {
-			return err
-		}
+	// wait for image OK on gitlab
+	cfg := git.GitlabConfig{
+		BaseURL: "http://gitlab.panzura.com",
+		Token:   "xjB1FHHyJHNQUhgy7K7t",
 	}
+	projectID := 25
+	gitlabMgr := git.NewGitlabClient(cfg)
+	err := gitlabMgr.IsPipelineJobsSuccess(projectID, tagName)
+	if err != nil {
+		return err
+	}
+	logger.Infof("Image Availabel: %s", maint.Image)
 	return nil
 }
 
-// Stop - maint
-func (maint *Maint) Stop() error {
+// setImage - maint set sts/deployment/xxx Image
+func (maint *Maint) setImage() error {
 	var err error
-	// stopServiceArr := config.ReverseServiceArr(maint.ServiceArr)
-	// err = maint.Vizion.StopServices(stopServiceArr)
-	// if err != nil {
-	// 	return err
-	// }
+	err = maint.Vizion.ApplyServicesImage(maint.ServiceArr, maint.Image)
+	if err != nil {
+		return err
+	}
 
-	// strclNameArr := strings.Join(maint.CleanNameArr, ",")
-	// err = maint.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strclNameArr))
-
-	// err = maint.Cleanup()
-	// if err != nil {
-	// 	return err
-	// }
-
-	return err
-}
-
-// Start - maint
-func (maint *Maint) Start() error {
-	// logger.Info(utils.Prettify(maint))
-	// err := maint.Vizion.StartServices(maint.ServiceArr)
-	// return err
+	err = maint.Vizion.ApplyDplmanagerShellImage(maint.Image)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -303,29 +254,6 @@ func (maint *Maint) MakeBinary() error {
 }
 
 // MakeImage - maint make image by tag to gitlab
-func (maint *Maint) isImageOK() error {
-	logger.Infof("Wait for Image Availabel: %s", maint.Image)
-	if maint.Image == "" {
-		return errors.New("image name is nul")
-	}
-	tagName := strings.Split(maint.Image, ":")[1]
-
-	// wait for image OK on gitlab
-	cfg := git.GitlabConfig{
-		BaseURL: "http://gitlab.panzura.com",
-		Token:   "xjB1FHHyJHNQUhgy7K7t",
-	}
-	projectID := 25
-	gitlabMgr := git.NewGitlabClient(cfg)
-	err := gitlabMgr.IsPipelineJobsSuccess(projectID, tagName)
-	if err != nil {
-		return err
-	}
-	logger.Infof("Image Availabel: %s", maint.Image)
-	return nil
-}
-
-// MakeImage - maint make image by tag to gitlab
 func (maint *Maint) MakeImage() error {
 	var err error
 	strTime := time.Now().Format("2006-01-02-15-04-05")
@@ -385,32 +313,121 @@ func (maint *Maint) MakeImage() error {
 	return nil
 }
 
-// SetImage - maint set sts/deployment/xxx Image
-func (maint *Maint) SetImage() error {
+// Cleanup - maint
+func (maint *Maint) Cleanup() error {
 	var err error
-	err = maint.Vizion.ApplyServicesImage(maint.ServiceArr, maint.Image)
-	if err != nil {
-		return err
+	formatBD := false
+	for _, clean := range maint.CleanArr {
+		switch clean.Name {
+		case "log":
+			err = maint.Vizion.CleanLog(maint.ServiceArr)
+			if err != nil {
+				return err
+			}
+		case "journal":
+			err = maint.Vizion.CleanEtcd(clean.Arg)
+			if err != nil {
+				return err
+			}
+			err = maint.Vizion.CleanJournal()
+			if err != nil {
+				return err
+			}
+		case "storage_cache":
+			err = maint.Vizion.CleanStorageCache(clean.Arg[0], false)
+			if err != nil {
+				return err
+			}
+		case "master_cassandra":
+			formatBD = true
+			err = maint.Vizion.UpdateMasterCassTables()
+			if err != nil {
+				return err
+			}
+		case "sub_cassandra":
+			formatBD = true
+			err = maint.Vizion.CleanSubCassTables(clean.Arg)
+			if err != nil {
+				return err
+			}
+		case "etcd":
+			formatBD = true
+			err = maint.Vizion.CleanEtcd(clean.Arg)
+			if err != nil {
+				return err
+			}
+		case "cdcgc":
+			err = maint.Vizion.CleanCdcgc()
+			if err != nil {
+				return err
+			}
+		}
 	}
 
-	err = maint.Vizion.ApplyDplmanagerShellImage(maint.Image)
-	if err != nil {
-		return err
+	if formatBD == true {
+		err = maint.Vizion.UpdateSubCassTables()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-// Restart - maint
-func (maint *Maint) Restart() error {
+// Stop - maint
+func (maint *Maint) Stop() error {
 	var err error
+	// stopServiceArr := config.ReverseServiceArr(maint.ServiceArr)
+	// err = maint.Vizion.StopServices(stopServiceArr)
+	return err
+}
 
-	// err = maint.Stop()
+// StopC - maint: Stop -> Cleanup
+func (maint *Maint) StopC() error {
+	var err error
+	// Stop
 	strSvNameArr := strings.Join(maint.ServiceNameArr, ",")
 	err = maint.Schedule.RunPhase(maint.Stop, schedule.Desc(strSvNameArr))
 	if err != nil {
 		return err
 	}
-	// err = maint.Start()
+
+	// Cleanup
+	strClNameArr := strings.Join(maint.CleanNameArr, ",")
+	err = maint.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr))
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+// Start - maint
+func (maint *Maint) Start() error {
+	// logger.Info(utils.Prettify(maint))
+	// err := maint.Vizion.StartServices(maint.ServiceArr)
+	// return err
+	return nil
+}
+
+// Restart - maint: Stop -> Cleanup -> Start
+func (maint *Maint) Restart() error {
+	var err error
+
+	// Stop
+	strSvNameArr := strings.Join(maint.ServiceNameArr, ",")
+	err = maint.Schedule.RunPhase(maint.Stop, schedule.Desc(strSvNameArr))
+	if err != nil {
+		return err
+	}
+
+	// Cleanup
+	strClNameArr := strings.Join(maint.CleanNameArr, ",")
+	err = maint.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr))
+	if err != nil {
+		return err
+	}
+
+	// Start
 	err = maint.Schedule.RunPhase(maint.Start, schedule.Desc(strSvNameArr))
 	if err != nil {
 		return err
@@ -419,30 +436,36 @@ func (maint *Maint) Restart() error {
 	return nil
 }
 
-// ApplyImage - maint
+// ApplyImage - maint: Stop -> Cleanup -> setImage -> Start
 func (maint *Maint) ApplyImage() error {
 	var err error
-	// wait for image OK on gitlab
-	// err = maint.isImageOK()
+	// isImageOK: Wait for image OK on gitlab
 	err = maint.Schedule.RunPhase(maint.isImageOK, schedule.Desc(maint.Image))
 	if err != nil {
 		return err
 	}
 
-	// err = maint.Stop()
+	// Stop
 	strSvNameArr := strings.Join(maint.ServiceNameArr, ",")
 	err = maint.Schedule.RunPhase(maint.Stop, schedule.Desc(strSvNameArr))
 	if err != nil {
 		return err
 	}
 
-	// err = maint.SetImage()
-	err = maint.Schedule.RunPhase(maint.SetImage, schedule.Desc(maint.Image))
+	// Cleanup
+	strClNameArr := strings.Join(maint.CleanNameArr, ",")
+	err = maint.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr))
 	if err != nil {
 		return err
 	}
 
-	// err = maint.Start()
+	// setImage
+	err = maint.Schedule.RunPhase(maint.setImage, schedule.Desc(maint.Image))
+	if err != nil {
+		return err
+	}
+
+	// Start
 	err = maint.Schedule.RunPhase(maint.Start, schedule.Desc(strSvNameArr))
 	if err != nil {
 		return err
@@ -451,18 +474,17 @@ func (maint *Maint) ApplyImage() error {
 	return nil
 }
 
-// UpgradeCore - maint
+// UpgradeCore - maint: MakeImage -> Stop -> Cleanup -> setImage -> Start
 func (maint *Maint) UpgradeCore() error {
 	var err error
 
-	// err = maint.MakeImage()
+	// MakeImage
 	err = maint.Schedule.RunPhase(maint.MakeImage)
 	if err != nil {
 		return err
 	}
 
-	// err = maint.ApplyImage()
-	err = maint.Schedule.RunPhase(maint.ApplyImage, schedule.Desc(maint.Image))
+	err = maint.ApplyImage()
 	if err != nil {
 		return err
 	}
