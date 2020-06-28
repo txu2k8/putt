@@ -225,6 +225,9 @@ func (sc *Schedule) RunPhase(action Action, options ...OptionFunc) error {
 		logger.Infof("Description: %s", description)
 	}
 	// Run func
+	if sc.Input.Skip == true {
+		return nil
+	}
 	err := action()
 	status = "PASS"
 	if err != nil {

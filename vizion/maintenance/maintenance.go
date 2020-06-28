@@ -393,7 +393,11 @@ func (maint *Maint) StopC() error {
 
 	// Cleanup
 	strClNameArr := strings.Join(maint.CleanNameArr, ",")
-	err = maint.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr))
+	skipCleanup := false
+	if len(maint.CleanNameArr) < 0 {
+		skipCleanup = true
+	}
+	err = maint.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr), schedule.Skip(skipCleanup))
 	if err != nil {
 		return err
 	}
@@ -422,7 +426,11 @@ func (maint *Maint) Restart() error {
 
 	// Cleanup
 	strClNameArr := strings.Join(maint.CleanNameArr, ",")
-	err = maint.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr))
+	skipCleanup := false
+	if len(maint.CleanNameArr) < 0 {
+		skipCleanup = true
+	}
+	err = maint.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr), schedule.Skip(skipCleanup))
 	if err != nil {
 		return err
 	}
@@ -455,7 +463,11 @@ func (maint *Maint) ApplyImage() error {
 
 	// Cleanup
 	strClNameArr := strings.Join(maint.CleanNameArr, ",")
-	err = maint.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr))
+	skipCleanup := false
+	if len(maint.CleanNameArr) < 0 {
+		skipCleanup = true
+	}
+	err = maint.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr), schedule.Skip(skipCleanup))
 	if err != nil {
 		return err
 	}
