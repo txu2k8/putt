@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"crypto/md5"
 	"crypto/rand"
-	"encoding/base64"
 	"encoding/gob"
 	"encoding/hex"
 	"fmt"
@@ -20,7 +19,6 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -59,6 +57,116 @@ func PrintWithProgressBar(prefix string, total int) {
 		}
 	}()
 	wg.Wait()
+}
+
+// TimeTrack ...
+func TimeTrack(start time.Time, name string) {
+	elapsed := time.Since(start)
+	logger.Infof("function %s finishes after %s", name, elapsed)
+}
+
+// Prettify returns the string representation of a value.
+func Prettify(i interface{}) string {
+	var buf bytes.Buffer
+	prettify(reflect.ValueOf(i), 0, &buf)
+	return buf.String()
+}
+
+// prettify will recursively walk value v to build a textual
+// representation of the value.
+func prettify(v reflect.Value, indent int, buf *bytes.Buffer) {
+	for v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Struct:
+		strtype := v.Type().String()
+		if strtype == "time.Time" {
+			fmt.Fprintf(buf, "%s", v.Interface())
+			break
+		} else if strings.HasPrefix(strtype, "io.") {
+			buf.WriteString("<buffer>")
+			break
+		}
+
+		buf.WriteString("{\n")
+
+		names := []string{}
+		for i := 0; i < v.Type().NumField(); i++ {
+			name := v.Type().Field(i).Name
+			f := v.Field(i)
+			if name[0:1] == strings.ToLower(name[0:1]) {
+				continue // ignore unexported fields
+			}
+			if (f.Kind() == reflect.Ptr || f.Kind() == reflect.Slice || f.Kind() == reflect.Map) && f.IsNil() {
+				continue // ignore unset fields
+			}
+			names = append(names, name)
+		}
+
+		for i, n := range names {
+			val := v.FieldByName(n)
+			buf.WriteString(strings.Repeat(" ", indent+2))
+			buf.WriteString(n + ": ")
+			prettify(val, indent+2, buf)
+
+			if i < len(names)-1 {
+				buf.WriteString(",\n")
+			}
+		}
+
+		buf.WriteString("\n" + strings.Repeat(" ", indent) + "}")
+	case reflect.Slice:
+		strtype := v.Type().String()
+		if strtype == "[]uint8" {
+			fmt.Fprintf(buf, "<binary> len %d", v.Len())
+			break
+		}
+
+		nl, id, id2 := "", "", ""
+		if v.Len() > 3 {
+			nl, id, id2 = "\n", strings.Repeat(" ", indent), strings.Repeat(" ", indent+2)
+		}
+		buf.WriteString("[" + nl)
+		for i := 0; i < v.Len(); i++ {
+			buf.WriteString(id2)
+			prettify(v.Index(i), indent+2, buf)
+
+			if i < v.Len()-1 {
+				buf.WriteString("," + nl)
+			}
+		}
+
+		buf.WriteString(nl + id + "]")
+	case reflect.Map:
+		buf.WriteString("{\n")
+
+		for i, k := range v.MapKeys() {
+			buf.WriteString(strings.Repeat(" ", indent+2))
+			buf.WriteString(k.String() + ": ")
+			prettify(v.MapIndex(k), indent+2, buf)
+
+			if i < v.Len()-1 {
+				buf.WriteString(",\n")
+			}
+		}
+
+		buf.WriteString("\n" + strings.Repeat(" ", indent) + "}")
+	default:
+		if !v.IsValid() {
+			fmt.Fprint(buf, "<invalid value>")
+			return
+		}
+		format := "%v"
+		switch v.Interface().(type) {
+		case string:
+			format = "%q"
+		case io.ReadSeeker, io.Reader:
+			format = "buffer(%p)"
+		}
+		fmt.Fprintf(buf, format, v.Interface())
+	}
 }
 
 // GetCurDir ...
@@ -267,38 +375,6 @@ func CreateFileOfSize(dir string, fileNamePrefix string, size int64) (*os.File, 
 	return file, nil
 }
 
-// ByteCountDecimal returns a human-readable string for the given size bytes
-// precision: decimal, 12 * 1024 * 1024 * 1000 --> 11.7GB
-func ByteCountDecimal(b int64) string {
-	const unit = 1024
-	if b < unit {
-		return fmt.Sprintf("%d B", b)
-	}
-	div, exp := int64(unit), 0
-	for n := b / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "kMGTPE"[exp])
-}
-
-// SizeCountToByte Parse a size string to int64 byte
-func SizeCountToByte(s string) int64 {
-	const unit = 1024
-	const u = "kMGTPE"
-	div := float64(unit)
-
-	reg := regexp.MustCompile(`(^[+-]?(0|([1-9]\d*))(\.\d+)?)\s?(\S+)`)
-	matched := reg.FindStringSubmatch(s)
-	exp := strings.Index(u, strings.ToUpper(matched[len(matched)-1][:1]))
-	for x := 0; x < exp; x++ {
-		div *= unit
-	}
-	n, _ := strconv.ParseFloat(matched[1], 64)
-	b := int64(n * div)
-	return b
-}
-
 // RunCmd run command at local
 func RunCmd(cmdSpc string) (rc int, output string, err error) {
 	logger.Infof("Run cmd: %s", cmdSpc)
@@ -332,110 +408,6 @@ func RunCmd(cmdSpc string) (rc int, output string, err error) {
 	return rc, output, err
 }
 
-// Prettify returns the string representation of a value.
-func Prettify(i interface{}) string {
-	var buf bytes.Buffer
-	prettify(reflect.ValueOf(i), 0, &buf)
-	return buf.String()
-}
-
-// prettify will recursively walk value v to build a textual
-// representation of the value.
-func prettify(v reflect.Value, indent int, buf *bytes.Buffer) {
-	for v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-
-	switch v.Kind() {
-	case reflect.Struct:
-		strtype := v.Type().String()
-		if strtype == "time.Time" {
-			fmt.Fprintf(buf, "%s", v.Interface())
-			break
-		} else if strings.HasPrefix(strtype, "io.") {
-			buf.WriteString("<buffer>")
-			break
-		}
-
-		buf.WriteString("{\n")
-
-		names := []string{}
-		for i := 0; i < v.Type().NumField(); i++ {
-			name := v.Type().Field(i).Name
-			f := v.Field(i)
-			if name[0:1] == strings.ToLower(name[0:1]) {
-				continue // ignore unexported fields
-			}
-			if (f.Kind() == reflect.Ptr || f.Kind() == reflect.Slice || f.Kind() == reflect.Map) && f.IsNil() {
-				continue // ignore unset fields
-			}
-			names = append(names, name)
-		}
-
-		for i, n := range names {
-			val := v.FieldByName(n)
-			buf.WriteString(strings.Repeat(" ", indent+2))
-			buf.WriteString(n + ": ")
-			prettify(val, indent+2, buf)
-
-			if i < len(names)-1 {
-				buf.WriteString(",\n")
-			}
-		}
-
-		buf.WriteString("\n" + strings.Repeat(" ", indent) + "}")
-	case reflect.Slice:
-		strtype := v.Type().String()
-		if strtype == "[]uint8" {
-			fmt.Fprintf(buf, "<binary> len %d", v.Len())
-			break
-		}
-
-		nl, id, id2 := "", "", ""
-		if v.Len() > 3 {
-			nl, id, id2 = "\n", strings.Repeat(" ", indent), strings.Repeat(" ", indent+2)
-		}
-		buf.WriteString("[" + nl)
-		for i := 0; i < v.Len(); i++ {
-			buf.WriteString(id2)
-			prettify(v.Index(i), indent+2, buf)
-
-			if i < v.Len()-1 {
-				buf.WriteString("," + nl)
-			}
-		}
-
-		buf.WriteString(nl + id + "]")
-	case reflect.Map:
-		buf.WriteString("{\n")
-
-		for i, k := range v.MapKeys() {
-			buf.WriteString(strings.Repeat(" ", indent+2))
-			buf.WriteString(k.String() + ": ")
-			prettify(v.MapIndex(k), indent+2, buf)
-
-			if i < v.Len()-1 {
-				buf.WriteString(",\n")
-			}
-		}
-
-		buf.WriteString("\n" + strings.Repeat(" ", indent) + "}")
-	default:
-		if !v.IsValid() {
-			fmt.Fprint(buf, "<invalid value>")
-			return
-		}
-		format := "%v"
-		switch v.Interface().(type) {
-		case string:
-			format = "%q"
-		case io.ReadSeeker, io.Reader:
-			format = "buffer(%p)"
-		}
-		fmt.Fprintf(buf, format, v.Interface())
-	}
-}
-
 // DeepCopy ...
 func DeepCopy(src, dst interface{}) error {
 	var buf bytes.Buffer
@@ -445,10 +417,10 @@ func DeepCopy(src, dst interface{}) error {
 	return gob.NewDecoder(bytes.NewBuffer(buf.Bytes())).Decode(dst)
 }
 
-// DedupStringList ...
-func DedupStringList(list []string) (output []string) {
+// DedupStringArr ...
+func DedupStringArr(arr []string) (output []string) {
 	tempMap := make(map[string]bool)
-	for _, value := range list {
+	for _, value := range arr {
 		if _, ok := tempMap[value]; !ok {
 			tempMap[value] = true
 			output = append(output, value)
@@ -457,38 +429,22 @@ func DedupStringList(list []string) (output []string) {
 	return
 }
 
-// EscapeString ...
-func EscapeString(s string) string {
-	var signEscapeMap = map[string]string{
-		"\\": "\\\\",
+// UniqArr Remove Repeated Element in Array
+func UniqArr(arr []string) (newArr []string) {
+	newArr = make([]string, 0)
+	for i := 0; i < len(arr); i++ {
+		repeat := false
+		for j := i + 1; j < len(arr); j++ {
+			if arr[i] == arr[j] {
+				repeat = true
+				break
+			}
+		}
+		if !repeat {
+			newArr = append(newArr, arr[i])
+		}
 	}
-
-	for source := range signEscapeMap {
-		s = strings.Replace(s, source, signEscapeMap[source], -1)
-	}
-
-	return s
-}
-
-// TimeTrack ...
-func TimeTrack(start time.Time, name string) {
-	elapsed := time.Since(start)
-	logger.Infof("function %s finishes after %s", name, elapsed)
-}
-
-// Base64Encode ...
-func Base64Encode(input []byte) string {
-	encodeString := base64.StdEncoding.EncodeToString(input)
-	return encodeString
-}
-
-// Base64Decode ...
-func Base64Decode(encodeString string) []byte {
-	decodeBytes, err := base64.StdEncoding.DecodeString(encodeString)
-	if err != nil {
-		panic(err)
-	}
-	return decodeBytes
+	return
 }
 
 // GetLocalIP .
@@ -553,46 +509,4 @@ func MaxInt(x, y int) int {
 		return x
 	}
 	return y
-}
-
-// StrNumToIntArr .
-func StrNumToIntArr(strN, sep string, lenArr int) []int {
-	intArr := []int{}
-	patten := fmt.Sprintf("[^0-9%s|\\-1\\-\\-9]", sep)
-	reg := regexp.MustCompile(patten)
-	matched := reg.FindStringSubmatch(strN)
-	if matched != nil {
-		panic(fmt.Sprintf("non-integer in strN:%s", strN))
-	}
-	strSplit := strings.Split(strN, sep)
-	for _, s := range strSplit {
-		si, _ := strconv.Atoi(s)
-		intArr = append(intArr, si)
-	}
-	n := len(intArr)
-	if lenArr > n {
-		end := intArr[n-1]
-		for i := n; i < lenArr; i++ {
-			intArr = append(intArr, end)
-		}
-	}
-	return intArr
-}
-
-// UniqArr Remove Repeated Element in Array
-func UniqArr(arr []string) (newArr []string) {
-	newArr = make([]string, 0)
-	for i := 0; i < len(arr); i++ {
-		repeat := false
-		for j := i + 1; j < len(arr); j++ {
-			if arr[i] == arr[j] {
-				repeat = true
-				break
-			}
-		}
-		if !repeat {
-			newArr = append(newArr, arr[i])
-		}
-	}
-	return
 }

@@ -223,19 +223,27 @@ func (sv *Service) GetLogDirArr(base types.VizionBaseInput) (logDirArr []string)
 		}
 	case Servicedpl.Type: // *-vset1-1
 		for _, vsetID := range base.VsetIDs {
+			for _, logPath := range sv.LogPathArr {
+				vsetLogPath := fmt.Sprintf("%s-vset%d", logPath, vsetID)
+				logDirArr = append(logDirArr, vsetLogPath)
+			}
 			for _, dplGroupID := range base.DPLGroupIDs {
 				for _, logPath := range sv.LogPathArr {
-					vsetLogPath := fmt.Sprintf("%s-vset%d-%d", logPath, vsetID, dplGroupID)
-					logDirArr = append(logDirArr, vsetLogPath)
+					dplLogPath := fmt.Sprintf("%s-vset%d-%d", logPath, vsetID, dplGroupID)
+					logDirArr = append(logDirArr, dplLogPath)
 				}
 			}
 		}
 	case Mjcachedpl.Type, Djcachedpl.Type: // *-vset1-1
 		for _, vsetID := range base.VsetIDs {
+			for _, logPath := range sv.LogPathArr {
+				vsetLogPath := fmt.Sprintf("%s-vset%d", logPath, vsetID)
+				logDirArr = append(logDirArr, vsetLogPath)
+			}
 			for _, jcacheGroupID := range base.JcacheGroupIDs {
 				for _, logPath := range sv.LogPathArr {
-					vsetLogPath := fmt.Sprintf("%s-vset%d-%d", logPath, vsetID, jcacheGroupID)
-					logDirArr = append(logDirArr, vsetLogPath)
+					jcacheLogPath := fmt.Sprintf("%s-vset%d-%d", logPath, vsetID, jcacheGroupID)
+					logDirArr = append(logDirArr, jcacheLogPath)
 				}
 			}
 		}
@@ -666,8 +674,8 @@ var (
 		Arg:  nil,
 	}
 
-	CleanJournal = CleanItem{
-		Name: "journal",
+	CleanJdevice = CleanItem{
+		Name: "j_device",
 		Arg:  nil,
 	}
 
@@ -778,12 +786,12 @@ var (
 	// DefaultCleanArray define the default cleanup item for maint/upgrade
 	DefaultCleanArray = []CleanItem{
 		CleanLog,
-		CleanJournal,
+		CleanEtcd,
+		CleanJdevice,
 		CleanSC,
-		CleanCdcgc,
 		// CleanMasterCass,  // Not need clean master cass now
 		CleanSubCass,
-		CleanEtcd,
+		CleanCdcgc,
 	}
 )
 

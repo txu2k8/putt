@@ -66,12 +66,12 @@ func (sc *Schedule) PrintPhase() error {
 	}
 
 	table, _ := prettytable.NewTable(
-		prettytable.Column{Header: "No.", AlignRight: false, MinWidth: lenIdx},
-		prettytable.Column{Header: "Step", AlignRight: false, MinWidth: lenName},
-		prettytable.Column{Header: "Result", AlignRight: false, MinWidth: lenStatus},
-		prettytable.Column{Header: "Description", AlignRight: false, MinWidth: lenDesc},
+		prettytable.Column{Header: "No.", AlignRight: false, MinWidth: lenIdx + 1},
+		prettytable.Column{Header: "Step", AlignRight: false, MinWidth: lenName + 1},
+		prettytable.Column{Header: "Result", AlignRight: false, MinWidth: lenStatus + 1},
+		prettytable.Column{Header: "Description", AlignRight: false, MinWidth: lenDesc + 1},
 	)
-	table.Separator = " | "
+	table.Separator = "|"
 	for _, p := range sc.PhaseArr {
 		table.AddRow(p.Idx, p.Name, p.Status, p.Desc)
 	}

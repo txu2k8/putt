@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"pzatest/libs/convert"
 	"pzatest/libs/prettytable"
 	"pzatest/libs/retry"
 	"pzatest/libs/retry/strategy"
@@ -90,9 +91,9 @@ func (conf *S3TestInput) ParseS3Input() {
 		conf.S3TestFileInputs[i].FileType = fArr[0]
 		conf.S3TestFileInputs[i].FileNum, _ = strconv.Atoi(fArr[1])
 		nArr := strings.Split(fArr[2], "-")
-		conf.S3TestFileInputs[i].FileSizeMin = utils.SizeCountToByte(nArr[0])
+		conf.S3TestFileInputs[i].FileSizeMin = convert.String2Byte(nArr[0])
 		if len(nArr) > 1 {
-			conf.S3TestFileInputs[i].FileSizeMax = utils.SizeCountToByte(nArr[1])
+			conf.S3TestFileInputs[i].FileSizeMax = convert.String2Byte(nArr[1])
 		} else {
 			conf.S3TestFileInputs[i].FileSizeMax = conf.S3TestFileInputs[i].FileSizeMin
 		}

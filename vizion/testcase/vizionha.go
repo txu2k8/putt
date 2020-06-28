@@ -3,6 +3,7 @@ package testcase
 import (
 	"fmt"
 	"pzatest/config"
+	"pzatest/libs/convert"
 	"pzatest/libs/random"
 	"pzatest/libs/runner/schedule"
 	"pzatest/libs/utils"
@@ -150,7 +151,7 @@ func (job *HANode) parseRestartNodes() error {
 			nodeSplit := strings.Split(inputNode, ":")
 			rNum := 0
 			if len(nodeSplit) >= 2 {
-				rNums := utils.StrNumToIntArr(nodeSplit[1], ",", 2)
+				rNums := convert.StrNumToIntArr(nodeSplit[1], ",", 2)
 				rMin := rNums[0]
 				rMax := rNums[1]
 				rNum = random.RandRangeInt(rMin, rMax)

@@ -194,13 +194,48 @@ func (t *Table) Bytes() []byte {
 		}
 		return cell.Bytes()
 	}
+
+	addFrame := func(i int, s string, max int) []byte {
+		var cell bytes.Buffer
+		if i >= 0 {
+			cell.WriteString("+")
+		}
+		w := runewidth.StringWidth(s)
+		sp := strings.Repeat(" ", t.columns[i].width-w)
+		if t.columns[i].AlignRight {
+			cell.WriteString(sp + s)
+		} else {
+			cell.WriteString(s)
+			if i <= max {
+				cell.WriteString(sp)
+			}
+		}
+
+		if i == max {
+			cell.WriteString("+")
+		}
+		return cell.Bytes()
+	}
+
+	writeFrame := func() {
+		last := len(t.columns) - 1
+		for i, c := range t.columns {
+			s := strings.Repeat("-", c.width)
+			buf.Write(addFrame(i, s, last))
+		}
+		buf.WriteByte('\n')
+	}
+
+	writeFrame()
 	if !t.NoHeader {
 		last := len(t.columns) - 1
 		for i, c := range t.columns {
 			buf.Write(addCell(i, c.Header, last))
 		}
 		buf.WriteByte('\n')
+		writeFrame()
 	}
+
 	for _, row := range t.Rows {
 		last := len(row) - 1
 		for i, s := range row {
@@ -208,6 +243,7 @@ func (t *Table) Bytes() []byte {
 		}
 		buf.WriteByte('\n')
 	}
+	writeFrame()
 	return buf.Bytes()
 }
 

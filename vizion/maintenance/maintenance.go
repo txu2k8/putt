@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"pzatest/config"
+	"pzatest/libs/convert"
 	"pzatest/libs/git"
 	"pzatest/libs/runner/schedule"
 	"pzatest/types"
@@ -324,12 +325,17 @@ func (maint *Maint) Cleanup() error {
 			if err != nil {
 				return err
 			}
-		case "journal":
+		case "etcd":
 			err = maint.Vizion.CleanEtcd(clean.Arg)
 			if err != nil {
 				return err
 			}
-			err = maint.Vizion.CleanJournal()
+		case "j_device":
+			err = maint.Vizion.CleanJdevice()
+			if err != nil {
+				return err
+			}
+			err = maint.Vizion.IsJnlFormatSuccess()
 			if err != nil {
 				return err
 			}
@@ -339,7 +345,6 @@ func (maint *Maint) Cleanup() error {
 				return err
 			}
 		case "master_cassandra":
-			formatBD = true
 			err = maint.Vizion.UpdateMasterCassTables()
 			if err != nil {
 				return err
@@ -350,12 +355,7 @@ func (maint *Maint) Cleanup() error {
 			if err != nil {
 				return err
 			}
-		case "etcd":
-			formatBD = true
-			err = maint.Vizion.CleanEtcd(clean.Arg)
-			if err != nil {
-				return err
-			}
+
 		case "cdcgc":
 			err = maint.Vizion.CleanCdcgc()
 			if err != nil {
@@ -365,7 +365,7 @@ func (maint *Maint) Cleanup() error {
 	}
 
 	if formatBD == true {
-		err = maint.Vizion.UpdateSubCassTables()
+		err = maint.Vizion.FormatBdVolume()
 		if err != nil {
 			return err
 		}
@@ -385,8 +385,8 @@ func (maint *Maint) Stop() error {
 func (maint *Maint) StopC() error {
 	var err error
 	// Stop
-	strSvNameArr := strings.Join(maint.ServiceNameArr, ",")
-	err = maint.Schedule.RunPhase(maint.Stop, schedule.Desc(strSvNameArr))
+	stopSvNameArr := strings.Join(convert.ReverseStringArr(maint.ServiceNameArr), ",")
+	err = maint.Schedule.RunPhase(maint.Stop, schedule.Desc(stopSvNameArr))
 	if err != nil {
 		return err
 	}
@@ -414,8 +414,8 @@ func (maint *Maint) Restart() error {
 	var err error
 
 	// Stop
-	strSvNameArr := strings.Join(maint.ServiceNameArr, ",")
-	err = maint.Schedule.RunPhase(maint.Stop, schedule.Desc(strSvNameArr))
+	stopSvNameArr := strings.Join(convert.ReverseStringArr(maint.ServiceNameArr), ",")
+	err = maint.Schedule.RunPhase(maint.Stop, schedule.Desc(stopSvNameArr))
 	if err != nil {
 		return err
 	}
@@ -428,7 +428,8 @@ func (maint *Maint) Restart() error {
 	}
 
 	// Start
-	err = maint.Schedule.RunPhase(maint.Start, schedule.Desc(strSvNameArr))
+	startSvNameArr := strings.Join(maint.ServiceNameArr, ",")
+	err = maint.Schedule.RunPhase(maint.Start, schedule.Desc(startSvNameArr))
 	if err != nil {
 		return err
 	}
@@ -446,8 +447,8 @@ func (maint *Maint) ApplyImage() error {
 	}
 
 	// Stop
-	strSvNameArr := strings.Join(maint.ServiceNameArr, ",")
-	err = maint.Schedule.RunPhase(maint.Stop, schedule.Desc(strSvNameArr))
+	stopSvNameArr := strings.Join(convert.ReverseStringArr(maint.ServiceNameArr), ",")
+	err = maint.Schedule.RunPhase(maint.Stop, schedule.Desc(stopSvNameArr))
 	if err != nil {
 		return err
 	}
@@ -466,7 +467,8 @@ func (maint *Maint) ApplyImage() error {
 	}
 
 	// Start
-	err = maint.Schedule.RunPhase(maint.Start, schedule.Desc(strSvNameArr))
+	startSvNameArr := strings.Join(maint.ServiceNameArr, ",")
+	err = maint.Schedule.RunPhase(maint.Start, schedule.Desc(startSvNameArr))
 	if err != nil {
 		return err
 	}

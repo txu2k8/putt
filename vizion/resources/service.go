@@ -80,9 +80,9 @@ func (s *svManager) GetMasterCassUserPwd() (user, pwd string) {
 		strV := string(v[:])
 		switch k {
 		case "CASUser":
-			user = strV // utils.Base64Encode(v)
+			user = strV // convert.Base64Encode(v)
 		case "CASPwd":
-			pwd = strV // utils.Base64Encode(v)
+			pwd = strV // convert.Base64Encode(v)
 		}
 	}
 	return
@@ -116,9 +116,9 @@ func (s *svManager) GetSubCassUserPwd(vsetID int) (user, pwd string) {
 		strV := string(v[:])
 		switch k {
 		case "CASUser":
-			user = strV // utils.Base64Encode(v)
+			user = strV // convert.Base64Encode(v)
 		case "CASPwd":
-			pwd = strV // utils.Base64Encode(v)
+			pwd = strV // convert.Base64Encode(v)
 		}
 	}
 	return

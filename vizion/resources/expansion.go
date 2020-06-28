@@ -282,8 +282,24 @@ func (v *Vizion) CleanLog(svArr []config.Service) error {
 	return nil
 }
 
-// FormatJDevice .
-func (v *Vizion) FormatJDevice(nodeIP, jdev, jdPodName string) error {
+// CleanEtcd .
+func (v *Vizion) CleanEtcd(prefixArr []string) error {
+	// etcdctlv3 del --prefix /vizion/dpl/add_vol
+	cmdArr := []string{}
+	for _, prefix := range prefixArr {
+		cmdArr = append(cmdArr, "etcdctlv3 del --prefix "+prefix)
+		cmdArr = append(cmdArr, "etcdctlv3 get --prefix "+prefix)
+	}
+	masterNode := v.MasterNode()
+	for _, cmd := range cmdArr {
+		rc, output := masterNode.RunCmd(cmd)
+		logger.Infof("%s, %s", rc, output)
+	}
+	return nil
+}
+
+// FormatJdevice Run dd command on /dev/j_device
+func (v *Vizion) FormatJdevice(nodeIP, jdev, jdPodName string) error {
 	formatCmd := fmt.Sprintf("dd if=/dev/zero of=%s bs=1k count=4", jdev)
 	if jdPodName != "" { // Run format cmd in pod
 		// TODO
@@ -295,12 +311,13 @@ func (v *Vizion) FormatJDevice(nodeIP, jdev, jdPodName string) error {
 	return nil
 }
 
-// CleanJournal . Format Journal device and etcd
-func (v *Vizion) CleanJournal() error {
+// CleanJdevice . Format Journal device on vsphere/aws env
+func (v *Vizion) CleanJdevice() error {
 	logger.Info("Format journal ...")
 	_, nodeLabelArr := config.Jddpl.GetNodeLabelArr(v.Base)
 	// podLabel := config.Jddpl.GetPodLabel(v.Base)
-	jddplNodeIPs := v.Service().GetNodeIPArrByLabels(nodeLabelArr)
+	k8sSv := v.Service()
+	jddplNodeIPs := k8sSv.GetNodeIPArrByLabels(nodeLabelArr)
 	if len(jddplNodeIPs) <= 1 {
 		return fmt.Errorf("Find jddpl Nodes <= 1")
 	}
@@ -314,9 +331,9 @@ func (v *Vizion) CleanJournal() error {
 		_, output := n.RunCmd(jdeviceLsCmd)
 		logger.Info(output)
 		if strings.Contains(output, "No such file or directory") {
-			// aws env, just support format_journal on jd_pod
+			// aws env, just support format_jdevice on jd_pod
 			awsEnv = true
-		} else { // vmware env, support format_journal on local
+		} else { // vmware env, support format_jdevice on local
 			logger.Info("Local disk, Format journal on local ...")
 			jdPodName := ""
 			matched := jdevicePattern.FindAllStringSubmatch(output, -1)
@@ -325,7 +342,7 @@ func (v *Vizion) CleanJournal() error {
 			}
 			logger.Info(jdevArr)
 			for _, jdev := range jdevArr {
-				err := v.FormatJDevice(nodeIP, jdev, jdPodName)
+				err := v.FormatJdevice(nodeIP, jdev, jdPodName)
 				if err != nil {
 					panic(err)
 				}
@@ -333,9 +350,52 @@ func (v *Vizion) CleanJournal() error {
 		}
 	}
 
-	if awsEnv == true { // if servicedpl already started, skip format_journal
-		// TODO
+	if awsEnv == true {
+		k8sSv = v.Service()
+		// if servicedpl already started, skip format_jdevice
+		dplPodLabel := config.Servicedpl.GetPodLabel(v.Base)
+		dplPods, _ := k8sSv.GetPodListByLabel(dplPodLabel)
+		if len(dplPods.Items) > 0 {
+			logger.Warning("Servicedpl already started, skip format_jdevice ..")
+			return nil
+		}
+		// aws env, support format_jdevice on jddpl pods
+		v.StartServices([]config.Service{config.Jddpl})
+		jdPodLabel := config.Jddpl.GetPodLabel(v.Base)
+		jdPods, _ := k8sSv.GetPodListByLabel(jdPodLabel)
+		if len(jdPods.Items) == 0 {
+			panic("None jddpl pods found")
+		}
+
+		for _, pod := range jdPods.Items {
+			jdPodName := pod.ObjectMeta.Name
+			nodeIP := pod.Status.HostIP
+			logger.Infof("Format journal on pod %s..", jdPodName)
+			containerName := config.Jddpl.Container
+			output, _ := k8sSv.Exec(k8s.ExecInput{
+				PodName:       jdPodName,
+				ContainerName: containerName,
+				Command:       jdeviceLsCmd,
+			})
+			matched := jdevicePattern.FindAllStringSubmatch(output.Stdout, -1)
+			for _, match := range matched {
+				jdevArr = append(jdevArr, match[0])
+			}
+			logger.Info(jdevArr)
+			for _, jdev := range jdevArr {
+				err := v.FormatJdevice(nodeIP, jdev, jdPodName)
+				if err != nil {
+					panic(err)
+				}
+			}
+		}
+		v.StopServices([]config.Service{config.Jddpl})
 	}
+	return nil
+}
+
+// IsJnlFormatSuccess Check if etcd all storage_units status=0 TODO
+func (v *Vizion) IsJnlFormatSuccess() error {
 	return nil
 }
 
@@ -413,76 +473,8 @@ func (v *Vizion) UpdateMasterCassTables() error {
 	return nil
 }
 
-// SetBdVolumeKV . TODO
-func (v *Vizion) SetBdVolumeKV(kvArr []string) error {
-	var err error
-	bdServiceArr, err := v.Cass().SetIndex("0").GetServiceByType(config.Dpldagent.Type)
-	if err != nil {
-		return err
-	}
-	bdIDs := []string{}
-	for _, bdSv := range bdServiceArr {
-		bdIDs = append(bdIDs, bdSv.ID)
-	}
-	for _, vsetID := range v.Base.VsetIDs {
-		subCass := v.Cass().SetIndex(string(vsetID))
-		volumeArr, err := subCass.GetVolume()
-		if err != nil {
-			return err
-		}
-		for _, vol := range volumeArr {
-			if vol.Status == 0 || (vol.BlockDeviceService != "" && collection.Collect(bdIDs).Contains(vol.BlockDeviceService)) {
-				continue
-			} else {
-				ctime := vol.Ctime // TODO
-				for _, kv := range kvArr {
-					logger.Infof("> Set vizion.volume: %s ...", kv)
-					cmdSpec := fmt.Sprintf("UPDATE vizion.volume SET %s WHERE type=0 AND name=%s AND c_time=%s", kv, vol.Name, ctime)
-					err = subCass.Execute(cmdSpec)
-					if err != nil {
-						return err
-					}
-				}
-			}
-		}
-	}
-	return nil
-}
-
-// UpdateSubCassTables .
-func (v *Vizion) UpdateSubCassTables() error {
-	var err error
-	// vizion.volume
-	kvArr := []string{
-		"format=False",
-		"status=2",
-		"block_device_service=null",
-	}
-	err = v.SetBdVolumeKV(kvArr)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// CleanEtcd .
-func (v *Vizion) CleanEtcd(prefixArr []string) error {
-	// etcdctlv3 del --prefix /vizion/dpl/add_vol
-	cmdArr := []string{}
-	for _, prefix := range prefixArr {
-		cmdArr = append(cmdArr, "etcdctlv3 del --prefix "+prefix)
-		cmdArr = append(cmdArr, "etcdctlv3 get --prefix "+prefix)
-	}
-	masterNode := v.MasterNode()
-	for _, cmd := range cmdArr {
-		rc, output := masterNode.RunCmd(cmd)
-		logger.Infof("%s, %s", rc, output)
-	}
-	return nil
-}
-
-// CleanCdcSubCass . TODO
-func (v *Vizion) CleanCdcSubCass(vsetIDs []int) error {
+// CleanCdcSubCassCdc .
+func (v *Vizion) CleanCdcSubCassCdc(vsetIDs []int) error {
 	cmdArr := []string{
 		"nodetool drain",
 		"rm -rf /var/lib/cassandra/cdc_cache/*",
@@ -607,7 +599,7 @@ func (v *Vizion) CleanCdcgc() error {
 		return nil
 	}
 
-	err = v.CleanCdcSubCass(cdcgcVsetIDs)
+	err = v.CleanCdcSubCassCdc(cdcgcVsetIDs)
 	if err != nil {
 		return err
 	}
@@ -627,6 +619,58 @@ func (v *Vizion) RmmodDplOnBD() error {
 		if err := node.RmModDpl(); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// SetBdVolumeKV . TODO Ctime
+func (v *Vizion) SetBdVolumeKV(kvArr []string) error {
+	var err error
+	bdServiceArr, err := v.Cass().SetIndex("0").GetServiceByType(config.Dpldagent.Type)
+	if err != nil {
+		return err
+	}
+	bdIDs := []string{}
+	for _, bdSv := range bdServiceArr {
+		bdIDs = append(bdIDs, bdSv.ID)
+	}
+	for _, vsetID := range v.Base.VsetIDs {
+		subCass := v.Cass().SetIndex(string(vsetID))
+		volumeArr, err := subCass.GetVolume()
+		if err != nil {
+			return err
+		}
+		for _, vol := range volumeArr {
+			if vol.Status == 0 || (vol.BlockDeviceService != "" && collection.Collect(bdIDs).Contains(vol.BlockDeviceService)) {
+				continue
+			} else {
+				ctime := vol.Ctime // TODO
+				for _, kv := range kvArr {
+					logger.Infof("> Set vizion.volume: %s ...", kv)
+					cmdSpec := fmt.Sprintf("UPDATE vizion.volume SET %s WHERE type=0 AND name=%s AND c_time=%s", kv, vol.Name, ctime)
+					err = subCass.Execute(cmdSpec)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// FormatBdVolume Format SubCass Volume Table
+func (v *Vizion) FormatBdVolume() error {
+	var err error
+	// vizion.volume
+	kvArr := []string{
+		"format=False",
+		"status=2",
+		"block_device_service=null",
+	}
+	err = v.SetBdVolumeKV(kvArr)
+	if err != nil {
+		return err
 	}
 	return nil
 }
