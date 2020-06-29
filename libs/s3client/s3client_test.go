@@ -2,7 +2,6 @@ package s3client
 
 import (
 	"fmt"
-	_ "pzatest/testinit"
 	"os"
 	"strings"
 	"testing"
@@ -36,7 +35,7 @@ func TestS3ListBucketObjectsConcurrently(t *testing.T) {
 	accounts := []string{"vset1_s3user"}
 	svc := NewS3Client("https://10.25.119.86:443", "4CKG9PM8MG86LEOD2EPN", "s3OkruYUFuZ6xjskUjJuWU7dSxVcy6455o8xMEeJ")
 
-	bs, _ := ListBuckets(svc)
+	bs, _ := getBuckets(svc)
 	for _, b := range bs {
 		logger.Info(b.Name + "," + b.Region)
 	}
@@ -47,7 +46,7 @@ func TestS3DeleteBucket(t *testing.T) {
 	bucketPrefix := "vset1_s3bucket_17_34"
 	svc := NewS3Client("https://10.25.119.86:443", "4CKG9PM8MG86LEOD2EPN", "s3OkruYUFuZ6xjskUjJuWU7dSxVcy6455o8xMEeJ")
 
-	bs, _ := ListBuckets(svc)
+	bs, _ := getBuckets(svc)
 	for _, b := range bs {
 		logger.Info(b.Name + "," + b.Region)
 		bucket := aws.StringValue(&b.Name)
@@ -73,7 +72,7 @@ func TestS3CreateBucket(t *testing.T) {
 	bucketName := "test_bucket"
 	svc := NewS3Client("https://10.25.119.86:443", "4CKG9PM8MG86LEOD2EPN", "s3OkruYUFuZ6xjskUjJuWU7dSxVcy6455o8xMEeJ")
 	CreateBucket(svc, bucketName)
-	bs, _ := ListBuckets(svc)
+	bs, _ := getBuckets(svc)
 	for _, b := range bs {
 		logger.Info(b.Name + "," + b.Region)
 	}

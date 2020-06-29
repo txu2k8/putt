@@ -2,14 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"pzatest/libs/runner/stress"
-	"pzatest/models"
-	"pzatest/vizion/testcase"
+	"putt/libs/runner/stress"
+	"putt/vizion/testcase"
 
 	"github.com/spf13/cobra"
 )
 
-var esTestConf = models.ESTestInput{}
+var esTestConf = testcase.ESTestInput{}
 var esTestCaseArray = map[string]string{
 	"index":   "es index test (default)",
 	"search":  "es search test",
@@ -28,6 +27,8 @@ var esCmd = &cobra.Command{
 		}
 		logger.Infof("Case List(es): %s", caseList)
 		testJobs := []stress.Job{}
+		var esTester testcase.ESTester
+		esTester = &esTestConf
 		for _, tc := range caseList {
 			logger.Warning(tc)
 			jobs := []stress.Job{}
@@ -35,7 +36,7 @@ var esCmd = &cobra.Command{
 			case "index":
 				jobs = []stress.Job{
 					{
-						Fn:       testcase.ESIndex,
+						Fn:       esTester.ESIndex,
 						Name:     "ES Index",
 						RunTimes: runTimes,
 					},
@@ -43,7 +44,7 @@ var esCmd = &cobra.Command{
 			case "search":
 				jobs = []stress.Job{
 					{
-						Fn:       testcase.ESSearch,
+						Fn:       esTester.ESSearch,
 						Name:     "ES Search",
 						RunTimes: runTimes,
 					},
@@ -51,12 +52,12 @@ var esCmd = &cobra.Command{
 			case "stress":
 				jobs = []stress.Job{
 					{
-						Fn:       testcase.ESIndex,
+						Fn:       esTester.ESIndex,
 						Name:     "ES Index",
 						RunTimes: runTimes,
 					},
 					{
-						Fn:       testcase.ESSearch,
+						Fn:       esTester.ESSearch,
 						Name:     "ES Search",
 						RunTimes: runTimes,
 					},
@@ -64,7 +65,7 @@ var esCmd = &cobra.Command{
 			case "cleanup":
 				jobs = []stress.Job{
 					{
-						Fn:       testcase.ESCleanup,
+						Fn:       esTester.ESCleanup,
 						Name:     "Cleanup ES Index",
 						RunTimes: runTimes,
 					},
@@ -77,18 +78,21 @@ var esCmd = &cobra.Command{
 	},
 }
 
+// AddFlagsES ...
+func AddFlagsES(cmd *cobra.Command) {
+	cmd.PersistentFlags().StringVar(&esTestConf.IP, "es_ip", "", "ES server IP address")
+	cmd.PersistentFlags().StringVar(&esTestConf.UserName, "es_user", "root", "ES login username")
+	cmd.PersistentFlags().StringVar(&esTestConf.Password, "es_pwd", "password", "ES login password")
+	cmd.PersistentFlags().IntVar(&esTestConf.Port, "es_port", 9211, "ES server access port")
+	cmd.PersistentFlags().StringVar(&esTestConf.IndexNamePrefix, "es_index_name", "putt", "ES index name prefix")
+	cmd.PersistentFlags().IntVar(&esTestConf.Indices, "es_indice", 50, "ES Number of indices to write")
+	cmd.PersistentFlags().IntVar(&esTestConf.Documents, "es_document", 100000, "ES Number of template documents that hold the same mapping")
+	cmd.PersistentFlags().IntVar(&esTestConf.BulkSize, "es_bulk_size", 1000, "ES Number of documents each bulk request contain")
+}
+
 func init() {
 	stressCmd.AddCommand(esCmd)
-
-	esCmd.PersistentFlags().StringVar(&esTestConf.IP, "es_ip", "", "ES server IP address")
-	esCmd.PersistentFlags().StringVar(&esTestConf.UserName, "es_user", "root", "ES login username")
-	esCmd.PersistentFlags().StringVar(&esTestConf.Password, "es_pwd", "password", "ES login password")
-	esCmd.PersistentFlags().IntVar(&esTestConf.Port, "es_port", 9211, "ES server access port")
-	esCmd.PersistentFlags().StringVar(&esTestConf.IndexNamePrefix, "index_name", "pzatest", "index name prefix")
-	esCmd.PersistentFlags().IntVar(&esTestConf.Indices, "indice", 50, "Number of indices to write")
-	esCmd.PersistentFlags().IntVar(&esTestConf.Documents, "document", 100000, "Number of template documents that hold the same mapping")
-	esCmd.PersistentFlags().IntVar(&esTestConf.BulkSize, "bulk_size", 1000, "How many documents each bulk request should contain")
-
+	AddFlagsES(esCmd)
 	esCmd.MarkPersistentFlagRequired("es_ip")
 	esCmd.MarkPersistentFlagRequired("es_port")
 }

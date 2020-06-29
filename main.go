@@ -1,10 +1,12 @@
 package main
 
 import (
-	"pzatest/cmd"
-	_ "pzatest/config"
+	"putt/cmd"
+	_ "putt/config"
 )
 
 func main() {
+
 	cmd.Execute()
+
 }

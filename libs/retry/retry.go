@@ -5,7 +5,7 @@
 package retry
 
 import (
-	"pzatest/libs/retry/strategy"
+	"putt/libs/retry/strategy"
 
 	"github.com/op/go-logging"
 )
@@ -24,7 +24,7 @@ func Retry(action Action, strategies ...strategy.Strategy) error {
 
 	for attempt := uint(0); (0 == attempt || nil != err) && shouldAttempt(attempt, strategies...); attempt++ {
 		if attempt > 0 {
-			logger.Warningf("%s Retry:%d ...", err, attempt)
+			logger.Warningf("%s, Retry:%d ...", err, attempt)
 		}
 		err = action(attempt)
 	}

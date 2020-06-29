@@ -1,30 +1,22 @@
 package sshmgr
 
 import (
-	"pzatest/libs/retry"
-	"pzatest/libs/retry/backoff"
-	"pzatest/libs/retry/jitter"
-	"pzatest/libs/retry/strategy"
 	"log"
 	"math/rand"
 	"os"
+	"putt/libs/retry"
+	"putt/libs/retry/backoff"
+	"putt/libs/retry/jitter"
+	"putt/libs/retry/strategy"
 	"testing"
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestRunCmdWithOutput(t *testing.T) {
-	sshInput := SSHInput{"10.25.119.1", "root", "password", 22, ""}
-	session, _ := sshInput.NewSessionWithRetry()
-	defer session.Close()
-	rc, output := RunCmdWithOutput(session, "pwd; ls")
-	logger.Infof("%d, %s\n", rc, output)
-}
-
 func TestRunCmd(t *testing.T) {
-	sshInput := SSHInput{"10.25.119.1", "root", "password", 22, ""}
-	rc, output := sshInput.RunCmd("pwd; ls")
+	sshMgr := NewSSHMgr("10.25.119.1", SSHKey{UserName: "root", Password: "password", Port: 22, KeyFile: ""})
+	rc, output := sshMgr.RunCmd("pwd; ls")
 	logger.Infof("%d, %s\n", rc, output)
 }
 

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"pzatest/libs/retry/backoff"
-	"pzatest/libs/retry/jitter"
+	"putt/libs/retry/backoff"
+	"putt/libs/retry/jitter"
 
 	"github.com/op/go-logging"
 	"github.com/schollz/progressbar/v3"
@@ -52,7 +52,8 @@ func Limit(attemptLimit uint) Strategy {
 func Delay(duration time.Duration) Strategy {
 	return func(attempt uint) bool {
 		if 0 == attempt {
-			time.Sleep(duration)
+			SleepProgressBar(duration)
+			// time.Sleep(duration)
 		}
 
 		return true
@@ -64,7 +65,7 @@ func Delay(duration time.Duration) Strategy {
 // provided, then the strategy uses the last duration provided.
 func Wait(durations ...time.Duration) Strategy {
 	return func(attempt uint) bool {
-		if 0 < attempt && 0 < len(durations) {
+		if 1 < attempt && 0 < len(durations) {
 			durationIndex := int(attempt - 1)
 
 			if len(durations) <= durationIndex {
@@ -88,8 +89,9 @@ func Backoff(algorithm backoff.Algorithm) Strategy {
 // duration as defined by the given backoff.Algorithm and jitter.Transformation.
 func BackoffWithJitter(algorithm backoff.Algorithm, transformation jitter.Transformation) Strategy {
 	return func(attempt uint) bool {
-		if 0 < attempt {
-			time.Sleep(transformation(algorithm(attempt)))
+		if 1 < attempt {
+			SleepProgressBar(transformation(algorithm(attempt)))
+			// time.Sleep(transformation(algorithm(attempt)))
 		}
 
 		return true
