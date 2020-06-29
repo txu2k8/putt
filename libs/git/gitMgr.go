@@ -3,7 +3,7 @@ package git
 import (
 	"fmt"
 	"path"
-	"pzatest/libs/sshmgr"
+	"putt/libs/sshmgr"
 	"strings"
 
 	"github.com/op/go-logging"

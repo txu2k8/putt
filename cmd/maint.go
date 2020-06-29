@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"pzatest/config"
-	"pzatest/libs/runner/stress"
-	"pzatest/vizion/maintenance"
+	"putt/config"
+	"putt/libs/runner/stress"
+	"putt/vizion/maintenance"
 
 	"github.com/spf13/cobra"
 )
@@ -30,7 +30,7 @@ var stopCmd = &cobra.Command{
 	Use:     "stop",
 	Short:   "Maintaince mode tools: stop service",
 	Long:    "Stop specified services(default:All DPL+APP)",
-	Example: "pzatest maint stop --master_ips 10.25.119.71 --vset_ids 1 --services es --clean all",
+	Example: "putt maint stop --master_ips 10.25.119.71 --vset_ids 1 --services es --clean all",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint stop services ...")
 		var maintainer maintenance.Maintainer

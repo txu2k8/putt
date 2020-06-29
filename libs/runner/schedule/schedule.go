@@ -1,7 +1,7 @@
 package schedule
 
 import (
-	"pzatest/libs/prettytable"
+	"putt/libs/prettytable"
 	"reflect"
 	"runtime"
 	"strconv"

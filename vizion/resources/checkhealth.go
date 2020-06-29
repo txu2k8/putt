@@ -2,10 +2,10 @@ package resources
 
 import (
 	"fmt"
-	"pzatest/config"
-	"pzatest/libs/retry"
-	"pzatest/libs/retry/strategy"
-	"pzatest/libs/utils"
+	"putt/config"
+	"putt/libs/retry"
+	"putt/libs/retry/strategy"
+	"putt/libs/utils"
 	"strconv"
 	"strings"
 	"time"

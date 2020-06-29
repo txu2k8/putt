@@ -6,7 +6,7 @@ If you have any questions or requirements, please let me know.
 ## Install
 
 ```shell
-go get -u gitlab.xxx.com/stress/pzatest
+go get -u gitlab.xxx.com/stress/putt
 ```
 
 ## Usage
@@ -15,8 +15,8 @@ go get -u gitlab.xxx.com/stress/pzatest
 
 ```shell
 # 1.1 Get source code from git
-git clone git@gitlab.panzura.com:stress/pzatest.git
-cd pzatest
+git clone git@gitlab.panzura.com:stress/putt.git
+cd putt
 
 # 1.2 set env GOPATH
 vi /etc/profile
@@ -34,19 +34,19 @@ go build
 
 # 1.5 run with source code
 go run main.go -h
-./pzatest -h
+./putt -h
 ```
 
 ### 2. Basic usage
 
 ```shell
-$ ./pzatest.exe -h
-2020-05-13T12:35:06 test INFO: Args: pzatest -h
-pzatest project for "Stress | DevOps | Maintenance | ..."
+$ ./putt.exe -h
+2020-05-13T12:35:06 test INFO: Args: putt -h
+putt project for "Stress | DevOps | Maintenance | ..."
 
 Usage:
-  pzatest [flags]
-  pzatest [command]
+  putt [flags]
+  putt [command]
 
 Available Commands:
   deploy      Deploy test env
@@ -57,7 +57,7 @@ Available Commands:
 Flags:
       --case stringArray         Test Case Array
       --dpl_group_ids ints       dpl group ids array (default [1])
-  -h, --help                     help for pzatest
+  -h, --help                     help for putt
       --jd_group_ids ints        jd group ids array (default [1])
       --master_ips stringArray   Master nodes IP address Array
       --run_times int            Run test case with iteration loop (default 10)
@@ -67,7 +67,7 @@ Flags:
       --ssh_user string          ssh login user (default "root")
       --vset_ids ints            vset IDs array
 
-Use "pzatest [command] --help" for more information about a command.
+Use "putt [command] --help" for more information about a command.
 ```
 
 ### 3. Module Details

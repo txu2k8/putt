@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"pzatest/libs/retry"
-	"pzatest/libs/retry/strategy"
-	"pzatest/libs/utils"
+	"putt/libs/retry"
+	"putt/libs/retry/strategy"
+	"putt/libs/utils"
 	"time"
 
 	"github.com/xanzy/go-gitlab"

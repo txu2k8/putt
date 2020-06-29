@@ -2,9 +2,9 @@ package k8s
 
 import (
 	"fmt"
-	"pzatest/libs/retry"
-	"pzatest/libs/retry/strategy"
-	"pzatest/libs/utils"
+	"putt/libs/retry"
+	"putt/libs/retry/strategy"
+	"putt/libs/utils"
 	"strings"
 	"time"
 

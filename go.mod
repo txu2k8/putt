@@ -1,4 +1,4 @@
-module pzatest
+module putt
 
 go 1.14
 

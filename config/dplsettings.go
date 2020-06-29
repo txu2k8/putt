@@ -2,8 +2,8 @@ package config
 
 import (
 	"fmt"
-	"pzatest/libs/utils"
-	"pzatest/types"
+	"putt/libs/utils"
+	"putt/types"
 	"strings"
 
 	"github.com/op/go-logging"

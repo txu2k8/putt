@@ -3,7 +3,7 @@ package resources
 // Define dplmanager opt on vizion node, by ssh to node and then run dplmanager commands
 
 import (
-	"pzatest/libs/sshmgr"
+	"putt/libs/sshmgr"
 	"strings"
 )
 

@@ -3,7 +3,7 @@ package resources
 import (
 	"errors"
 	"fmt"
-	"pzatest/libs/db"
+	"putt/libs/db"
 
 	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx"

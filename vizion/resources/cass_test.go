@@ -1,7 +1,7 @@
 package resources
 
 import (
-	"pzatest/libs/db"
+	"putt/libs/db"
 	"testing"
 
 	"github.com/gocql/gocql"

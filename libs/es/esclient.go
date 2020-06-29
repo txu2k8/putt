@@ -2,8 +2,8 @@ package es
 
 import (
 	"context"
-	"pzatest/config"
-	"pzatest/libs/utils"
+	"putt/config"
+	"putt/libs/utils"
 	"strings"
 	"sync"
 	"time"

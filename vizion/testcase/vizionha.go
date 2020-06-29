@@ -2,13 +2,13 @@ package testcase
 
 import (
 	"fmt"
-	"pzatest/config"
-	"pzatest/libs/convert"
-	"pzatest/libs/random"
-	"pzatest/libs/runner/schedule"
-	"pzatest/libs/utils"
-	"pzatest/types"
-	"pzatest/vizion/resources"
+	"putt/config"
+	"putt/libs/convert"
+	"putt/libs/random"
+	"putt/libs/runner/schedule"
+	"putt/libs/utils"
+	"putt/types"
+	"putt/vizion/resources"
 	"strings"
 )
 

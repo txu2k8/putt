@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"pzatest/libs/runner/stress"
-	"pzatest/vizion/testcase"
+	"putt/libs/runner/stress"
+	"putt/vizion/testcase"
 
 	"github.com/spf13/cobra"
 )

@@ -1,7 +1,7 @@
 package types
 
 import (
-	"pzatest/libs/sshmgr"
+	"putt/libs/sshmgr"
 )
 
 // VizionBaseInput ...

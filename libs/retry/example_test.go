@@ -7,11 +7,11 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"pzatest/libs/retry"
+	"putt/libs/retry"
 
-	"pzatest/libs/retry/backoff"
-	"pzatest/libs/retry/jitter"
-	"pzatest/libs/retry/strategy"
+	"putt/libs/retry/backoff"
+	"putt/libs/retry/jitter"
+	"putt/libs/retry/strategy"
 	"time"
 )
 

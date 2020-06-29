@@ -2,10 +2,10 @@ package resources
 
 import (
 	"fmt"
-	"pzatest/libs/db"
-	"pzatest/libs/k8s"
-	"pzatest/libs/utils"
-	"pzatest/types"
+	"putt/libs/db"
+	"putt/libs/k8s"
+	"putt/libs/utils"
+	"putt/types"
 	"strconv"
 
 	"github.com/op/go-logging"

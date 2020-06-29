@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"pzatest/libs/retry/backoff"
-	"pzatest/libs/retry/jitter"
+	"putt/libs/retry/backoff"
+	"putt/libs/retry/jitter"
 
 	"github.com/op/go-logging"
 	"github.com/schollz/progressbar/v3"

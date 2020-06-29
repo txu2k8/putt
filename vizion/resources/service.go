@@ -2,10 +2,10 @@ package resources
 
 import (
 	"fmt"
-	"pzatest/config"
-	"pzatest/libs/k8s"
-	"pzatest/libs/utils"
-	"pzatest/types"
+	"putt/config"
+	"putt/libs/k8s"
+	"putt/libs/utils"
+	"putt/types"
 	"strings"
 	"sync"
 	"time"

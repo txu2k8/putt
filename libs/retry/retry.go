@@ -5,7 +5,7 @@
 package retry
 
 import (
-	"pzatest/libs/retry/strategy"
+	"putt/libs/retry/strategy"
 
 	"github.com/op/go-logging"
 )

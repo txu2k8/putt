@@ -11,7 +11,7 @@ export GOPATH="$CURDIR"
 
 gofmt -w src
 
-go install pzatest
+go install putt
 
 export GOPATH="$OLDGOPATH"
 

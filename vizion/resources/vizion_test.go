@@ -1,8 +1,8 @@
 package resources
 
 import (
-	"pzatest/libs/sshmgr"
-	"pzatest/types"
+	"putt/libs/sshmgr"
+	"putt/types"
 	"testing"
 )
 

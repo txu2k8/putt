@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"pzatest/config"
-	"pzatest/libs/tlog"
-	"pzatest/libs/utils"
-	"pzatest/types"
+	"putt/config"
+	"putt/libs/tlog"
+	"putt/libs/utils"
+	"putt/types"
 	"strings"
 	"time"
 
@@ -26,9 +26,9 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "pzatest",
+	Use:   "putt",
 	Short: "The rootCmd of this test project",
-	Long:  `pzatest project for "Stress | DevOps | Maintenance | ..."`,
+	Long:  `putt project for "Stress | DevOps | Maintenance | ..."`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
@@ -118,7 +118,7 @@ func initLogging() {
 		tlog.OptionSetFileLogPath(fileLogPath),
 	)
 	conf.InitLogging()
-	logger.Infof("Args: pzatest %s", strings.Join(os.Args[1:], " "))
+	logger.Infof("Args: putt %s", strings.Join(os.Args[1:], " "))
 }
 
 // ========== Common functions ==========
