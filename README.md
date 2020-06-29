@@ -15,7 +15,7 @@ go get -u gitlab.xxx.com/stress/putt
 
 ```shell
 # 1.1 Get source code from git
-git clone git@gitlab.panzura.com:stress/putt.git
+git clone git@gitlab.xxx.com:stress/putt.git
 cd putt
 
 # 1.2 set env GOPATH
@@ -35,6 +35,7 @@ go build
 # 1.5 run with source code
 go run main.go -h
 ./putt -h
+putt.exe -h
 ```
 
 ### 2. Basic usage
@@ -42,26 +43,31 @@ go run main.go -h
 ```shell
 $ ./putt.exe -h
 2020-05-13T12:35:06 test INFO: Args: putt -h
-putt project for "Stress | DevOps | Maintenance | ..."
+putt project for "Maintenance | DevOps | StressTest ..."
 
 Usage:
   putt [flags]
   putt [command]
 
 Available Commands:
-  deploy      Deploy test env
-  stress      Stress test
+  deploy      Deploy test envmaint
+  maint       Maintaince mode tools
   tools       DevOps tools
+  stress      Stress test
+  version     putt version
   help        Help about any command
 
 Flags:
-      --case stringArray         Test Case Array
+      --case stringArray         Test Case Array (default value in sub-command)
+      --cmap_group_ids ints      cmap group ids array (default [1])
       --dpl_group_ids ints       dpl group ids array (default [1])
   -h, --help                     help for putt
+      --jcache_group_ids ints    jcache group ids array (default [1])
       --jd_group_ids ints        jd group ids array (default [1])
+      --k8s_namespace string     k8s namespace (default "vizion")
       --master_ips stringArray   Master nodes IP address Array
-      --run_times int            Run test case with iteration loop (default 10)
-      --ssh_key string           ssh login PrivateKey file full path
+      --run_times int            Run test case with iteration loop (default 1)
+      --ssh_key string           ssh login PrivateKey file full path (default "")
       --ssh_port int             ssh login port (default 22)
       --ssh_pwd string           ssh login password (default "password")
       --ssh_user string          ssh login user (default "root")

@@ -14,7 +14,7 @@ func TestGitMgr(t *testing.T) {
 
 func TestGitlab(t *testing.T) {
 	config := GitlabConfig{
-		BaseURL: "http://gitlab.panzura.com",
+		BaseURL: "http://gitlab.xxx.com",
 		Token:   "xjB1FHHyJHNQUhgy7K11",
 	}
 	gitMgr := NewGitlabClient(config)
