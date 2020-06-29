@@ -12,7 +12,7 @@ require (
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
-	github.com/googleapis/gnostic v0.4.1 // indirect
+	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/jinzhu/configor v1.2.0
 	github.com/json-iterator/go v1.1.9 // indirect
@@ -36,9 +36,9 @@ require (
 	golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6 // indirect
 	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f // indirect
 	google.golang.org/appengine v1.6.5 // indirect
-	k8s.io/api v0.16.10
-	k8s.io/apimachinery v0.16.10
-	k8s.io/client-go v0.16.10
+	k8s.io/api v0.17.2
+	k8s.io/apimachinery v0.17.2
+	k8s.io/client-go v0.17.2
 	k8s.io/utils v0.0.0-20200520001619-278ece378a50 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )

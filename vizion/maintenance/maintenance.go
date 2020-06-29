@@ -375,10 +375,9 @@ func (maint *Maint) Cleanup() error {
 
 // Stop - maint
 func (maint *Maint) Stop() error {
-	var err error
-	// stopServiceArr := config.ReverseServiceArr(maint.ServiceArr)
-	// err = maint.Vizion.StopServices(stopServiceArr)
-	return err
+	// stop service order by ReverseServiceArr
+	stopServiceArr := config.ReverseServiceArr(maint.ServiceArr)
+	return maint.Vizion.StopServices(stopServiceArr)
 }
 
 // StopC - maint: Stop -> Cleanup
@@ -408,9 +407,7 @@ func (maint *Maint) StopC() error {
 // Start - maint
 func (maint *Maint) Start() error {
 	// logger.Info(utils.Prettify(maint))
-	// err := maint.Vizion.StartServices(maint.ServiceArr)
-	// return err
-	return nil
+	return maint.Vizion.StartServices(maint.ServiceArr)
 }
 
 // Restart - maint: Stop -> Cleanup -> Start

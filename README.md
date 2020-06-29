@@ -21,7 +21,7 @@ cd putt
 # 1.2 set env GOPATH
 vi /etc/profile
 export GOROOT=/usr/local/go  # Set the default goroot for go install path
-export GOPATH=$HOME/workspace/gocode   # set default gopath for go src/pkgs path
+export GOPATH=$HOME/workspace/go   # set default gopath for go src/pkgs path
 export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 source /etc/profile
 
