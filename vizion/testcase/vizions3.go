@@ -211,8 +211,8 @@ func CheckDownloadMd5sum(uploadFiles []UploadFile, downloadDir string) error {
 		prettytable.Column{Header: "Upload", AlignRight: false, MinWidth: 20},
 		prettytable.Column{Header: fmt.Sprintf("Download(%s)", downloadDir), AlignRight: false, MinWidth: 30},
 	)
-	table.Separator = " | "
-	tableErr.Separator = " | "
+	table.Separator = "|"
+	tableErr.Separator = "|"
 
 	for _, file := range uploadFiles {
 		fileName := file.FileName
