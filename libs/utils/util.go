@@ -19,6 +19,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -462,11 +463,11 @@ func GetLocalIP() (ip string) {
 // IsPingOK .
 func IsPingOK(ip string) error {
 	var cmdSpc string
-	sysstr := "Windows"
-	switch sysstr {
-	case "Windows":
+	sysType := runtime.GOOS
+	switch sysType {
+	case "windows":
 		cmdSpc = fmt.Sprintf("C:\\Windows\\System32\\ping %s", ip)
-	case "Linux":
+	case "linux":
 		cmdSpc = fmt.Sprintf("ping -c1 %s", ip)
 	default:
 		cmdSpc = fmt.Sprintf("ping %s", ip)
