@@ -62,7 +62,8 @@ func (v *Vizion) GetKubeConfig() {
 		return
 	}
 	fqdn := "kubernetes.vizion.local"
-	kubePath := "/tmp/kube"
+	dir, _ := os.Getwd()
+	kubePath := path.Join(dir, "kube")
 	_, err := os.Stat(kubePath)
 	if os.IsNotExist(err) {
 		err := os.MkdirAll(kubePath, os.ModePerm)
