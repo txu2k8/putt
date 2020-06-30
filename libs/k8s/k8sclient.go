@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"putt/libs/utils"
 	"time"
 
 	"github.com/op/go-logging"
@@ -47,6 +48,7 @@ type ClientSet interface {
 
 	// sts ...
 	GetStatefulSetsNameArrByLabel(labelSelector string) (stsNameArr []string, err error)
+	GetStatefulSetsImage(stsName, containerName string) (image string, err error)
 	SetStatefulSetsReplicas(stsName string, replicas int) error
 	SetStatefulSetsImage(stsName, containerName, image string) error
 
@@ -169,7 +171,7 @@ func (c *Client) Exec(input ExecInput) (ExecOutPut, error) {
 		logger.Errorf("%+v", pod.Spec.Containers)
 		containerName = pod.Spec.Containers[0].Name
 	}
-
+	command := []string{"/bin/sh", "-c", input.Command}
 	req := c.Clientset.CoreV1().RESTClient().
 		Post().
 		Namespace(pod.Namespace).
@@ -178,15 +180,14 @@ func (c *Client) Exec(input ExecInput) (ExecOutPut, error) {
 		Param("container", containerName).
 		SubResource("exec").VersionedParams(&v1.PodExecOptions{
 		Container: containerName,
-		Command:   []string{"/bin/sh", "-c", input.Command},
+		Command:   command,
 		Stdin:     true,
 		Stdout:    true,
-		// Stderr:    true,
-		// TTY: true,
+		Stderr:    true,
+		TTY:       true,
 	}, scheme.ParameterCodec)
+	logger.Infof("%+v", utils.Prettify(command))
 	logger.Infof("%+v", req.URL())
-
-	logger.Errorf("%+v", req.URL())
 	exec, err := remotecommand.NewSPDYExecutor(c.Config, "POST", req.URL())
 	if err != nil {
 		panic(err)
@@ -195,8 +196,8 @@ func (c *Client) Exec(input ExecInput) (ExecOutPut, error) {
 	err = exec.Stream(remotecommand.StreamOptions{
 		Stdin:  os.Stdin,
 		Stdout: &stdout,
-		// Stderr: &stderr,
-		// Tty: true,
+		Stderr: &stderr,
+		Tty:    true,
 	})
 	if err != nil {
 		logger.Errorf("out :%+v, err:%+v", stdout, stderr)

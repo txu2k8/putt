@@ -3,8 +3,10 @@ package resources
 import (
 	"errors"
 	"fmt"
+	"putt/config"
 	"putt/libs/db"
 
+	"github.com/chenhg5/collection"
 	"github.com/gocql/gocql"
 	"github.com/scylladb/gocqlx"
 	"github.com/scylladb/gocqlx/qb"
@@ -24,6 +26,18 @@ type CassCluster interface {
 	GetServiceByType(serviceType int) ([]Service, error)
 	GetServiceByTypeID(serviceType int, serviceUUID string) ([]Service, error)
 	GetServiceByTypeVsetID(serviceType int, vsetID int) ([]Service, error)
+	GetAllServices(serviceType int) (svArr []Service)
+	MjcachedplServices() (svArr []Service)
+	DjcachedplServices() (svArr []Service)
+	AnchordplServices() (svArr []Service)
+	JddplServices() (svArr []Service)
+	ServicedplServices() (svArr []Service)
+	FlushdplServices() (svArr []Service)
+	McmapdplServices() (svArr []Service)
+	DcmapdplServices() (svArr []Service)
+	CmapdplServices() (svArr []Service)
+	Vizions3Services() (svArr []Service)
+	DpldagentServices() (svArr []Service)
 	GetVolume() ([]Volume, error)
 	GetTenant() ([]Tenant, error)
 	GetS3User() ([]S3User, error)
@@ -37,12 +51,14 @@ type sessCluster struct {
 	Session    *gocql.Session
 	ConfigMap  map[string]db.CassConfig  // {"0": db.CassConfig}
 	SessionMap map[string]*gocql.Session // {"0": *gocql.Session}
+	VsetIDs    []int                     // base.VsetIDs
 }
 
 func newSessCluster(v *Vizion) *sessCluster {
 	return &sessCluster{
 		ConfigMap:  v.GetCassConfig(),
 		SessionMap: map[string]*gocql.Session{"0": nil},
+		VsetIDs:    v.Base.VsetIDs,
 	}
 }
 
@@ -171,6 +187,88 @@ func (c *sessCluster) GetServiceByTypeVsetID(serviceType int, vsetID int) ([]Ser
 	stmt, names := SelectServiceByTypeVsetID(serviceType, vsetID)
 	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&services)
 	return services, err
+}
+
+// GetServices .
+func (c *sessCluster) GetAllServices(serviceType int) (svArr []Service) {
+	vset0SvTypeArr := []int{
+		config.Jddpl.Type,
+		config.Dcmapdpl.Type,
+		config.Mcmapdpl.Type,
+		config.Dpldagent.Type,
+	}
+
+	if collection.Collect(vset0SvTypeArr).Contains(serviceType) {
+		vsetSvArr, _ := c.GetServiceByTypeVsetID(serviceType, 0)
+		svArr = append(svArr, vsetSvArr...)
+
+	} else {
+		for _, vsetID := range c.VsetIDs {
+			vsetSvArr, _ := c.GetServiceByTypeVsetID(serviceType, vsetID)
+			svArr = append(svArr, vsetSvArr...)
+		}
+	}
+
+	return
+}
+
+// MjcachedplServices .
+func (c *sessCluster) MjcachedplServices() (svArr []Service) {
+	return c.GetAllServices(config.Mjcachedpl.Type)
+}
+
+// DjcachedplServices .
+func (c *sessCluster) DjcachedplServices() (svArr []Service) {
+	return c.GetAllServices(config.Djcachedpl.Type)
+}
+
+// AnchordplServices .
+func (c *sessCluster) AnchordplServices() (svArr []Service) {
+	svArr = append(svArr, c.MjcachedplServices()...)
+	svArr = append(svArr, c.DjcachedplServices()...)
+	return
+}
+
+// JddplServices .
+func (c *sessCluster) JddplServices() (svArr []Service) {
+	return c.GetAllServices(config.Jddpl.Type)
+}
+
+// ServicedplServices .
+func (c *sessCluster) ServicedplServices() (svArr []Service) {
+	return c.GetAllServices(config.Servicedpl.Type)
+}
+
+// FlushdplServices .
+func (c *sessCluster) FlushdplServices() (svArr []Service) {
+	return c.GetAllServices(config.Flushdpl.Type)
+}
+
+// McmapdplServices .
+func (c *sessCluster) McmapdplServices() (svArr []Service) {
+	return c.GetAllServices(config.Mcmapdpl.Type)
+}
+
+// DcmapdplServices .
+func (c *sessCluster) DcmapdplServices() (svArr []Service) {
+	return c.GetAllServices(config.Dcmapdpl.Type)
+}
+
+// CmapdplServices .
+func (c *sessCluster) CmapdplServices() (svArr []Service) {
+	svArr = append(svArr, c.McmapdplServices()...)
+	svArr = append(svArr, c.DcmapdplServices()...)
+	return
+}
+
+// Vizions3Services .
+func (c *sessCluster) Vizions3Services() (svArr []Service) {
+	return c.GetAllServices(config.Vizions3.Type)
+}
+
+// DpldagentServices .
+func (c *sessCluster) DpldagentServices() (svArr []Service) {
+	return c.GetAllServices(config.Dpldagent.Type)
 }
 
 // GetVolume ...

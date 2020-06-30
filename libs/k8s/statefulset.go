@@ -22,6 +22,24 @@ func (c *Client) GetStatefulSetsNameArrByLabel(labelSelector string) (stsNameArr
 	return stsNameArr, nil
 }
 
+// GetStatefulSetsImage .
+func (c *Client) GetStatefulSetsImage(stsName, containerName string) (image string, err error) {
+	result, getErr := c.Clientset.AppsV1().StatefulSets(c.NameSpace).Get(stsName, metav1.GetOptions{})
+	if getErr != nil {
+		panic(fmt.Errorf("Failed to get latest version of StatefulSets: %v", getErr))
+	}
+
+	for idx, container := range result.Spec.Template.Spec.Containers {
+		if container.Name == containerName {
+			image = result.Spec.Template.Spec.Containers[idx].Image
+			logger.Infof("StatefulSets Image: %s[%s] -> %s", stsName, containerName, image)
+			return
+		}
+	}
+	err = fmt.Errorf("Got none container by %s:%s", stsName, containerName)
+	return
+}
+
 // SetStatefulSetsReplicas .
 func (c *Client) SetStatefulSetsReplicas(stsName string, replicas int) error {
 	result, getErr := c.Clientset.AppsV1().StatefulSets(c.NameSpace).Get(stsName, metav1.GetOptions{})

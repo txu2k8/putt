@@ -45,7 +45,6 @@ type Maint struct {
 	ServiceNameArr    []string
 	BinaryNameArr     []string
 	CleanNameArr      []string
-	Schedule          schedule.Schedule
 }
 
 // GitInput ...
@@ -385,7 +384,7 @@ func (maint *Maint) StopC() error {
 	var err error
 	// Stop
 	stopSvNameArr := strings.Join(convert.ReverseStringArr(maint.ServiceNameArr), ",")
-	err = maint.Schedule.RunPhase(maint.Stop, schedule.Desc(stopSvNameArr))
+	err = maint.Vizion.Schedule.RunPhase(maint.Stop, schedule.Desc(stopSvNameArr))
 	if err != nil {
 		return err
 	}
@@ -396,7 +395,7 @@ func (maint *Maint) StopC() error {
 	if len(maint.CleanNameArr) < 0 {
 		skipCleanup = true
 	}
-	err = maint.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr), schedule.Skip(skipCleanup))
+	err = maint.Vizion.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr), schedule.Skip(skipCleanup))
 	if err != nil {
 		return err
 	}
@@ -407,7 +406,9 @@ func (maint *Maint) StopC() error {
 // Start - maint
 func (maint *Maint) Start() error {
 	// logger.Info(utils.Prettify(maint))
-	return maint.Vizion.StartServices(maint.ServiceArr)
+	// return maint.Vizion.StartServices(maint.ServiceArr)
+	maint.Vizion.CheckHealth()
+	return nil
 }
 
 // Restart - maint: Stop -> Cleanup -> Start
@@ -416,7 +417,7 @@ func (maint *Maint) Restart() error {
 
 	// Stop
 	stopSvNameArr := strings.Join(convert.ReverseStringArr(maint.ServiceNameArr), ",")
-	err = maint.Schedule.RunPhase(maint.Stop, schedule.Desc(stopSvNameArr))
+	err = maint.Vizion.Schedule.RunPhase(maint.Stop, schedule.Desc(stopSvNameArr))
 	if err != nil {
 		return err
 	}
@@ -427,14 +428,14 @@ func (maint *Maint) Restart() error {
 	if len(maint.CleanNameArr) < 0 {
 		skipCleanup = true
 	}
-	err = maint.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr), schedule.Skip(skipCleanup))
+	err = maint.Vizion.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr), schedule.Skip(skipCleanup))
 	if err != nil {
 		return err
 	}
 
 	// Start
 	startSvNameArr := strings.Join(maint.ServiceNameArr, ",")
-	err = maint.Schedule.RunPhase(maint.Start, schedule.Desc(startSvNameArr))
+	err = maint.Vizion.Schedule.RunPhase(maint.Start, schedule.Desc(startSvNameArr))
 	if err != nil {
 		return err
 	}
@@ -446,14 +447,14 @@ func (maint *Maint) Restart() error {
 func (maint *Maint) ApplyImage() error {
 	var err error
 	// isImageOK: Wait for image OK on gitlab
-	err = maint.Schedule.RunPhase(maint.isImageOK, schedule.Desc(maint.Image))
+	err = maint.Vizion.Schedule.RunPhase(maint.isImageOK, schedule.Desc(maint.Image))
 	if err != nil {
 		return err
 	}
 
 	// Stop
 	stopSvNameArr := strings.Join(convert.ReverseStringArr(maint.ServiceNameArr), ",")
-	err = maint.Schedule.RunPhase(maint.Stop, schedule.Desc(stopSvNameArr))
+	err = maint.Vizion.Schedule.RunPhase(maint.Stop, schedule.Desc(stopSvNameArr))
 	if err != nil {
 		return err
 	}
@@ -464,20 +465,20 @@ func (maint *Maint) ApplyImage() error {
 	if len(maint.CleanNameArr) < 0 {
 		skipCleanup = true
 	}
-	err = maint.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr), schedule.Skip(skipCleanup))
+	err = maint.Vizion.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr), schedule.Skip(skipCleanup))
 	if err != nil {
 		return err
 	}
 
 	// setImage
-	err = maint.Schedule.RunPhase(maint.setImage, schedule.Desc(maint.Image))
+	err = maint.Vizion.Schedule.RunPhase(maint.setImage, schedule.Desc(maint.Image))
 	if err != nil {
 		return err
 	}
 
 	// Start
 	startSvNameArr := strings.Join(maint.ServiceNameArr, ",")
-	err = maint.Schedule.RunPhase(maint.Start, schedule.Desc(startSvNameArr))
+	err = maint.Vizion.Schedule.RunPhase(maint.Start, schedule.Desc(startSvNameArr))
 	if err != nil {
 		return err
 	}
@@ -490,7 +491,7 @@ func (maint *Maint) UpgradeCore() error {
 	var err error
 
 	// MakeImage
-	err = maint.Schedule.RunPhase(maint.MakeImage)
+	err = maint.Vizion.Schedule.RunPhase(maint.MakeImage)
 	if err != nil {
 		return err
 	}

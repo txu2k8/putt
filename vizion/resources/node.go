@@ -33,6 +33,7 @@ type NodeInterface interface {
 	PutEtcdCerts(localCertsPathArr []string) error
 
 	GetCrashDirs() (crashArr []string)
+	GetCoreFiles(dirFilter []string) (coreArr []string)
 	GetLogDirs(dirFilter []string) (logDirArr []string)
 	CleanLog(dirFilter []string) error
 	DeleteFiles(topPath string) error
@@ -41,6 +42,7 @@ type NodeInterface interface {
 	RmModDpl() error
 	IsDplDeviceExist(devName string) bool
 	WaitDplDeviceRemoved(devName string) error
+	GetEtcdMembers() []string
 }
 
 // nodes implements NodeInterface
@@ -193,6 +195,19 @@ func (n *node) GetCrashDirs() (crashArr []string) {
 	return
 }
 
+func (n *node) GetCoreFiles(dirFilter []string) (coreArr []string) {
+	logger.Info("Find core files ...")
+	logDirs := n.GetLogDirs(dirFilter)
+	for _, logDir := range logDirs {
+		cmdSpec := fmt.Sprintf("find %s -name 'core.*'", logDir)
+		_, output := n.RunCmd(cmdSpec)
+		if output != "" {
+			coreArr = append(coreArr, strings.Split(strings.TrimSuffix(output, "\n"), "\n")...)
+		}
+	}
+	return
+}
+
 func (n *node) GetLogDirs(dirFilter []string) (logDirArr []string) {
 	logPathArr := []string{
 		"/var/log/",
@@ -315,4 +330,12 @@ func (n *node) WaitDplDeviceRemoved(devName string) error {
 		strategy.Wait(30*time.Second),
 	)
 	return err
+}
+
+func (n *node) GetEtcdMembers() []string {
+	cmdSpec := "etcdctlv3 member list"
+	_, output := n.RunCmd(cmdSpec)
+	logger.Infof("\n%s", output)
+	members := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
+	return members
 }

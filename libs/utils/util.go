@@ -473,7 +473,7 @@ func IsPingOK(ip string) error {
 		cmdSpc = fmt.Sprintf("ping %s", ip)
 	}
 	rc, out, err := RunCmd(cmdSpc)
-	logger.Info(out)
+	// logger.Debug(out)
 	if err != nil {
 		return err
 	}

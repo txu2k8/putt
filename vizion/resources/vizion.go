@@ -2,8 +2,10 @@ package resources
 
 import (
 	"fmt"
+	"putt/config"
 	"putt/libs/db"
 	"putt/libs/k8s"
+	"putt/libs/runner/schedule"
 	"putt/libs/utils"
 	"putt/types"
 	"strconv"
@@ -27,6 +29,7 @@ type Vizion struct {
 	CassConfig   map[string]db.CassConfig // cassandra configs map
 	KubeConfig   string                   // kubeconfig file path
 	K8sNameSpace string                   // k8s namespace
+	Schedule     schedule.Schedule        // Schedule
 }
 
 // Node returns NodeInterface
@@ -54,7 +57,11 @@ func (v *Vizion) MasterNode() NodeInterface {
 
 // DplMgr returns Dplmanager
 func (v *Vizion) DplMgr(host string) Dplmanager {
-	return newdplMgr(v, host)
+	podLabel := config.Servicedpl.GetPodLabel(v.Base)
+	svMgr := v.Service()
+	k8sNameArr, _ := svMgr.GetStatefulSetsNameArrByLabel(podLabel)
+	dplImage, _ := svMgr.GetStatefulSetsImage(k8sNameArr[0], config.Servicedpl.Container)
+	return newdplMgr(v, host, dplImage)
 }
 
 // Service returns ServiceManager

@@ -119,6 +119,7 @@ func (v *Vizion) StopServices(svArr []config.Service) error {
 			nodeIPPvcArr = nodeIPPvcArrMap
 		}
 
+		// stop
 		switch sv.K8sKind {
 		case config.K8sStatefulsets:
 			if sv.Type == config.ES.Type { // disable label
@@ -145,13 +146,17 @@ func (v *Vizion) StopServices(svArr []config.Service) error {
 			svMgr.WaitForAllPodDown(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 60)
 		}
 
+		// check after stop
 		switch sv.Type {
 		case config.ES.Type: // expected all volume(pvc) status==2
+			logger.Info("> Wait BD Volume Status=2 ...")
 			v.WaitBdVolumeStatusExpected(2, "", "", []string{})
+			logger.Info("> Wait BlockDevice Removed ...")
 			for nodeIP, pvcArr := range nodeIPPvcArr {
 				v.WaitBlockDeviceRemoved("", nodeIP, pvcArr)
 			}
 		case config.Dpldagent.Type: // rmmod dpl after bd pod stop
+			logger.Info("> rmmod dpl ...")
 			v.RmmodDplOnBD()
 		}
 	}
@@ -179,6 +184,14 @@ func (v *Vizion) StartServices(svArr []config.Service) error {
 			replicas = utils.MaxInt(sv.Replicas, validReplicas)
 		}
 
+		// Check before check
+		switch sv.Type {
+		case config.Vizions3.Type, config.Dpldagent.Type:
+			// Check is any anchor ok
+
+		}
+
+		// start
 		switch sv.K8sKind {
 		case config.K8sStatefulsets:
 			if sv.Type == config.ES.Type { // Enable label
@@ -209,6 +222,15 @@ func (v *Vizion) StartServices(svArr []config.Service) error {
 			svMgr.EnableNodeLabels(nodeLabelArr)
 			svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 60)
 		}
+
+		// Check after start
+		switch sv.Type {
+		case config.Servicedpl.Type:
+			// Try clean storage_cache in pod  --aws
+		case config.ES.Type:
+			// wait for volume status=1
+		}
+
 	}
 
 	return nil
@@ -678,3 +700,10 @@ func (v *Vizion) FormatBdVolume() error {
 
 // ============ GitLab / Git / Image ============
 // TODO
+
+// ============ Expansion ============
+
+// GetS3ChannelDplUUIDs .
+func (v *Vizion) GetS3ChannelDplUUIDs() []string {
+	return nil
+}
