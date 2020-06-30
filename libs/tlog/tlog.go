@@ -3,6 +3,7 @@ package tlog
 // Config for logging
 
 import (
+	"io"
 	"os"
 	"path"
 
@@ -15,7 +16,8 @@ type Config struct {
 	FileLogLevel    logging.Level // log level for output to file
 	ConsoleLogLevel logging.Level // log level for output to console
 	InfoFormat      string        // define string format, time:2006-01-02T15:04:05.999Z-07:00
-	DebugFormat     string
+	DebugFormat     string        // define string format for debug level
+	FileFormat      string        // define string format for logfile
 }
 
 // Option is the type all options need to adhere to
@@ -37,6 +39,7 @@ func NewOptions(options ...Option) *Config {
 		ConsoleLogLevel: logging.INFO,
 		InfoFormat:      `%{color}%{time:2006-01-02T15:04:05} %{module} %{level:.4s}: %{color:reset}%{message}`,
 		DebugFormat:     `%{color}%{time:2006-01-02T15:04:05} %{module} %{level:.4s}: (%{shortfile}) %{color:reset}%{message}`,
+		FileFormat:      `%{time:2006-01-02T15:04:05} %{module} %{level:.4s}: (%{shortfile}) %{message}`,
 	}
 	for _, o := range options {
 		o(&c)
@@ -48,11 +51,8 @@ func NewOptions(options ...Option) *Config {
 // InitLogging Config ...
 func (conf *Config) InitLogging() {
 	// string format: DebugFormat if level>=DEBUG, else InfoFormat
-	fileStrformat := conf.InfoFormat
+	fileStrformat := conf.FileFormat
 	consoleStrformat := conf.InfoFormat
-	if conf.FileLogLevel >= logging.DEBUG {
-		fileStrformat = conf.DebugFormat
-	}
 	if conf.ConsoleLogLevel >= logging.DEBUG {
 		consoleStrformat = conf.DebugFormat
 	}
@@ -75,7 +75,7 @@ func (conf *Config) InitLogging() {
 	if err != nil {
 		panic(err)
 	}
-	fileBackend := logging.NewLogBackend(file, "", 0) // io.Writer(file)
+	fileBackend := logging.NewLogBackend(io.Writer(file), "", 0)
 	fileBackendFormator := logging.NewBackendFormatter(fileBackend, fileFormat)
 	fileBackendLeveled := logging.AddModuleLevel(fileBackendFormator)
 	fileBackendLeveled.SetLevel(conf.FileLogLevel, "")
