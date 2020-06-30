@@ -3,7 +3,6 @@ package tlog
 // Config for logging
 
 import (
-	"io"
 	"os"
 	"path"
 
@@ -76,7 +75,7 @@ func (conf *Config) InitLogging() {
 	if err != nil {
 		panic(err)
 	}
-	fileBackend := logging.NewLogBackend(io.Writer(file), "", 0)
+	fileBackend := logging.NewLogBackend(file, "", 0) // io.Writer(file)
 	fileBackendFormator := logging.NewBackendFormatter(fileBackend, fileFormat)
 	fileBackendLeveled := logging.AddModuleLevel(fileBackendFormator)
 	fileBackendLeveled.SetLevel(conf.FileLogLevel, "")
