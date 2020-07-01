@@ -187,8 +187,8 @@ func (v *Vizion) StartServices(svArr []config.Service) error {
 		// Check before check
 		switch sv.Type {
 		case config.Vizions3.Type, config.Dpldagent.Type:
-			// Check is any anchor ok
-
+			// Check is all anchor ok
+			v.WaitForAllJnsPrimary()
 		}
 
 		// start
@@ -227,8 +227,10 @@ func (v *Vizion) StartServices(svArr []config.Service) error {
 		switch sv.Type {
 		case config.Servicedpl.Type:
 			// Try clean storage_cache in pod  --aws
+			v.CleanStorageCache(config.CleanSC.Arg[0], true)
 		case config.ES.Type:
 			// wait for volume status=1
+			v.WaitBdVolumeStatusExpected(1, "", "", []string{})
 		}
 
 	}
@@ -426,8 +428,8 @@ func (v *Vizion) IsJnlFormatSuccess() error {
 func (v *Vizion) CleanStorageCache(scPath string, podBash bool) error {
 	logger.Infof("Delete %s* on servicedpl nodes ...", scPath)
 	_, nodeLabelArr := config.Servicedpl.GetNodeLabelArr(v.Base)
-	// podLabel := config.Jddpl.GetPodLabel(v.Base)
-	servicedplNodeIPs := v.Service().GetNodeIPArrByLabels(nodeLabelArr)
+	vk8s := v.Service()
+	servicedplNodeIPs := vk8s.GetNodeIPArrByLabels(nodeLabelArr)
 	if len(servicedplNodeIPs) <= 1 {
 		return fmt.Errorf("Find servicedpl Nodes <= 1")
 	}
@@ -439,9 +441,27 @@ func (v *Vizion) CleanStorageCache(scPath string, podBash bool) error {
 		logger.Info(output)
 		if strings.Contains(output, "No such file or directory") {
 			// No Storage Cache in local, need delete in pods
-
 			if podBash == true {
-				// TODO
+				podName := ""
+				podLabel := config.Servicedpl.GetPodLabel(v.Base)
+				pods, _ := vk8s.GetPodListByLabel(podLabel)
+				for _, pod := range pods.Items {
+					podHostIP := pod.Status.HostIP
+					if podHostIP == nodeIP {
+						podName = pod.ObjectMeta.Name
+						logger.Infof("Delete storage cache files on pod %s ...", podName)
+						break
+					}
+				}
+				if podName == "" {
+					return fmt.Errorf("None servicedpl pods on node %s", nodeIP)
+				}
+				containerName := config.Servicedpl.Container
+				err := vk8s.DeleteFilesInPod(scPath, podName, containerName)
+				if err != nil {
+					return err
+				}
+
 			} else {
 				logger.Warningf("No Storage Cache on local, Skip delete %s on local ...", scPath)
 				continue

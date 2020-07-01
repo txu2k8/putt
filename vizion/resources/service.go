@@ -43,6 +43,7 @@ type ServiceManager interface {
 	EnableNodeLabels(nodeLabel []string) error
 	DisableNodeLabels(nodeLabel []string) error
 	DeletePodsByLabel(podLabel string) (err error)
+	DeleteFilesInPod(fPath, podName, containerName string) error
 	Test(podLabel string) error
 }
 
@@ -355,6 +356,31 @@ func (s *svManager) DeletePodsByLabel(podLabel string) (err error) {
 	}
 	w.wg.Wait()
 	return
+}
+
+func (s *svManager) DeleteFilesInPod(fPath, podName, containerName string) error {
+	rmCmd := fmt.Sprintf("find %s* | grep -v lost+found | xargs rm -rf", fPath)
+	lsCmd := fmt.Sprintf("ls -l %s", fPath)
+
+	rmInput := k8s.ExecInput{
+		PodName:       podName,
+		ContainerName: containerName,
+		Command:       rmCmd,
+	}
+	output, err := s.Exec(rmInput)
+	logger.Infof("%v", output)
+	if err != nil {
+		return err
+	}
+
+	lsInput := k8s.ExecInput{
+		PodName:       podName,
+		ContainerName: containerName,
+		Command:       lsCmd,
+	}
+	output, _ = s.Exec(lsInput)
+	logger.Infof("%v", output)
+	return nil
 }
 
 // Test .

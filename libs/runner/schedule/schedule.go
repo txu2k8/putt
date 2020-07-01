@@ -228,6 +228,7 @@ func (sc *Schedule) RunPhase(action Action, options ...OptionFunc) error {
 	if sc.Input.Skip == true {
 		return nil
 	}
+	logger.Infof("Enter %s ...", fName)
 	err := action()
 	status = "PASS"
 	if err != nil {

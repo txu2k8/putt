@@ -9,7 +9,6 @@ import (
 	"putt/libs/runner/schedule"
 	"putt/libs/utils"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -24,11 +23,6 @@ type Check func() error
 
 // RetryCheck .
 func (v *Vizion) RetryCheck(check Check) error {
-	pc, _, _, _ := runtime.Caller(1)
-	f := runtime.FuncForPC(pc)
-	fName := f.Name()
-
-	logger.Infof("Enter %s ...", fName)
 	action := func(attempt uint) error {
 		return check()
 	}
@@ -44,35 +38,45 @@ func (v *Vizion) RetryCheck(check Check) error {
 // CheckHealth .
 func (v *Vizion) CheckHealth() error {
 	var err error
-	// err = v.Schedule.RunPhase(v.WaitForPingOK, schedule.Desc("Check if nodes ping OK"))
-	// if err != nil {
-	// 	return err
-	// }
+	err = v.Schedule.RunPhase(v.WaitForPingOK, schedule.Desc("Check if nodes ping OK"))
+	if err != nil {
+		return err
+	}
 
-	// err = v.Schedule.RunPhase(v.IsNodeCrashed, schedule.Desc("Check nodes /var/crash/ files"))
-	// if err != nil {
-	// 	return err
-	// }
+	err = v.Schedule.RunPhase(v.IsNodeCrashed, schedule.Desc("Check nodes /var/crash/ files"))
+	if err != nil {
+		return err
+	}
 
-	// err = v.Schedule.RunPhase(v.IsServiceCoreDump, schedule.Desc("Check if service has core dump files"))
-	// if err != nil {
-	// 	return err
-	// }
+	err = v.Schedule.RunPhase(v.IsServiceCoreDump, schedule.Desc("Check if service has core dump files"))
+	if err != nil {
+		return err
+	}
 
-	// err = v.Schedule.RunPhase(v.WaitForEtcdOK, schedule.Desc("Check if etcd members stared"))
-	// if err != nil {
-	// 	return err
-	// }
+	err = v.Schedule.RunPhase(v.WaitForAllPodStatusOK, schedule.Desc("Check if All Service pods contaniers ready"))
+	if err != nil {
+		return err
+	}
+
+	err = v.Schedule.RunPhase(v.WaitForEtcdOK, schedule.Desc("Check if etcd members stared"))
+	if err != nil {
+		return err
+	}
 
 	// err = v.Schedule.RunPhase(v.WaitForCassOK, schedule.Desc("Check if cassandra 'nodetool status' UN"))
 	// if err != nil {
 	// 	return err
 	// }
 
-	// err = v.Schedule.RunPhase(v.WaitForDplHeloOK, schedule.Desc("Check if 'dplmanager -mdpl helo' OK"))
+	// err = v.Schedule.RunPhase(v.WaitForMysqlOK, schedule.Desc("Check if Mysql members ONLINE/PRIMARY"))
 	// if err != nil {
 	// 	return err
 	// }
+
+	err = v.Schedule.RunPhase(v.WaitForDplHeloOK, schedule.Desc("Check if 'dplmanager -mdpl helo' OK"))
+	if err != nil {
+		return err
+	}
 
 	err = v.Schedule.RunPhase(v.WaitForAllJnsPrimary, schedule.Desc("Check if all 'dplmanager -mjns stat' PRIMARY"))
 	if err != nil {
@@ -168,6 +172,34 @@ func (v *Vizion) IsServiceCoreDump() error {
 	return nil
 }
 
+// WaitForAllPodStatusOK .
+func (v *Vizion) WaitForAllPodStatusOK() error {
+	vk8s := v.Service()
+	for _, sv := range config.DefaultServiceArray {
+		if collection.Collect([]int{config.Dcmapdpl.Type, config.Mcmapdpl.Type}).Contains(sv.Type) {
+			continue // skip check cmap pods
+		}
+		tries := 60
+		mysqlTypeArr := []int{
+			config.MysqlCluster.Type,
+			config.MysqlOperator.Type,
+			config.MysqlRouter.Type,
+		}
+		if collection.Collect(mysqlTypeArr).Contains(sv.Type) {
+			tries = 180 // Retry more times to wait msql start
+		}
+		input := k8s.IsAllPodReadyInput{
+			PodLabel:    sv.GetPodLabel(v.Base),
+			IgnoreEmpty: true,
+		}
+		err := vk8s.WaitForAllPodReady(input, tries)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // IsEtcdOK .
 func (v *Vizion) IsEtcdOK() error {
 	etcdMenbers := v.MasterNode().GetEtcdMembers()
@@ -188,7 +220,7 @@ func (v *Vizion) WaitForEtcdOK() error {
 	return v.RetryCheck(v.IsEtcdOK)
 }
 
-// IsCassOK run "nodetool status" in cassandra pods  TODO
+// IsCassOK .Check if cassandra 'nodetool status' UN  TODO
 func (v *Vizion) IsCassOK() error {
 	podNameArr := []string{}
 	for _, vsetID := range v.Base.VsetIDs {
@@ -229,9 +261,14 @@ func (v *Vizion) WaitForCassOK() error {
 	return v.RetryCheck(v.IsCassOK)
 }
 
-// IsMysqlOK . TODO
+// IsMysqlOK . Check if Mysql members ONLINE/PRIMARY TODO
 func (v *Vizion) IsMysqlOK() error {
 	return nil
+}
+
+// WaitForMysqlOK .
+func (v *Vizion) WaitForMysqlOK() error {
+	return v.RetryCheck(v.IsMysqlOK)
 }
 
 // IsDplHeloOK .
