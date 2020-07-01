@@ -58,7 +58,7 @@ func (v *Vizion) CheckHealth() error {
 		return err
 	}
 
-	err = v.Schedule.RunPhase(v.WaitForEtcdOK, schedule.Desc("Check if etcd members stared"))
+	err = v.Schedule.RunPhase(v.WaitForEtcdOK, schedule.Desc("Check if etcd members stared >=3"))
 	if err != nil {
 		return err
 	}
