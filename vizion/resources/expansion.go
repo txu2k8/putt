@@ -299,6 +299,7 @@ func (v *Vizion) CleanLog(svArr []config.Service) error {
 		// logger.Info(utils.Prettify(logArr))
 		logPathArr = append(logPathArr, logArr...)
 	}
+	logger.Infof("Log path base name list: %s", utils.Prettify(logPathArr))
 	for _, nodeIP := range v.Service().GetAllNodeIPs() {
 		node := v.Node(nodeIP)
 		node.CleanLog(logPathArr)
