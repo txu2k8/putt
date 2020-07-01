@@ -141,3 +141,42 @@ func (g *GitlabMgr) IsPipelineJobsSuccess(projectID int, tagName string) error {
 	}
 	return errors.New("Pipeline Jobs not all success, Image not Availabel")
 }
+
+// GetReleaseByTag .
+func (g *GitlabMgr) GetReleaseByTag(projectID int, tagName string) (*gitlab.Release, error) {
+	release, _, err := g.Client.Releases.GetRelease(projectID, tagName)
+	if err != nil {
+		return release, err
+	}
+	logger.Info(release.Name)
+	return release, nil
+}
+
+// CreateRelease .
+func (g *GitlabMgr) CreateRelease(projectID int, tagName, releaseName, description string) (*gitlab.Release, error) {
+	opts := &gitlab.CreateReleaseOptions{
+		Name:        &releaseName,
+		TagName:     &tagName,
+		Description: &description,
+	}
+	release, _, err := g.Client.Releases.CreateRelease(projectID, opts)
+	if err != nil {
+		return release, err
+	}
+	logger.Info(release.Name)
+	return release, nil
+}
+
+// UpdateRelease .
+func (g *GitlabMgr) UpdateRelease(projectID int, tagName, newReleaseName, newDescription string) (*gitlab.Release, error) {
+	opts := &gitlab.UpdateReleaseOptions{
+		Name:        &newReleaseName,
+		Description: &newDescription,
+	}
+	release, _, err := g.Client.Releases.UpdateRelease(projectID, tagName, opts)
+	if err != nil {
+		return release, err
+	}
+	logger.Info(release.Name)
+	return release, nil
+}

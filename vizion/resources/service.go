@@ -30,9 +30,15 @@ type ServiceManager interface {
 	GetAllNodeIPs() (ipArr []string)
 	GetNodeNameArrByLabels(nodeLabelArr []string) (nodeNameArr []string)
 	GetNodeIPArrByLabels(nodeLabelArr []string) (nodeIPArr []string)
-	GetBdNodeIPArr() (nodeIPArr []string)
 	GetESPodPvcVolume(esPodName, volumeName string) (pvcVol string, err error)
 	GetESNodeIPPvcArrMap() (map[string][]string, error)
+	ClusterNodeIPArr() []string
+	MasterNodeIPArr() []string
+	VsetNodeIPArr(vsetID int) []string
+	EtcdNodeIPArr() []string
+	ServicedplNodeIPArr() []string
+	JddplNodeIPArr() []string
+	BdNodeIPArr() []string
 
 	EnableNodeLabels(nodeLabel []string) error
 	DisableNodeLabels(nodeLabel []string) error
@@ -156,11 +162,6 @@ func (s *svManager) GetNodeIPArrByLabels(nodeLabelArr []string) (nodeIPArr []str
 	return
 }
 
-func (s *svManager) GetBdNodeIPArr() (nodeIPArr []string) {
-	nodeLabelArr, _ := config.Dpldagent.GetNodeLabelArr(s.Base)
-	return s.GetNodeIPArrByLabels(nodeLabelArr)
-}
-
 // GetESNodeIPPvcArrMap ...
 func (s *svManager) GetESPodPvcVolume(esPodName, volumeName string) (pvcVol string, err error) {
 	if volumeName == "" {
@@ -203,6 +204,54 @@ func (s *svManager) GetESNodeIPPvcArrMap() (map[string][]string, error) {
 		nodeIPPvcArr[nodeIP] = []string{pvcName}
 	}
 	return nodeIPPvcArr, nil
+}
+
+func (s *svManager) ClusterNodeIPArr() []string {
+	return s.GetNodeIPArrByLabels([]string{"node-role.kubernetes.io/node"})
+}
+
+func (s *svManager) MasterNodeIPArr() []string {
+	return s.GetNodeIPArrByLabels([]string{"node-role.kubernetes.io/master"})
+}
+
+func (s *svManager) VsetNodeIPArr(vsetID int) []string {
+	return s.GetNodeIPArrByLabels([]string{fmt.Sprintf("node-role.kubernetes.io/vset%d", vsetID)})
+}
+
+func (s *svManager) EtcdNodeIPArr() []string {
+	nodeLabelArr, _ := config.ETCD.GetNodeLabelArr(s.Base)
+	return s.GetNodeIPArrByLabels(nodeLabelArr)
+}
+
+func (s *svManager) ServicedplNodeIPArr() []string {
+	nodeLabelArr, _ := config.Servicedpl.GetNodeLabelArr(s.Base)
+	return s.GetNodeIPArrByLabels(nodeLabelArr)
+}
+
+func (s *svManager) JddplNodeIPArr() []string {
+	nodeLabelArr, _ := config.Jddpl.GetNodeLabelArr(s.Base)
+	return s.GetNodeIPArrByLabels(nodeLabelArr)
+}
+
+func (s *svManager) DcmapdplNodeIPArr() []string {
+	nodeLabelArr, _ := config.Dcmapdpl.GetNodeLabelArr(s.Base)
+	return s.GetNodeIPArrByLabels(nodeLabelArr)
+}
+
+func (s *svManager) McmapdplNodeIPArr() []string {
+	nodeLabelArr, _ := config.Mcmapdpl.GetNodeLabelArr(s.Base)
+	return s.GetNodeIPArrByLabels(nodeLabelArr)
+}
+
+func (s *svManager) CmapdplNodeIPArr() []string {
+	nodeIPArr := []string{}
+	nodeIPArr = append(s.DcmapdplNodeIPArr(), s.CmapdplNodeIPArr()...)
+	return nodeIPArr
+}
+
+func (s *svManager) BdNodeIPArr() (nodeIPArr []string) {
+	nodeLabelArr, _ := config.Dpldagent.GetNodeLabelArr(s.Base)
+	return s.GetNodeIPArrByLabels(nodeLabelArr)
 }
 
 // ----------- Enable/Disable Node Labels -----------

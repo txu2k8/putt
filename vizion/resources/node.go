@@ -10,7 +10,9 @@ import (
 	"putt/libs/retry"
 	"putt/libs/retry/strategy"
 	"putt/libs/sshmgr"
+	"putt/libs/utils"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,23 +28,28 @@ type NodeGetter interface {
 // NodeInterface has methods to work on Node resources.
 type NodeInterface interface {
 	sshmgr.SSHManager
+	// kube/etcd
 	GetKubeConfig(localPath string) error
 	GetKubeVipIP(fqdn string) (vIP string)
 	GetEtcdCertsPathArr() []string
 	GetEtcdCerts(localPath string) (localCertsPathArr []string, err error)
 	PutEtcdCerts(localCertsPathArr []string) error
-
+	GetEtcdMembers() []string
+	PrintDplBalance() error
+	// logs/path
 	GetCrashDirs() (crashArr []string)
 	GetCoreFiles(dirFilter []string) (coreArr []string)
 	GetLogDirs(dirFilter []string) (logDirArr []string)
 	CleanLog(dirFilter []string) error
 	DeleteFiles(topPath string) error
 	ChangeDplmanagerShellImage(image, dplmgrPath string) error
+	// bd dplmod/device.zpool
 	IsDplmodExist() bool
 	RmModDpl() error
 	IsDplDeviceExist(devName string) bool
 	WaitDplDeviceRemoved(devName string) error
-	GetEtcdMembers() []string
+	GetZpoolStatus() (zs *ZpoolStatus)
+	IsZpoolStatusOK() error
 }
 
 // nodes implements NodeInterface
@@ -55,6 +62,7 @@ func newNode(v *Vizion, host string) *node {
 	return &node{sshmgr.NewSSHMgr(host, v.Base.SSHKey)}
 }
 
+// =============== Kube: ./kube/config ===============
 // GetKubeConfig ...
 func (n *node) GetKubeConfig(localPath string) error {
 	remoteCf := "/root/.kube/config"
@@ -88,6 +96,7 @@ func (n *node) GetKubeVipIP(fqdn string) (vIP string) {
 	return
 }
 
+// =============== ETCD: cert / etcdctlv3 ===============
 func (n *node) GetEtcdCertsPathArr() []string {
 	var certs = []string{}
 	cmdSpec := "find " + path.Join(config.EtcdCertPath, "*")
@@ -160,6 +169,22 @@ func (n *node) PutEtcdCerts(localCertsPathArr []string) error {
 	return nil
 }
 
+func (n *node) GetEtcdMembers() []string {
+	cmdSpec := "etcdctlv3 member list"
+	_, output := n.RunCmd(cmdSpec)
+	logger.Infof("\n%s", output)
+	members := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
+	return members
+}
+
+func (n *node) PrintDplBalance() error {
+	cmdSpec := "etcdctlv3 get --prefix /vizion/dpl/balance/"
+	_, output := n.RunCmd(cmdSpec)
+	logger.Infof("\n%s", output)
+	return nil
+}
+
+// =============== Path/Log: crash/core dump/logs ===============
 func (n *node) MkdirIfNotExist(remotePath string) error {
 	cmdSpec := "ls " + remotePath
 	_, output := n.RunCmd(cmdSpec)
@@ -273,6 +298,7 @@ func (n *node) ChangeDplmanagerShellImage(image, dplmgrPath string) error {
 	return nil
 }
 
+// =============== BD: dplmod/device/zpool ===============
 // IsDplmodExist ...
 func (n *node) IsDplmodExist() bool {
 	cmdSpec := "lsmod | grep dpl"
@@ -332,10 +358,101 @@ func (n *node) WaitDplDeviceRemoved(devName string) error {
 	return err
 }
 
-func (n *node) GetEtcdMembers() []string {
-	cmdSpec := "etcdctlv3 member list"
+type zpoolStatusConfig struct {
+	NAME  string
+	STATE string
+	READ  int
+	WRITE int
+	CKSUM int
+}
+
+// ZpoolStatus .
+type ZpoolStatus struct {
+	Pool   string
+	State  string
+	Status string
+	Action string
+	Scan   string
+	Errors string
+	Config []zpoolStatusConfig
+}
+
+func (n *node) GetZpoolStatus() (zs *ZpoolStatus) {
+	cmdSpec := "zpool status"
 	_, output := n.RunCmd(cmdSpec)
-	logger.Infof("\n%s", output)
-	members := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
-	return members
+	logger.Info(utils.Prettify(output))
+	if strings.Contains(output, "no pools available") {
+		return
+	}
+	pattern := regexp.MustCompile(`\s+(\S+)\s+(\S+)\s+(\d+)\s+(\d+)\s+(\d+)`)
+	for _, item := range strings.Split(output, "\n") {
+		item = strings.TrimSuffix(item, "\n")
+		if item == "" || strings.Contains(item, "config") ||
+			strings.Contains(item, "NAME") ||
+			strings.Contains(item, "scan") {
+			continue
+		}
+
+		if strings.Contains(item, ":") {
+			kv := strings.Split(item, ":")
+			switch kv[0] {
+			case "pool":
+				zs.Pool = kv[1]
+			case "state":
+				zs.State = kv[1]
+			case "status":
+				zs.Status = kv[1]
+			case "action":
+				zs.Action = kv[1]
+			case "errors":
+				zs.Errors = kv[1]
+			}
+		} else {
+			matched := pattern.FindAllStringSubmatch(item, -1)
+			if len(matched) > 0 {
+				matchCfg := matched[0]
+				read, _ := strconv.Atoi(matchCfg[3])
+				write, _ := strconv.Atoi(matchCfg[4])
+				cksum, _ := strconv.Atoi(matchCfg[5])
+				cfg := zpoolStatusConfig{
+					NAME:  matchCfg[1],
+					STATE: matchCfg[2],
+					READ:  read,
+					WRITE: write,
+					CKSUM: cksum,
+				}
+				zs.Config = append(zs.Config, cfg)
+			}
+		}
+	}
+	return
+}
+
+func (n *node) IsZpoolStatusOK() error {
+	zs := n.GetZpoolStatus()
+	if zs == nil {
+		return nil
+	}
+	if !strings.Contains(zs.Errors, "No known data errors") {
+		return fmt.Errorf("zpool errors: %s", zs.Errors)
+	}
+	if zs.State != "ONLINE" {
+		return fmt.Errorf("zpool state: %s", zs.State)
+	}
+
+	for _, cfg := range zs.Config {
+		if cfg.STATE != "ONLINE" {
+			return fmt.Errorf("zpool config: %v", cfg)
+		}
+		if cfg.READ != 0 {
+			return fmt.Errorf("zpool config: %v", cfg)
+		}
+		if cfg.WRITE != 0 {
+			return fmt.Errorf("zpool config: %v", cfg)
+		}
+		if cfg.CKSUM != 0 {
+			return fmt.Errorf("zpool config: %v", cfg)
+		}
+	}
+	return nil
 }

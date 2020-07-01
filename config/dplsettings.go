@@ -78,7 +78,7 @@ func (sv *Service) GetPodLabel(base types.VizionBaseInput) (podLabel string) {
 	var podLabelValueArr []string
 	var podLabelValueStr string
 	switch sv.Type {
-	case MasterCass.Type, MysqlCluster.Type, MysqlOperator.Type, MysqlRouter.Type,
+	case MasterCass.Type, MysqlCluster.Type, MysqlOperator.Type, MysqlRouter.Type, ETCD.Type,
 		Dplexporter.Type, Dplmanager.Type, Nfsprovisioner.Type:
 		podLabelValueArr = []string{labelValue} // fixed label key=Value
 	case SubCass.Type:
@@ -144,7 +144,7 @@ func (sv *Service) GetNodeLabelArr(base types.VizionBaseInput) (nodeLabelKeyArr,
 	labelValue := keyValue[1]
 
 	switch sv.Type {
-	case Dplexporter.Type, Dplmanager.Type, MysqlCluster.Type,
+	case Dplexporter.Type, Dplmanager.Type, MysqlCluster.Type, ETCD.Type,
 		Cdcgcbd.Type, Cdcgcs3.Type, Nfsprovisioner.Type:
 		nodeLabelKeyArr = []string{labelKey}
 		nodeLabelKeyValueArr = []string{labelKey + "=" + labelValue}
@@ -575,8 +575,8 @@ var (
 		TypeName:  "ETCD",
 		NameSpace: "kube-system",
 		K8sKind:   "",
-		PodLabel:  "component=etcd",                    // k=v, v-<vset_id>
-		NodeLabel: "node-role.kubernetes.io/etcd=true", // k=v, v-<vset_id>
+		PodLabel:  "component=etcd",
+		NodeLabel: "node-role.kubernetes.io/etcd=true",
 		Container: "",
 		Replicas:  3,
 		GetPid:    "",

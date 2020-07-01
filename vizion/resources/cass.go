@@ -104,7 +104,9 @@ func (c *sessCluster) TruncateTable(table string) error {
 func (c *sessCluster) GetCassandraCluster() ([]CassandraCluster, error) {
 	var ccs []CassandraCluster
 	stmt, names := qb.Select("cassandra_cluster").ToCql()
-	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&ccs)
+	f := gocqlx.Query(c.Session.Query(stmt), names)
+	logger.Debugf("%v", f)
+	err := f.SelectRelease(&ccs)
 	return ccs, err
 }
 
@@ -112,7 +114,9 @@ func (c *sessCluster) GetCassandraCluster() ([]CassandraCluster, error) {
 func (c *sessCluster) GetNode() ([]Node, error) {
 	var nodes []Node
 	stmt, names := qb.Select("node").ToCql()
-	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&nodes)
+	f := gocqlx.Query(c.Session.Query(stmt), names)
+	logger.Debugf("%v", f)
+	err := f.SelectRelease(&nodes)
 	return nodes, err
 }
 
@@ -140,7 +144,7 @@ func SelectServiceByTypeID(serviceType int, serviceUUID string) (stmt string, na
 
 // SelectServiceByTypeVsetID ...
 func SelectServiceByTypeVsetID(serviceType int, vsetID int) (stmt string, names []string) {
-	return qb.Select("service").Where(qb.EqLit("type", fmt.Sprintf("%d", serviceType))).Where(qb.EqTuple("vset_id", vsetID)).ToCql()
+	return qb.Select("service").Where(qb.EqLit("type", fmt.Sprintf("%d", serviceType))).Where(qb.EqLit("vset_id", fmt.Sprintf("%d", vsetID))).AllowFiltering().ToCql()
 }
 
 // GetService ...
@@ -161,7 +165,9 @@ func (c *sessCluster) GetService(inputJSON GetServiceInput) ([]Service, error) {
 	default:
 		return services, errors.New("Error type or id")
 	}
-	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&services)
+	f := gocqlx.Query(c.Session.Query(stmt), names)
+	logger.Debugf("%v", f)
+	err := f.SelectRelease(&services)
 	return services, err
 }
 
@@ -169,7 +175,9 @@ func (c *sessCluster) GetService(inputJSON GetServiceInput) ([]Service, error) {
 func (c *sessCluster) GetServiceByType(serviceType int) ([]Service, error) {
 	var services []Service
 	stmt, names := SelectServiceByType(serviceType)
-	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&services)
+	f := gocqlx.Query(c.Session.Query(stmt), names)
+	logger.Debugf("%v", f)
+	err := f.SelectRelease(&services)
 	return services, err
 }
 
@@ -177,7 +185,9 @@ func (c *sessCluster) GetServiceByType(serviceType int) ([]Service, error) {
 func (c *sessCluster) GetServiceByTypeID(serviceType int, serviceUUID string) ([]Service, error) {
 	var services []Service
 	stmt, names := SelectServiceByTypeID(serviceType, serviceUUID)
-	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&services)
+	f := gocqlx.Query(c.Session.Query(stmt), names)
+	logger.Debugf("%v", f)
+	err := f.SelectRelease(&services)
 	return services, err
 }
 
@@ -185,7 +195,9 @@ func (c *sessCluster) GetServiceByTypeID(serviceType int, serviceUUID string) ([
 func (c *sessCluster) GetServiceByTypeVsetID(serviceType int, vsetID int) ([]Service, error) {
 	var services []Service
 	stmt, names := SelectServiceByTypeVsetID(serviceType, vsetID)
-	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&services)
+	f := gocqlx.Query(c.Session.Query(stmt), names)
+	logger.Debugf("%v", f)
+	err := f.SelectRelease(&services)
 	return services, err
 }
 
@@ -275,7 +287,9 @@ func (c *sessCluster) DpldagentServices() (svArr []Service) {
 func (c *sessCluster) GetVolume() ([]Volume, error) {
 	var volumes []Volume
 	stmt, names := qb.Select("volume").ToCql()
-	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&volumes)
+	f := gocqlx.Query(c.Session.Query(stmt), names)
+	logger.Debugf("%v", f)
+	err := f.SelectRelease(&volumes)
 	return volumes, err
 }
 
@@ -283,7 +297,9 @@ func (c *sessCluster) GetVolume() ([]Volume, error) {
 func (c *sessCluster) GetTenant() ([]Tenant, error) {
 	var tenants []Tenant
 	stmt, names := qb.Select("tenant").ToCql()
-	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&tenants)
+	f := gocqlx.Query(c.Session.Query(stmt), names)
+	logger.Debugf("%v", f)
+	err := f.SelectRelease(&tenants)
 	return tenants, err
 }
 
@@ -291,7 +307,9 @@ func (c *sessCluster) GetTenant() ([]Tenant, error) {
 func (c *sessCluster) GetS3User() ([]S3User, error) {
 	var s3Users []S3User
 	stmt, names := qb.Select("s3user").ToCql()
-	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&s3Users)
+	f := gocqlx.Query(c.Session.Query(stmt), names)
+	logger.Debugf("%v", f)
+	err := f.SelectRelease(&s3Users)
 	return s3Users, err
 }
 
@@ -299,7 +317,9 @@ func (c *sessCluster) GetS3User() ([]S3User, error) {
 func (c *sessCluster) GetS3Bucket() ([]S3Bucket, error) {
 	var s3buckets []S3Bucket
 	stmt, names := qb.Select("s3bucket").ToCql()
-	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&s3buckets)
+	f := gocqlx.Query(c.Session.Query(stmt), names)
+	logger.Debugf("%v", f)
+	err := f.SelectRelease(&s3buckets)
 	return s3buckets, err
 }
 
@@ -307,6 +327,8 @@ func (c *sessCluster) GetS3Bucket() ([]S3Bucket, error) {
 func (c *sessCluster) GetS3BucketGroup() ([]S3BucketGroup, error) {
 	var s3bgs []S3BucketGroup
 	stmt, names := qb.Select("s3bucketgroup").ToCql()
-	err := gocqlx.Query(c.Session.Query(stmt), names).SelectRelease(&s3bgs)
+	f := gocqlx.Query(c.Session.Query(stmt), names)
+	logger.Debugf("%v", f)
+	err := f.SelectRelease(&s3bgs)
 	return s3bgs, err
 }

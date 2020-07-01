@@ -635,7 +635,7 @@ func (v *Vizion) CleanCdcgc() error {
 
 // RmmodDplOnBD "rmmod dpl" on all bd nodes
 func (v *Vizion) RmmodDplOnBD() error {
-	bdNodeIps := v.Service().GetBdNodeIPArr()
+	bdNodeIps := v.Service().BdNodeIPArr()
 	logger.Info(bdNodeIps)
 	for _, nodeIP := range bdNodeIps {
 		node := v.Node(nodeIP)

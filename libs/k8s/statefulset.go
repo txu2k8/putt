@@ -18,7 +18,7 @@ func (c *Client) GetStatefulSetsNameArrByLabel(labelSelector string) (stsNameArr
 	for _, value := range stsArr.Items {
 		stsNameArr = append(stsNameArr, value.ObjectMeta.Name)
 	}
-	logger.Infof("StatefulSets: %v", stsNameArr)
+	logger.Debugf("StatefulSets: %v", stsNameArr)
 	return stsNameArr, nil
 }
 
@@ -32,7 +32,7 @@ func (c *Client) GetStatefulSetsImage(stsName, containerName string) (image stri
 	for idx, container := range result.Spec.Template.Spec.Containers {
 		if container.Name == containerName {
 			image = result.Spec.Template.Spec.Containers[idx].Image
-			logger.Infof("StatefulSets Image: %s[%s] -> %s", stsName, containerName, image)
+			logger.Debugf("StatefulSets Image: %s[%s] -> %s", stsName, containerName, image)
 			return
 		}
 	}
