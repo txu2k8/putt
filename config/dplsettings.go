@@ -522,7 +522,7 @@ var (
 
 	// Nfsprovisioner .
 	Nfsprovisioner = Service{
-		Name:       "nfs-provisioner",
+		Name:       "nfs",
 		Type:       2050,
 		TypeName:   "NFS_PROVISIONER",
 		NameSpace:  "vizion",
@@ -537,7 +537,7 @@ var (
 
 	// Cdcgcs3 .
 	Cdcgcs3 = Service{
-		Name:       "cdcgc-s3",
+		Name:       "cdcgcs3",
 		Type:       2051,
 		TypeName:   "CDCGC_S3",
 		NameSpace:  "vizion",
@@ -552,7 +552,7 @@ var (
 
 	// Cdcgcbd .
 	Cdcgcbd = Service{
-		Name:       "cdcgc-bd",
+		Name:       "cdcgcbd",
 		Type:       2052,
 		TypeName:   "CDCGC_BD",
 		NameSpace:  "vizion",
