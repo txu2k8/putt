@@ -201,7 +201,7 @@ func (n *node) GetCrashDirs() (crashArr []string) {
 	}
 
 	for _, crashPath := range crashPathArr {
-		cmdSpec := fmt.Sprintf("find %s -maxdepth 1 -type d", crashPath)
+		cmdSpec := fmt.Sprintf("ls %s", crashPath)
 		_, output := n.RunCmd(cmdSpec)
 		if strings.Contains(output, "No such file or directory") {
 			continue
