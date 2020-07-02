@@ -32,6 +32,7 @@ func connectCluster(cf *CassConfig) *gocql.ClusterConfig {
 	cluster.Port = cf.Port
 	cluster.Keyspace = cf.Keyspace
 	cluster.CQLVersion = "3.4.4"
+	cluster.ProtoVersion = 4
 	cluster.Timeout = time.Duration(cassTimeout) * time.Second
 	cluster.ConnectTimeout = time.Duration(cassConnectTimeout) * time.Second
 	cluster.Authenticator = gocql.PasswordAuthenticator{

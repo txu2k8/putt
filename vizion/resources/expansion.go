@@ -126,13 +126,12 @@ func (v *Vizion) StopServices(svArr []config.Service) error {
 				svMgr.DisableNodeLabels(nodeLabelArr)
 				svMgr.DeletePodsByLabel(podLabel)
 				svMgr.WaitForAllPodDown(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 60)
-				continue
-			}
-			// set replicas
-			k8sNameArr, _ := svMgr.GetStatefulSetsNameArrByLabel(podLabel)
-			for _, k8sName := range k8sNameArr {
-				svMgr.SetStatefulSetsReplicas(k8sName, 0)
-				svMgr.WaitForPodDown(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 60)
+			} else { // set replicas
+				k8sNameArr, _ := svMgr.GetStatefulSetsNameArrByLabel(podLabel)
+				for _, k8sName := range k8sNameArr {
+					svMgr.SetStatefulSetsReplicas(k8sName, 0)
+					svMgr.WaitForPodDown(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 60)
+				}
 			}
 		case config.K8sDeployment: // set replicas
 			k8sNameArr, _ := svMgr.GetDeploymentsNameArrByLabel(podLabel)
@@ -147,15 +146,17 @@ func (v *Vizion) StopServices(svArr []config.Service) error {
 		}
 
 		// check after stop
-		switch sv.Type {
-		case config.ES.Type: // expected all volume(pvc) status==2
+		if sv.Type == config.ES.Type {
+			// expected all volume(pvc) status==2
 			logger.Info("> Wait BD Volume Status=2 ...")
 			v.WaitBdVolumeStatusExpected(2, "", "", []string{})
 			logger.Info("> Wait BlockDevice Removed ...")
 			for nodeIP, pvcArr := range nodeIPPvcArr {
 				v.WaitBlockDeviceRemoved("", nodeIP, pvcArr)
 			}
-		case config.Dpldagent.Type: // rmmod dpl after bd pod stop
+		}
+		if sv.Type == config.Dpldagent.Type {
+			// rmmod dpl after bd pod stop
 			logger.Info("> rmmod dpl ...")
 			v.RmmodDplOnBD()
 		}
