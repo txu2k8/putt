@@ -362,7 +362,8 @@ func (c *Client) WaitForPod(fn checkFn, input map[string]interface{}, tries int)
 
 // WaitForPodReady ...
 func (c *Client) WaitForPodReady(input IsPodReadyInput, tries int) error {
-	logger.Infof("Wait For Pod Ready:%s", utils.Prettify(input))
+	logger.Info("Wait For Pod Ready ...")
+	logger.Debugf("IsPodReadyInput:%s", utils.Prettify(input))
 	action := func(attempt uint) error {
 		return c.IsPodReady(input)
 	}
@@ -377,7 +378,8 @@ func (c *Client) WaitForPodReady(input IsPodReadyInput, tries int) error {
 
 // WaitForPodDown ...
 func (c *Client) WaitForPodDown(input IsPodReadyInput, tries int) error {
-	logger.Infof("Wait For Pod Down:%s", utils.Prettify(input))
+	logger.Info("Wait For Pod Down ...")
+	logger.Debugf("IsPodDownInput:%s", utils.Prettify(input))
 	action := func(attempt uint) error {
 		return c.IsPodDown(input)
 	}
@@ -392,7 +394,8 @@ func (c *Client) WaitForPodDown(input IsPodReadyInput, tries int) error {
 
 // WaitForAllPodReady ...
 func (c *Client) WaitForAllPodReady(input IsAllPodReadyInput, tries int) error {
-	logger.Infof("Wait For All Pod Ready:%s", utils.Prettify(input))
+	logger.Info("Wait For All Pod Ready ...")
+	logger.Debugf("IsAllPodReadyInput:%s", utils.Prettify(input))
 	action := func(attempt uint) error {
 		return c.IsAllPodReady(input)
 	}
@@ -407,7 +410,8 @@ func (c *Client) WaitForAllPodReady(input IsAllPodReadyInput, tries int) error {
 
 // WaitForAllPodDown ...
 func (c *Client) WaitForAllPodDown(input IsAllPodReadyInput, tries int) error {
-	logger.Infof("Wait For All Pod Down:%s", utils.Prettify(input))
+	logger.Info("Wait For All Pod Down ...")
+	logger.Debugf("IsAllPodDownInput:%s", utils.Prettify(input))
 	action := func(attempt uint) error {
 		return c.IsAllPodDown(input)
 	}
