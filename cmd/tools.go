@@ -12,7 +12,7 @@ var toolsCmd = &cobra.Command{
 	Short: "DevOps tools",
 	Long:  `DevOps tools include deploy/maint/check ...`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("tools called")
+		fmt.Println("tools called, use -h or --help for help")
 	},
 }
 

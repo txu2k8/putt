@@ -14,7 +14,7 @@ var haCmd = &cobra.Command{
 	Short: "Vizion HA",
 	Long:  `Vizion high availability test. --help for detail args.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("es called")
+		fmt.Println("es called, use -h or --help for help")
 	},
 }
 

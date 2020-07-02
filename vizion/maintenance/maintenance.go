@@ -22,6 +22,7 @@ var logger = logging.MustGetLogger("test")
 
 // Maintainer for maintenance ops
 type Maintainer interface {
+	CheckHealth() error
 	Cleanup() error
 	Stop() error
 	StopC() error

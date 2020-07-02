@@ -21,7 +21,29 @@ var maintCmd = &cobra.Command{
 	upgrade: upgrade env to specified image
 	rolling_update: rolling update env services`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("maint called")
+		fmt.Println("maint called, use -h or --help for help")
+	},
+}
+
+// stopCmd represents the stop command
+var checkCmd = &cobra.Command{
+	Use:     "check",
+	Short:   "Maintaince mode tools: check health",
+	Long:    "Check health",
+	Example: "putt maint check --master_ips 10.5.139.21 --vset_ids 1",
+	Run: func(cmd *cobra.Command, args []string) {
+		logger.Infof("maint check health ...")
+		var maintainer maintenance.Maintainer
+		maintConf.Check = true
+		maintainer = maintenance.NewMaint(baseConf, maintConf)
+		jobs := []stress.Job{
+			{
+				Fn:       maintainer.CheckHealth,
+				Name:     "Check Health",
+				RunTimes: 1,
+			},
+		}
+		stress.Run(jobs)
 	},
 }
 
@@ -30,7 +52,7 @@ var stopCmd = &cobra.Command{
 	Use:     "stop",
 	Short:   "Maintaince mode tools: stop service",
 	Long:    "Stop specified services(default:All DPL+APP)",
-	Example: "putt maint stop --master_ips 10.25.119.71 --vset_ids 1 --services es --clean all",
+	Example: "putt maint stop --master_ips 10.5.139.21 --vset_ids 1 --clean all",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint stop services ...")
 		var maintainer maintenance.Maintainer
@@ -48,9 +70,10 @@ var stopCmd = &cobra.Command{
 
 // startCmd represents the start command
 var startCmd = &cobra.Command{
-	Use:   "start",
-	Short: "Maintaince mode tools: start service",
-	Long:  `start specified services`,
+	Use:     "start",
+	Short:   "Maintaince mode tools: start service",
+	Long:    `start specified services`,
+	Example: "putt maint start --master_ips 10.5.139.21 --vset_ids 1 --services es",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint start services ...")
 		var maintainer maintenance.Maintainer
@@ -68,9 +91,10 @@ var startCmd = &cobra.Command{
 
 // restartCmd represents the restart command
 var restartCmd = &cobra.Command{
-	Use:   "restart",
-	Short: "Maintaince mode tools: restart service",
-	Long:  `restart specified services`,
+	Use:     "restart",
+	Short:   "Maintaince mode tools: restart service",
+	Long:    `restart specified services`,
+	Example: "putt maint restart --master_ips 10.5.139.21 --vset_ids 1 --clean all",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint restart services ...")
 		var maintainer maintenance.Maintainer
@@ -88,9 +112,10 @@ var restartCmd = &cobra.Command{
 
 // cleanupCmd represents the cleanup command
 var cleanupCmd = &cobra.Command{
-	Use:   "cleanup",
-	Short: "Maintaince mode tools: cleanup",
-	Long:  `cleanup specified items`,
+	Use:     "cleanup",
+	Short:   "Maintaince mode tools: cleanup",
+	Long:    `cleanup specified items`,
+	Example: "putt maint cleanup --master_ips 10.5.139.21 --vset_ids 1 --clean all",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint clean up ...")
 		var maintainer maintenance.Maintainer
@@ -108,9 +133,10 @@ var cleanupCmd = &cobra.Command{
 
 // cleanupCmd represents the make_binary command
 var makeBinaryCmd = &cobra.Command{
-	Use:   "make_binary",
-	Short: "Maintaince mode tools: make binary --TODO",
-	Long:  `make binary from git server`,
+	Use:     "make_binary",
+	Short:   "Maintaince mode tools: make binary --TODO",
+	Long:    `make binary from git server`,
+	Example: "putt maint make_binary --build_server_ip 10.5.139.11 --build_path /project/git/ --local_bin_path /tmp/ --pull --make",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint Make Binary ...")
 		var maintainer maintenance.Maintainer
@@ -128,9 +154,10 @@ var makeBinaryCmd = &cobra.Command{
 
 // makeImageCmd represents the make_binary command
 var makeImageCmd = &cobra.Command{
-	Use:   "make_image",
-	Short: "Maintaince mode tools: make image",
-	Long:  `make image by push tag to gitlab server`,
+	Use:     "make_image",
+	Short:   "Maintaince mode tools: make image",
+	Long:    `make image by push tag to gitlab server`,
+	Example: "putt maint make_image --build_server_ip 10.5.139.11 --build_path /project/git/ --pull --tag",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint make image ...")
 		var maintainer maintenance.Maintainer
@@ -148,9 +175,10 @@ var makeImageCmd = &cobra.Command{
 
 // applyImageCmd represents the make_binary command
 var applyImageCmd = &cobra.Command{
-	Use:   "apply_image",
-	Short: "Maintaince mode tools: apply image to service",
-	Long:  `apply service container image`,
+	Use:     "apply_image",
+	Short:   "Maintaince mode tools: apply image to service",
+	Long:    `apply service container image`,
+	Example: "putt maint apply_image --master_ips 10.5.139.21 --vset_ids 1 --clean all --image xx.ai/build:latest",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint apply service image ...")
 		var maintainer maintenance.Maintainer
@@ -168,9 +196,10 @@ var applyImageCmd = &cobra.Command{
 
 // applyImageCmd represents the make_binary command
 var upgradeCoreCmd = &cobra.Command{
-	Use:   "upgradecore",
-	Short: "Maintaince mode tools: make image && apply image to service",
-	Long:  `make image && upgrade core service`,
+	Use:     "upgradecore",
+	Short:   "Maintaince mode tools: make image && apply image to service",
+	Long:    `make image && upgrade core service`,
+	Example: "putt maint upgradecore --master_ips 10.5.139.21 --vset_ids 1 --clean all --build_server_ip 10.5.139.11 --build_path /project/git/ --pull --tag",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint make image && upgrade core service ...")
 		var maintainer maintenance.Maintainer
@@ -219,7 +248,7 @@ func AddFlagsMaintImage(cmd *cobra.Command) {
 // AddFlagsMaintGit Git
 func AddFlagsMaintGit(cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolVar(&maintConf.GitCfg.Pull, "pull", false, "git pull if true (default false)")
-	cmd.PersistentFlags().BoolVar(&maintConf.GitCfg.Tag, "tag", false, "git tag if true (default false)")
+	cmd.PersistentFlags().BoolVar(&maintConf.GitCfg.Tag, "tag", false, "make_image: git tag if true (default false)")
 	cmd.PersistentFlags().BoolVar(&maintConf.GitCfg.Make, "make", false, "make_binary: make file if true (default false)")
 	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildServerIP, "build_server_ip", config.DplBuildIP, "git build server ip")
 	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildServerUser, "build_server_user", "root", "git build server user")
@@ -237,6 +266,7 @@ func AddFlagsMaintCheck(cmd *cobra.Command) {
 
 func init() {
 	rootCmd.AddCommand(maintCmd)
+	maintCmd.AddCommand(checkCmd)
 	maintCmd.AddCommand(stopCmd)
 	maintCmd.AddCommand(startCmd)
 	maintCmd.AddCommand(restartCmd)
@@ -245,6 +275,8 @@ func init() {
 	maintCmd.AddCommand(makeImageCmd)
 	maintCmd.AddCommand(applyImageCmd)
 	maintCmd.AddCommand(upgradeCoreCmd)
+
+	// Check
 
 	// clean
 	AddFlagsMaintClean(cleanupCmd)

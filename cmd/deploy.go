@@ -12,7 +12,7 @@ var deployCmd = &cobra.Command{
 	Short: "Deploy test env",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("deploy called")
+		fmt.Println("deploy called, use -h or --help for help")
 	},
 }
 

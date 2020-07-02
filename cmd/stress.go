@@ -12,7 +12,7 @@ var stressCmd = &cobra.Command{
 	Short: "Stress test",
 	Long:  `Stress test cases S3/ES/HA ...`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("stress called")
+		fmt.Println("stress called, use -h or --help for help")
 	},
 }
 
