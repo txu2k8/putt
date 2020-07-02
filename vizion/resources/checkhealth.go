@@ -63,15 +63,15 @@ func (v *Vizion) CheckHealth() error {
 		return err
 	}
 
-	// err = v.Schedule.RunPhase(v.WaitForCassOK, schedule.Desc("Check if cassandra 'nodetool status' UN"))
-	// if err != nil {
-	// 	return err
-	// }
+	err = v.Schedule.RunPhase(v.WaitForCassOK, schedule.Desc("Check if cassandra 'nodetool status' all UN"))
+	if err != nil {
+		return err
+	}
 
-	// err = v.Schedule.RunPhase(v.WaitForMysqlOK, schedule.Desc("Check if Mysql members ONLINE/PRIMARY"))
-	// if err != nil {
-	// 	return err
-	// }
+	err = v.Schedule.RunPhase(v.WaitForMysqlOK, schedule.Desc("Check if Mysql members all ONLINE && PRIMARY >=1"))
+	if err != nil {
+		return err
+	}
 
 	err = v.Schedule.RunPhase(v.WaitForDplHeloOK, schedule.Desc("Check if 'dplmanager -mdpl helo' OK"))
 	if err != nil {
@@ -232,6 +232,7 @@ func (v *Vizion) IsCassOK() error {
 	cmdSpec := "/usr/bin/nodetool status | grep rack1"
 	pattern := regexp.MustCompile(`(\S+)\s+(\d+.+rack\d)`)
 	vk8s := v.Service()
+	downCassNum := 0
 	for _, podName := range podNameArr {
 		execInput := k8s.ExecInput{
 			PodName:       podName,
@@ -239,21 +240,22 @@ func (v *Vizion) IsCassOK() error {
 			Command:       cmdSpec,
 		}
 		output, err := vk8s.Exec(execInput)
-		logger.Info(output)
+		logger.Debug(utils.Prettify(output))
 		if err != nil {
 			return err
 		}
 		matched := pattern.FindAllStringSubmatch(output.Stdout, -1)
-		logger.Info(matched)
-		nodeToolStatusArr := []string{}
-		for _, stat := range nodeToolStatusArr {
-			if stat != "UN" {
-				logger.Warning(stat)
-				return fmt.Errorf("Has node cassandra not UN")
+		for _, statArr := range matched {
+			if statArr[1] != "UN" {
+				logger.Warning(utils.Prettify(statArr[0]))
+				downCassNum++
 			}
+			logger.Info(utils.Prettify(statArr[0]))
 		}
 	}
-
+	if downCassNum > 0 {
+		return fmt.Errorf("Has node cassandra not UN")
+	}
 	return nil
 }
 
@@ -262,8 +264,48 @@ func (v *Vizion) WaitForCassOK() error {
 	return v.RetryCheck(v.IsCassOK)
 }
 
-// IsMysqlOK . Check if Mysql members ONLINE/PRIMARY TODO
+// IsMysqlOK . Check if Mysql members ONLINE>= 3 && PRIMARY >=1 TODO
 func (v *Vizion) IsMysqlOK() error {
+	podNameArr := []string{"mysql-cluster-0"}
+	vk8s := v.Service()
+	_, mysqlPwd := vk8s.GetMysqlUserPassword()
+	cmdSpec := fmt.Sprintf("mysql -p%s -e \"select * from performance_schema.replication_group_members;\"", mysqlPwd)
+
+	patternOnline := regexp.MustCompile(`ONLINE`)
+	patternOffline := regexp.MustCompile(`OFFLINE`)
+	patternPrimary := regexp.MustCompile(`PRIMARY`)
+
+	for _, podName := range podNameArr {
+		onLineNum, offLineNum, primaryNum := 0, 0, 0
+		execInput := k8s.ExecInput{
+			PodName:       podName,
+			ContainerName: "mysql",
+			Command:       cmdSpec,
+		}
+		output, err := vk8s.Exec(execInput)
+		if err != nil {
+			logger.Debug(utils.Prettify(output))
+			return err
+		}
+		logger.Info(output.Stdout)
+		matchedOnline := patternOnline.FindAllStringSubmatch(output.Stdout, -1)
+		matchedOffline := patternOffline.FindAllStringSubmatch(output.Stdout, -1)
+		matchedPrimary := patternPrimary.FindAllStringSubmatch(output.Stdout, -1)
+		onLineNum = len(matchedOnline)
+		offLineNum = len(matchedOffline)
+		primaryNum = len(matchedPrimary)
+
+		switch {
+		case offLineNum > 0:
+			return fmt.Errorf("Mysql has OFFLINE nodes")
+		case onLineNum < 3:
+			return fmt.Errorf("Mysql ONLINE nodes: %d < 3", onLineNum)
+		case primaryNum == 0:
+			return fmt.Errorf("Mysql has no PRIMARY node")
+		default:
+			logger.Infof("Check in pod %s: Mysql is OK", podName)
+		}
+	}
 	return nil
 }
 

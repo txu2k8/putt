@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"putt/libs/utils"
 	"time"
@@ -35,6 +36,7 @@ type ClientSet interface {
 	WaitForPodDown(input IsPodReadyInput, tries int) error
 	WaitForAllPodReady(input IsAllPodReadyInput, tries int) error
 	WaitForAllPodDown(input IsAllPodReadyInput, tries int) error
+	WatchPodReady(pod *v1.Pod) error
 
 	// node ...
 	GetNodeIPByName(nodeName, ipType string) (address string)
@@ -76,6 +78,13 @@ type Client struct {
 	NameSpace string // k8s namespace
 	Config    *rest.Config
 	Clientset *kubernetes.Clientset
+}
+
+// PtyHandler for Exec
+type PtyHandler interface {
+	io.Reader
+	io.Writer
+	remotecommand.TerminalSizeQueue
 }
 
 // ExecOutPut ...
@@ -121,7 +130,7 @@ func NewClientSet(cf *rest.Config) (*kubernetes.Clientset, error) {
 
 // NewClientWithRetry return the Client
 func NewClientWithRetry(kubeconfig string) (Client, error) {
-	if client.Clientset != nil {
+	if client.Clientset != nil && client.Config != nil {
 		return client, nil
 	}
 	interval := time.Duration(15)
@@ -136,6 +145,7 @@ loop:
 
 		client.Clientset, err = NewClientSet(cf)
 		if err == nil && client.Clientset != nil {
+			client.Config = cf
 			break loop
 		}
 		logger.Warningf("new k8s clientset failed, %v", err)
@@ -171,33 +181,34 @@ func (c *Client) Exec(input ExecInput) (ExecOutPut, error) {
 		logger.Errorf("%+v", pod.Spec.Containers)
 		containerName = pod.Spec.Containers[0].Name
 	}
-	command := []string{"/bin/sh", "-c", input.Command}
-	req := c.Clientset.CoreV1().RESTClient().
-		Post().
-		Namespace(pod.Namespace).
+	cmd := []string{"/bin/sh", "-c", input.Command}
+	// NewSPDYExecutor
+	req := c.Clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
-		Name(pod.Name).
-		Param("container", containerName).
-		SubResource("exec").VersionedParams(&v1.PodExecOptions{
-		Container: containerName,
-		Command:   command,
-		Stdin:     true,
-		Stdout:    true,
-		Stderr:    true,
-		TTY:       true,
-	}, scheme.ParameterCodec)
-	logger.Infof("%+v", utils.Prettify(command))
+		Name(input.PodName).
+		Namespace(pod.Namespace).
+		SubResource("exec").
+		VersionedParams(&v1.PodExecOptions{
+			Container: containerName,
+			Command:   cmd,
+			Stdin:     true,
+			Stdout:    true,
+			Stderr:    true,
+			TTY:       true,
+		}, scheme.ParameterCodec)
+
+	logger.Infof("%+v", utils.Prettify(cmd))
 	logger.Infof("%+v", req.URL())
-	exec, err := remotecommand.NewSPDYExecutor(c.Config, "POST", req.URL())
+	executor, err := remotecommand.NewSPDYExecutor(c.Config, "POST", req.URL())
 	if err != nil {
 		panic(err)
 	}
 	var stdout, stderr bytes.Buffer
-	err = exec.Stream(remotecommand.StreamOptions{
+	err = executor.Stream(remotecommand.StreamOptions{
 		Stdin:  os.Stdin,
 		Stdout: &stdout,
 		Stderr: &stderr,
-		Tty:    true,
+		// Tty:    true,
 	})
 	if err != nil {
 		logger.Errorf("out :%+v, err:%+v", stdout, stderr)

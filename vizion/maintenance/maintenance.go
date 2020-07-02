@@ -42,6 +42,7 @@ type Maint struct {
 	CleanArr          []config.CleanItem
 	Image             string
 	GitCfg            GitInput
+	Check             bool
 	ServiceNameArr    []string
 	BinaryNameArr     []string
 	CleanNameArr      []string
@@ -70,6 +71,7 @@ type MaintTestInput struct {
 	CleanNameArr      []string //  clean item Name array
 	Image             string   // eg: registry.ai/stable:tag
 	GitCfg            GitInput // The build number for image tag name, used in JENKINS
+	Check             bool     // check health before stop and after start services
 }
 
 // NewMaint returns a Nodes
@@ -145,6 +147,7 @@ func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
 		CleanArr:       cleanArr,
 		Image:          mt.Image,
 		GitCfg:         mt.GitCfg,
+		Check:          mt.Check,
 		ServiceNameArr: svNameArr,
 		BinaryNameArr:  binNameArr,
 		CleanNameArr:   cleanNameArr,
@@ -313,6 +316,15 @@ func (maint *Maint) MakeImage() error {
 	return nil
 }
 
+// CheckHealth - maint CheckHealth before stop, and after start
+func (maint *Maint) CheckHealth() error {
+	// Check Health
+	if maint.Check == true {
+		return maint.Vizion.CheckHealth()
+	}
+	return nil
+}
+
 // Cleanup - maint
 func (maint *Maint) Cleanup() error {
 	var err error
@@ -379,9 +391,21 @@ func (maint *Maint) Stop() error {
 	return maint.Vizion.StopServices(stopServiceArr)
 }
 
+// Start - maint
+func (maint *Maint) Start() error {
+	// logger.Info(utils.Prettify(maint))
+	return maint.Vizion.StartServices(maint.ServiceArr)
+}
+
 // StopC - maint: Stop -> Cleanup
 func (maint *Maint) StopC() error {
 	var err error
+	// Check Health
+	err = maint.CheckHealth()
+	if err != nil {
+		return err
+	}
+
 	// Stop
 	stopSvNameArr := strings.Join(convert.ReverseStringArr(maint.ServiceNameArr), ",")
 	err = maint.Vizion.Schedule.RunPhase(maint.Stop, schedule.Desc(stopSvNameArr))
@@ -403,17 +427,15 @@ func (maint *Maint) StopC() error {
 	return err
 }
 
-// Start - maint
-func (maint *Maint) Start() error {
-	// logger.Info(utils.Prettify(maint))
-	// return maint.Vizion.StartServices(maint.ServiceArr)
-	maint.Vizion.CheckHealth()
-	return nil
-}
-
 // Restart - maint: Stop -> Cleanup -> Start
 func (maint *Maint) Restart() error {
 	var err error
+
+	// Check Health
+	err = maint.CheckHealth()
+	if err != nil {
+		return err
+	}
 
 	// Stop
 	stopSvNameArr := strings.Join(convert.ReverseStringArr(maint.ServiceNameArr), ",")
@@ -440,6 +462,12 @@ func (maint *Maint) Restart() error {
 		return err
 	}
 
+	// Check Health
+	err = maint.CheckHealth()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -448,6 +476,12 @@ func (maint *Maint) ApplyImage() error {
 	var err error
 	// isImageOK: Wait for image OK on gitlab
 	err = maint.Vizion.Schedule.RunPhase(maint.isImageOK, schedule.Desc(maint.Image))
+	if err != nil {
+		return err
+	}
+
+	// Check Health
+	err = maint.CheckHealth()
 	if err != nil {
 		return err
 	}
@@ -479,6 +513,12 @@ func (maint *Maint) ApplyImage() error {
 	// Start
 	startSvNameArr := strings.Join(maint.ServiceNameArr, ",")
 	err = maint.Vizion.Schedule.RunPhase(maint.Start, schedule.Desc(startSvNameArr))
+	if err != nil {
+		return err
+	}
+
+	// Check Health
+	err = maint.CheckHealth()
 	if err != nil {
 		return err
 	}

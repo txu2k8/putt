@@ -210,6 +210,11 @@ func AddFlagsMaintGit(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.LocalBinPath, "local_bin_path", config.DplBuildLocalPath, "local path for store dpl binarys")
 }
 
+// AddFlagsMaintCheck Check
+func AddFlagsMaintCheck(cmd *cobra.Command) {
+	cmd.PersistentFlags().BoolVar(&maintConf.Check, "check", false, "check->stop|start->check if true")
+}
+
 func init() {
 	rootCmd.AddCommand(maintCmd)
 	maintCmd.AddCommand(stopCmd)
@@ -225,12 +230,15 @@ func init() {
 	// stop
 	AddFlagsMaintService(stopCmd)
 	AddFlagsMaintClean(stopCmd)
+	AddFlagsMaintCheck(stopCmd)
 	// start
 	AddFlagsMaintService(startCmd)
 	AddFlagsMaintClean(startCmd)
+	AddFlagsMaintCheck(startCmd)
 	// restart
 	AddFlagsMaintService(restartCmd)
 	AddFlagsMaintClean(restartCmd)
+	AddFlagsMaintCheck(restartCmd)
 	// make binary
 	AddFlagsMaintGit(makeBinaryCmd)
 	AddFlagsMaintBinary(makeBinaryCmd)
@@ -240,4 +248,5 @@ func init() {
 	AddFlagsMaintImage(applyImageCmd)
 	AddFlagsMaintService(applyImageCmd)
 	AddFlagsMaintClean(applyImageCmd)
+	AddFlagsMaintCheck(applyImageCmd)
 }

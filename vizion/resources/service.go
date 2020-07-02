@@ -22,6 +22,7 @@ type ServiceManager interface {
 	GetMasterCassIPs() (ipArr []string)
 	GetMasterCassUserPwd() (user, pwd string)
 	GetMasterCassPort() (port int)
+	GetMysqlUserPassword() (user, pwd string)
 
 	GetSubCassIPs(vsetID int) (ipArr []string)
 	GetSubCassUserPwd(vsetID int) (user, pwd string)
@@ -100,6 +101,24 @@ func (s *svManager) GetMasterCassPort() (port int) {
 	port, err := s.GetSvcPort("cassandra-master-expose", 9042)
 	if err != nil {
 		panic(err)
+	}
+	return
+}
+
+// GetMysqlUserPassword .
+func (s *svManager) GetMysqlUserPassword() (user, pwd string) {
+	scrt, err := s.GetSecretDetail("mysql-root-password")
+	if err != nil {
+		panic(err)
+	}
+	for k, v := range scrt.Data {
+		strV := string(v[:])
+		switch k {
+		case "user":
+			user = strV // convert.Base64Encode(v)
+		case "password":
+			pwd = strV // convert.Base64Encode(v)
+		}
 	}
 	return
 }

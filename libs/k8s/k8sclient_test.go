@@ -5,12 +5,19 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
-	cfPath := "C:\\workspace\\config"
+	cfPath := "C:\\workspace\\go\\src\\putt\\kube\\10.25.119.71.config"
 	client, err := NewClientWithRetry(cfPath)
 	if err != nil {
 		logger.Error(err.Error())
 	}
 	client.NameSpace = "vizion"
 
-	client.GetStatefulSetsNameArrByLabel("name=servicedpl-1-1")
+	execInput := ExecInput{
+		PodName:       "cassandra-vset1-0",
+		ContainerName: "cassandra",
+		Command:       "/usr/bin/nodetool status | grep rack1",
+	}
+	output, err := client.Exec(execInput)
+	logger.Info(output)
+	logger.Info(err)
 }

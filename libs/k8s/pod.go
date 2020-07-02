@@ -11,6 +11,7 @@ import (
 	"github.com/chenhg5/collection"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 )
 
 // IsPodReadyInput ...
@@ -417,4 +418,88 @@ func (c *Client) WaitForAllPodDown(input IsAllPodReadyInput, tries int) error {
 		// strategy.Backoff(backoff.Fibonacci(20*time.Second)),
 	)
 	return err
+}
+
+// WatchPodReady Wait for the Pod to indicate Ready == True.
+func (c *Client) WatchPodReady(pod *v1.Pod) error {
+	// Wait for the Pod to indicate Ready == True.
+	watcher, err := c.Clientset.CoreV1().Pods(c.NameSpace).Watch(
+		metav1.SingleObject(pod.ObjectMeta),
+	)
+	if err != nil {
+		return err
+	}
+
+	for event := range watcher.ResultChan() {
+		switch event.Type {
+		case watch.Modified:
+			pod = event.Object.(*v1.Pod)
+			// If the Pod contains a status condition Ready == True, stop watching.
+			for _, cond := range pod.Status.Conditions {
+				logger.Infof("Pod %s condition Type: %s, Status: %s", pod.ObjectMeta.Name, cond.Type, cond.Status)
+				if cond.Type == v1.PodReady &&
+					cond.Status == v1.ConditionTrue {
+					watcher.Stop()
+				}
+			}
+		default:
+			return fmt.Errorf("unexpected event type %s", event.Type)
+		}
+	}
+	return nil
+}
+
+// WatchPodReadyByFilter .
+func (c *Client) WatchPodReadyByFilter(input IsPodReadyInput) error {
+	allPods, err := c.Clientset.CoreV1().Pods(c.NameSpace).List(metav1.ListOptions{})
+	if err != nil {
+		logger.Errorf("%+v", err)
+		return err
+	}
+
+	for _, value := range allPods.Items {
+		pName := value.ObjectMeta.Name
+		// filter with PodName or PodNamePrefix
+		if input.PodName != "" {
+			if pName != input.PodName {
+				continue
+			}
+		} else if input.PodNamePrefix != "" {
+			if !strings.HasPrefix(pName, input.PodNamePrefix) {
+				continue
+			}
+		}
+		if input.PodNameIgnoreList != nil {
+			if collection.Collect(input.PodNameIgnoreList).Contains(pName) {
+				continue
+			}
+		}
+
+		// Check if Image matched
+		if input.Image != "" {
+			image, err := c.GetPodImage(pName, input.ContainerName)
+			if err != nil {
+				return err
+			} else if image != input.Image {
+				return fmt.Errorf("Pod %s container [%s] image not matched!:%s", pName, input.ContainerName, input.Image)
+			}
+			logger.Infof("Image matched: %s", image)
+		}
+
+		// ContainerStatuses: ready
+		err := c.WatchPodReady(&value)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	// Got no pods
+	if input.PodName != "" {
+		return fmt.Errorf("Not found pod name %s", input.PodName)
+	} else if input.PodNamePrefix != "" {
+		return fmt.Errorf("Not found pod name HasPrefix: %s", input.PodNamePrefix)
+	} else {
+		panic("Args None: PodName and PodNamePrefix")
+	}
 }
