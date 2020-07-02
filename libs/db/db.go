@@ -40,6 +40,7 @@ func connectCluster(cf *CassConfig) *gocql.ClusterConfig {
 	}
 	cluster.Consistency = gocql.LocalQuorum
 	cluster.NumConns = 3 // set connection pool num
+	logger.Debug("Connect cassandra cluster success")
 	return cluster
 }
 
@@ -58,6 +59,7 @@ loop:
 	for {
 		session, err = NewSession(cf)
 		if err == nil && session != nil {
+			logger.Debug("Create cassandra session success")
 			break loop
 		}
 		logger.Warningf("new cassandra session failed, %v", err)
