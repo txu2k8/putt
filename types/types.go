@@ -4,8 +4,8 @@ import (
 	"putt/libs/sshmgr"
 )
 
-// VizionBaseInput ...
-type VizionBaseInput struct {
+// BaseInput ...
+type BaseInput struct {
 	MasterIPs      []string // Master nodes ips array
 	VsetIDs        []int    // vset ids array
 	DPLGroupIDs    []int    // dpl group ids array

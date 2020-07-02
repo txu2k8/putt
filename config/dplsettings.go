@@ -70,7 +70,7 @@ type CleanItem struct {
 }
 
 // GetPodLabel .
-func (sv *Service) GetPodLabel(base types.VizionBaseInput) (podLabel string) {
+func (sv *Service) GetPodLabel(base types.BaseInput) (podLabel string) {
 	keyValue := strings.Split(sv.PodLabel, "=")
 	labelKey := keyValue[0]
 	labelValue := keyValue[1]
@@ -138,7 +138,7 @@ func (sv *Service) GetPodLabel(base types.VizionBaseInput) (podLabel string) {
 }
 
 // GetNodeLabelArr .
-func (sv *Service) GetNodeLabelArr(base types.VizionBaseInput) (nodeLabelKeyArr, nodeLabelKeyValueArr []string) {
+func (sv *Service) GetNodeLabelArr(base types.BaseInput) (nodeLabelKeyArr, nodeLabelKeyValueArr []string) {
 	keyValue := strings.Split(sv.NodeLabel, "=")
 	labelKey := keyValue[0]
 	labelValue := keyValue[1]
@@ -212,7 +212,7 @@ func (sv *Service) GetNodeLabelArr(base types.VizionBaseInput) (nodeLabelKeyArr,
 }
 
 // GetLogDirArr .
-func (sv *Service) GetLogDirArr(base types.VizionBaseInput) (logDirArr []string) {
+func (sv *Service) GetLogDirArr(base types.BaseInput) (logDirArr []string) {
 	switch sv.Type {
 	case Jddpl.Type: // *-1
 		for _, jdGroupID := range base.JDGroupIDs {

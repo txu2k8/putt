@@ -34,7 +34,7 @@ var stopCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint stop services ...")
 		var maintainer maintenance.Maintainer
-		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
+		maintainer = maintenance.NewMaint(baseConf, maintConf)
 		jobs := []stress.Job{
 			{
 				Fn:       maintainer.StopC,
@@ -49,12 +49,12 @@ var stopCmd = &cobra.Command{
 // startCmd represents the start command
 var startCmd = &cobra.Command{
 	Use:   "start",
-	Short: "Maintaince mode tools: start",
+	Short: "Maintaince mode tools: start service",
 	Long:  `start specified services`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint start services ...")
 		var maintainer maintenance.Maintainer
-		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
+		maintainer = maintenance.NewMaint(baseConf, maintConf)
 		jobs := []stress.Job{
 			{
 				Fn:       maintainer.Start,
@@ -69,12 +69,12 @@ var startCmd = &cobra.Command{
 // restartCmd represents the restart command
 var restartCmd = &cobra.Command{
 	Use:   "restart",
-	Short: "Maintaince mode tools: restart",
+	Short: "Maintaince mode tools: restart service",
 	Long:  `restart specified services`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint restart services ...")
 		var maintainer maintenance.Maintainer
-		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
+		maintainer = maintenance.NewMaint(baseConf, maintConf)
 		jobs := []stress.Job{
 			{
 				Fn:       maintainer.Restart,
@@ -94,7 +94,7 @@ var cleanupCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint clean up ...")
 		var maintainer maintenance.Maintainer
-		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
+		maintainer = maintenance.NewMaint(baseConf, maintConf)
 		jobs := []stress.Job{
 			{
 				Fn:       maintainer.Cleanup,
@@ -109,15 +109,15 @@ var cleanupCmd = &cobra.Command{
 // cleanupCmd represents the make_binary command
 var makeBinaryCmd = &cobra.Command{
 	Use:   "make_binary",
-	Short: "Maintaince mode tools: make_binary --TODO",
+	Short: "Maintaince mode tools: make binary --TODO",
 	Long:  `make binary from git server`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint Make Binary ...")
 		var maintainer maintenance.Maintainer
-		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
+		maintainer = maintenance.NewMaint(baseConf, maintConf)
 		jobs := []stress.Job{
 			{
-				Fn:       maintainer.MakeBinary,
+				Fn:       maintainer.CreateImageByBinary,
 				Name:     "Make Binary",
 				RunTimes: 1,
 			},
@@ -129,16 +129,16 @@ var makeBinaryCmd = &cobra.Command{
 // makeImageCmd represents the make_binary command
 var makeImageCmd = &cobra.Command{
 	Use:   "make_image",
-	Short: "Maintaince mode tools: make_image",
+	Short: "Maintaince mode tools: make image",
 	Long:  `make image by push tag to gitlab server`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint make image ...")
 		var maintainer maintenance.Maintainer
-		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
+		maintainer = maintenance.NewMaint(baseConf, maintConf)
 		jobs := []stress.Job{
 			{
 				Fn:       maintainer.MakeImage,
-				Name:     "Apply Service Image",
+				Name:     "Make Image by git tag",
 				RunTimes: 1,
 			},
 		}
@@ -149,16 +149,36 @@ var makeImageCmd = &cobra.Command{
 // applyImageCmd represents the make_binary command
 var applyImageCmd = &cobra.Command{
 	Use:   "apply_image",
-	Short: "Maintaince mode tools: apply_image",
+	Short: "Maintaince mode tools: apply image to service",
 	Long:  `apply service container image`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint apply service image ...")
 		var maintainer maintenance.Maintainer
-		maintainer = maintenance.NewMaint(vizionBaseConf, maintConf)
+		maintainer = maintenance.NewMaint(baseConf, maintConf)
 		jobs := []stress.Job{
 			{
 				Fn:       maintainer.ApplyImage,
 				Name:     "Apply Service Image",
+				RunTimes: 1,
+			},
+		}
+		stress.Run(jobs)
+	},
+}
+
+// applyImageCmd represents the make_binary command
+var upgradeCoreCmd = &cobra.Command{
+	Use:   "upgradecore",
+	Short: "Maintaince mode tools: make image && apply image to service",
+	Long:  `make image && upgrade core service`,
+	Run: func(cmd *cobra.Command, args []string) {
+		logger.Infof("maint make image && upgrade core service ...")
+		var maintainer maintenance.Maintainer
+		maintainer = maintenance.NewMaint(baseConf, maintConf)
+		jobs := []stress.Job{
+			{
+				Fn:       maintainer.UpgradeCore,
+				Name:     "Make image && Upgrade Core Service",
 				RunTimes: 1,
 			},
 		}
@@ -200,7 +220,7 @@ func AddFlagsMaintImage(cmd *cobra.Command) {
 func AddFlagsMaintGit(cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolVar(&maintConf.GitCfg.Pull, "pull", false, "git pull if true (default false)")
 	cmd.PersistentFlags().BoolVar(&maintConf.GitCfg.Tag, "tag", false, "git tag if true (default false)")
-	cmd.PersistentFlags().BoolVar(&maintConf.GitCfg.Make, "make", false, "make file if true (default false)")
+	cmd.PersistentFlags().BoolVar(&maintConf.GitCfg.Make, "make", false, "make_binary: make file if true (default false)")
 	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildServerIP, "build_server_ip", config.DplBuildIP, "git build server ip")
 	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildServerUser, "build_server_user", "root", "git build server user")
 	cmd.PersistentFlags().StringVar(&maintConf.GitCfg.BuildServerPwd, "build_server_pwd", "password", "git build server pwd")
@@ -224,6 +244,7 @@ func init() {
 	maintCmd.AddCommand(makeBinaryCmd)
 	maintCmd.AddCommand(makeImageCmd)
 	maintCmd.AddCommand(applyImageCmd)
+	maintCmd.AddCommand(upgradeCoreCmd)
 
 	// clean
 	AddFlagsMaintClean(cleanupCmd)
@@ -249,4 +270,10 @@ func init() {
 	AddFlagsMaintService(applyImageCmd)
 	AddFlagsMaintClean(applyImageCmd)
 	AddFlagsMaintCheck(applyImageCmd)
+	// make image && upgrade Core
+	AddFlagsMaintGit(upgradeCoreCmd)
+	AddFlagsMaintService(upgradeCoreCmd)
+	AddFlagsMaintClean(upgradeCoreCmd)
+	AddFlagsMaintCheck(upgradeCoreCmd)
+
 }

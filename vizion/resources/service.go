@@ -58,7 +58,7 @@ type Worker struct {
 // svManager implements NodeInterface
 type svManager struct {
 	k8s.Client
-	Base types.VizionBaseInput
+	Base types.BaseInput
 }
 
 // newServiceMgr returns a Nodes

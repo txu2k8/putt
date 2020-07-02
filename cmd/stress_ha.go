@@ -68,7 +68,7 @@ var restartServiceCmd = &cobra.Command{
 			switch tc {
 			case "restart_service":
 				debug := func() error {
-					return testcase.Debug(vizionBaseConf)
+					return testcase.Debug(baseConf)
 				}
 				jobs = []stress.Job{
 					{

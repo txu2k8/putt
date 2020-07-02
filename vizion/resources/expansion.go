@@ -616,7 +616,7 @@ func (v *Vizion) CleanCdcCassMonitor() error {
 */
 func (v *Vizion) CleanCdcgc() error {
 	var err error
-	var base types.VizionBaseInput
+	var base types.BaseInput
 	vk8s := v.Service()
 	cdcgcVsetIDs := []int{}
 	for _, vsetID := range v.Base.VsetIDs {

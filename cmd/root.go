@@ -16,12 +16,12 @@ import (
 )
 
 var (
-	logger         = logging.MustGetLogger("test")
-	runTimes       int      // runTimes
-	debug          bool     // debug modle
-	caseList       []string // Case List
-	vizionBaseConf types.VizionBaseInput
-	vsphere        types.Vsphere
+	logger   = logging.MustGetLogger("test")
+	runTimes int      // runTimes
+	debug    bool     // debug modle
+	caseList []string // Case List
+	baseConf types.BaseInput
+	vsphere  types.Vsphere
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -32,7 +32,7 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Vizion Base Info: %s", utils.Prettify(vizionBaseConf))
+		fmt.Printf("Vizion Base Info: %s", utils.Prettify(baseConf))
 	},
 }
 
@@ -56,21 +56,21 @@ func init() {
 	rootCmd.PersistentFlags().StringArrayVar(&caseList, "case", []string{}, "Test Case Array (default value in sub-command)")
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.vztest.yaml)")
-	rootCmd.PersistentFlags().StringArrayVar(&vizionBaseConf.MasterIPs, "master_ips", []string{}, "Master nodes IP address Array")
-	rootCmd.PersistentFlags().IntSliceVar(&vizionBaseConf.VsetIDs, "vset_ids", []int{}, "vset IDs array")
-	rootCmd.PersistentFlags().IntSliceVar(&vizionBaseConf.DPLGroupIDs, "dpl_group_ids", []int{1}, "dpl group ids array")
-	rootCmd.PersistentFlags().IntSliceVar(&vizionBaseConf.JDGroupIDs, "jd_group_ids", []int{1}, "jd group ids array")
-	rootCmd.PersistentFlags().IntSliceVar(&vizionBaseConf.JcacheGroupIDs, "jcache_group_ids", []int{1}, "jcache group ids array")
-	rootCmd.PersistentFlags().IntSliceVar(&vizionBaseConf.CmapGroupIDs, "cmap_group_ids", []int{1}, "cmap group ids array")
-	rootCmd.PersistentFlags().StringVar(&vizionBaseConf.K8sNameSpace, "k8s_namespace", "vizion", "k8s namespace")
-	// rootCmd.PersistentFlags().StringVar(&vizionBaseConf.KubeConfig, "kubeconfig", "C:\\workspace\\config", "k8s kubeconfig")
+	rootCmd.PersistentFlags().StringArrayVar(&baseConf.MasterIPs, "master_ips", []string{}, "Master nodes IP address Array")
+	rootCmd.PersistentFlags().IntSliceVar(&baseConf.VsetIDs, "vset_ids", []int{}, "vset IDs array")
+	rootCmd.PersistentFlags().IntSliceVar(&baseConf.DPLGroupIDs, "dpl_group_ids", []int{1}, "dpl group ids array")
+	rootCmd.PersistentFlags().IntSliceVar(&baseConf.JDGroupIDs, "jd_group_ids", []int{1}, "jd group ids array")
+	rootCmd.PersistentFlags().IntSliceVar(&baseConf.JcacheGroupIDs, "jcache_group_ids", []int{1}, "jcache group ids array")
+	rootCmd.PersistentFlags().IntSliceVar(&baseConf.CmapGroupIDs, "cmap_group_ids", []int{1}, "cmap group ids array")
+	rootCmd.PersistentFlags().StringVar(&baseConf.K8sNameSpace, "k8s_namespace", "vizion", "k8s namespace")
+	// rootCmd.PersistentFlags().StringVar(&baseConf.KubeConfig, "kubeconfig", "C:\\workspace\\config", "k8s kubeconfig")
 	// rootCmd.MarkPersistentFlagRequired("master_ips")
 	// rootCmd.MarkPersistentFlagRequired("vset_ids")
 
-	rootCmd.PersistentFlags().StringVar(&vizionBaseConf.SSHKey.UserName, "ssh_user", "root", "ssh login user")
-	rootCmd.PersistentFlags().StringVar(&vizionBaseConf.SSHKey.Password, "ssh_pwd", "password", "ssh login password")
-	rootCmd.PersistentFlags().IntVar(&vizionBaseConf.SSHKey.Port, "ssh_port", 22, "ssh login port")
-	rootCmd.PersistentFlags().StringVar(&vizionBaseConf.SSHKey.KeyFile, "ssh_key", "", "ssh login PrivateKey file full path (default \"\")")
+	rootCmd.PersistentFlags().StringVar(&baseConf.SSHKey.UserName, "ssh_user", "root", "ssh login user")
+	rootCmd.PersistentFlags().StringVar(&baseConf.SSHKey.Password, "ssh_pwd", "password", "ssh login password")
+	rootCmd.PersistentFlags().IntVar(&baseConf.SSHKey.Port, "ssh_port", 22, "ssh login port")
+	rootCmd.PersistentFlags().StringVar(&baseConf.SSHKey.KeyFile, "ssh_key", "", "ssh login PrivateKey file full path (default \"\")")
 }
 
 // initConfig reads in config file and ENV variables if set.

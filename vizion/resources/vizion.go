@@ -25,7 +25,7 @@ type BaseInterface interface {
 
 // Vizion is used to interact with features provided by the  group.
 type Vizion struct {
-	Base         types.VizionBaseInput    // command/args input
+	Base         types.BaseInput          // command/args input
 	CassConfig   map[string]db.CassConfig // cassandra configs map
 	KubeConfig   string                   // kubeconfig file path
 	K8sNameSpace string                   // k8s namespace

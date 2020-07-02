@@ -27,8 +27,8 @@ type Maintainer interface {
 	StopC() error
 	Start() error
 	Restart() error
-	MakeBinary() error
-	MakeImage() error
+	CreateImageByBinary() error // docker build: make
+	MakeImage() error           // gitlab build: tag
 	ApplyImage() error
 	UpgradeCore() error
 }
@@ -75,7 +75,7 @@ type MaintTestInput struct {
 }
 
 // NewMaint returns a Nodes
-func NewMaint(base types.VizionBaseInput, mt MaintTestInput) *Maint {
+func NewMaint(base types.BaseInput, mt MaintTestInput) *Maint {
 	var svArr, binArr []config.Service
 	var cleanArr []config.CleanItem
 
@@ -192,9 +192,9 @@ func (maint *Maint) setImage() error {
 	return nil
 }
 
-// MakeBinary - maint
-func (maint *Maint) MakeBinary() error {
-	var err error
+// makeBinary - maint
+func (maint *Maint) makeBinary() (localBinPath string, err error) {
+	logger.Info("Make binarys ...")
 	strTime := time.Now().Format("2006-01-02-15-04-05")
 	// Get build path branch Name, joint tagName
 	gitMgr := git.NewGitMgr(
@@ -211,7 +211,7 @@ func (maint *Maint) MakeBinary() error {
 		tagName = tagName + "_" + maint.GitCfg.BuildNum
 	}
 
-	localBinPath := path.Join(maint.GitCfg.LocalBinPath, tagName)
+	localBinPath = path.Join(maint.GitCfg.LocalBinPath, tagName)
 	err = os.MkdirAll(localBinPath, os.ModePerm)
 	if err != nil {
 		logger.Panic(err)
@@ -220,7 +220,7 @@ func (maint *Maint) MakeBinary() error {
 	// pull && save changelog
 	if maint.GitCfg.Pull == true {
 		if err = gitMgr.Pull(maint.GitCfg.BuildPath); err != nil {
-			return err
+			return
 		}
 		// change.log
 		date, changeLog := gitMgr.GetChangeLog(maint.GitCfg.BuildPath)
@@ -244,19 +244,32 @@ func (maint *Maint) MakeBinary() error {
 			binGitPathName := path.Join(binGitPath, binName)
 			binLocalPathName := path.Join(localBinPath, binName)
 			if md5sum := gitMgr.MakeFile(binGitPath, binName); md5sum == "" {
-				return fmt.Errorf("%s make failed", binName)
+				err = fmt.Errorf("%s make failed", binName)
+				return
 			}
 			gitMgr.ConnectSftpClient()
 			if err = gitMgr.ScpGet(binLocalPathName, binGitPathName); err != nil {
-				return err
+				return
 			}
 		}
 	}
 	logger.Infof("Local Binary Path: %s", localBinPath)
+	return
+}
+
+// CreateImageByBinary - maint Make Image by docker build with Binrarys and Dockerfile --TODO
+func (maint *Maint) CreateImageByBinary() error {
+	localBinPath, err := maint.makeBinary()
+	if err != nil {
+		return err
+	}
+	logger.Info("Docker build image with binarys and Dockerfile ...")
+	tagName := path.Base(localBinPath)
+	maint.Image = config.RemoteDplRegistry + ":" + tagName
 	return nil
 }
 
-// MakeImage - maint make image by tag to gitlab
+// MakeImage - maint Make image by push tag to gitlab
 func (maint *Maint) MakeImage() error {
 	var err error
 	strTime := time.Now().Format("2006-01-02-15-04-05")
@@ -300,10 +313,8 @@ func (maint *Maint) MakeImage() error {
 	}
 
 	// tag && push
-	if maint.GitCfg.Tag == true {
-		if err = gitMgr.Tag(maint.GitCfg.BuildPath, tagName); err != nil {
-			return err
-		}
+	if err = gitMgr.Tag(maint.GitCfg.BuildPath, tagName); err != nil {
+		return err
 	}
 
 	maint.Image = config.RemoteDplRegistry + ":" + tagName
@@ -530,10 +541,20 @@ func (maint *Maint) ApplyImage() error {
 func (maint *Maint) UpgradeCore() error {
 	var err error
 
-	// MakeImage
-	err = maint.Vizion.Schedule.RunPhase(maint.MakeImage)
-	if err != nil {
-		return err
+	if maint.GitCfg.Tag == true {
+		// Make Image by git tag
+		err = maint.Vizion.Schedule.RunPhase(maint.MakeImage, schedule.Desc("Make Image by git tag"))
+		if err != nil {
+			return err
+		}
+	} else if maint.GitCfg.Make == true {
+		// Make Image by docker build with Binrarys and Dockerfile
+		err = maint.Vizion.Schedule.RunPhase(maint.CreateImageByBinary, schedule.Desc("Make Image by docker build with Binrarys and Dockerfile"))
+		if err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("--tag or --make Flags required: --tag(make image by push tag to gitlab), --make(make image by make_binary->docker_build)")
 	}
 
 	err = maint.ApplyImage()

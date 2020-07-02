@@ -257,7 +257,7 @@ func (job *HANode) Run() error {
 // ============================= RestartService =============================
 
 // Debug code
-func Debug(base types.VizionBaseInput) error {
+func Debug(base types.BaseInput) error {
 	// host := "10.25.119.77"
 	vizion := resources.Vizion{Base: base}
 
