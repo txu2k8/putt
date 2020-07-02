@@ -191,7 +191,7 @@ func (sshMgr *SSHMgr) RunCmd(cmdSpec string) (int, string) {
 
 	logger.Infof("SSH Execute: ssh %s@%s# %s", sshMgr.Cfg.UserName, sshMgr.Cfg.Host, cmdSpec)
 	if err := session.Run(cmdSpec); err != nil {
-		logger.Debugf("Failed to run: %s", err.Error())
+		logger.Warningf("Failed to run: %s", err.Error())
 		// Process exited with status 1
 		rc = 1
 	}
