@@ -428,7 +428,7 @@ func (maint *Maint) StopC() error {
 	// Cleanup
 	strClNameArr := strings.Join(maint.CleanNameArr, ",")
 	skipCleanup := false
-	if len(maint.CleanNameArr) < 0 {
+	if len(maint.CleanNameArr) == 0 {
 		skipCleanup = true
 	}
 	err = maint.Vizion.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr), schedule.Skip(skipCleanup))
@@ -459,7 +459,7 @@ func (maint *Maint) Restart() error {
 	// Cleanup
 	strClNameArr := strings.Join(maint.CleanNameArr, ",")
 	skipCleanup := false
-	if len(maint.CleanNameArr) < 0 {
+	if len(maint.CleanNameArr) == 0 {
 		skipCleanup = true
 	}
 	err = maint.Vizion.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr), schedule.Skip(skipCleanup))
@@ -508,7 +508,7 @@ func (maint *Maint) ApplyImage() error {
 	// Cleanup
 	strClNameArr := strings.Join(maint.CleanNameArr, ",")
 	skipCleanup := false
-	if len(maint.CleanNameArr) < 0 {
+	if len(maint.CleanNameArr) == 0 {
 		skipCleanup = true
 	}
 	err = maint.Vizion.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr), schedule.Skip(skipCleanup))

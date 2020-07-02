@@ -6,7 +6,7 @@ type OptionFunc func(*Schedule) error
 // Skip disables the skip or not.
 func Skip(s bool) OptionFunc {
 	return func(sc *Schedule) error {
-		sc.Input.Skip = true
+		sc.Input.Skip = s
 		return nil
 	}
 }

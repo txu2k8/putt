@@ -198,18 +198,17 @@ func (v *Vizion) StartServices(svArr []config.Service) error {
 			if sv.Type == config.ES.Type { // Enable label
 				svMgr.EnableNodeLabels(nodeLabelArr)
 				svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 60)
-				continue
+			} else { // set replicas
+				if replicas == 0 {
+					break
+				}
+				k8sNameArr, _ := svMgr.GetStatefulSetsNameArrByLabel(podLabel)
+				for _, k8sName := range k8sNameArr {
+					svMgr.SetStatefulSetsReplicas(k8sName, replicas)
+					// svMgr.WaitForPodReady(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 60)
+				}
+				svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 60)
 			}
-			// set replicas
-			if replicas == 0 {
-				break
-			}
-			k8sNameArr, _ := svMgr.GetStatefulSetsNameArrByLabel(podLabel)
-			for _, k8sName := range k8sNameArr {
-				svMgr.SetStatefulSetsReplicas(k8sName, replicas)
-				// svMgr.WaitForPodReady(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 60)
-			}
-			svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 60)
 		case config.K8sDeployment: // set replicas
 			if replicas == 0 {
 				break
