@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chenhg5/collection"
 	"github.com/op/go-logging"
 	"github.com/spf13/cobra"
 )
@@ -54,6 +55,7 @@ func init() {
 
 	rootCmd.PersistentFlags().IntVar(&runTimes, "run_times", 1, "Run test case with iteration loop")
 	rootCmd.PersistentFlags().StringArrayVar(&caseList, "case", []string{}, "Test Case Array (default value in sub-command)")
+	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable console debug log level if true (default false)")
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.vztest.yaml)")
 	rootCmd.PersistentFlags().StringArrayVar(&baseConf.MasterIPs, "master_ips", []string{}, "Master nodes IP address Array")
@@ -113,12 +115,18 @@ func initLogging() {
 	}
 	fileLogName = fmt.Sprintf("%s-%s.log", fileLogName, timeStr)
 	fileLogPath = path.Join(fileLogPath, fileLogName)
+	consoleLoglevel := logging.INFO
+	if collection.Collect(os.Args).Contains("--debug") == true {
+		consoleLoglevel = logging.DEBUG
+	}
 
 	conf := tlog.NewOptions(
 		tlog.OptionSetFileLogPath(fileLogPath),
+		tlog.OptionSetConsoleLogLevel(consoleLoglevel),
 	)
 	conf.InitLogging()
 	logger.Infof("Args: putt %s", strings.Join(os.Args[1:], " "))
+	logger.Debug("sss")
 }
 
 // ========== Common functions ==========

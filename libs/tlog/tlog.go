@@ -30,6 +30,13 @@ func OptionSetFileLogPath(filePath string) Option {
 	}
 }
 
+// OptionSetConsoleLogLevel sets the Console log level
+func OptionSetConsoleLogLevel(level logging.Level) Option {
+	return func(p *Config) {
+		p.ConsoleLogLevel = level
+	}
+}
+
 // NewOptions ...
 func NewOptions(options ...Option) *Config {
 	dir, _ := os.Getwd()
