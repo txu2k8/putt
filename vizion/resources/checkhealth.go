@@ -38,40 +38,40 @@ func (v *Vizion) RetryCheck(check Check) error {
 // CheckHealth .
 func (v *Vizion) CheckHealth() error {
 	var err error
-	err = v.Schedule.RunPhase(v.WaitForPingOK, schedule.Desc("Check if nodes ping OK"))
-	if err != nil {
-		return err
-	}
+	// err = v.Schedule.RunPhase(v.WaitForPingOK, schedule.Desc("Check if nodes ping OK"))
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = v.Schedule.RunPhase(v.IsNodeCrashed, schedule.Desc("Check nodes /var/crash/ files"))
-	if err != nil {
-		return err
-	}
+	// err = v.Schedule.RunPhase(v.IsNodeCrashed, schedule.Desc("Check nodes /var/crash/ files"))
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = v.Schedule.RunPhase(v.IsServiceCoreDump, schedule.Desc("Check if service has core dump files"))
-	if err != nil {
-		return err
-	}
+	// err = v.Schedule.RunPhase(v.IsServiceCoreDump, schedule.Desc("Check if service has core dump files"))
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = v.Schedule.RunPhase(v.WaitForAllPodStatusOK, schedule.Desc("Check if All Service pods contaniers ready"))
-	if err != nil {
-		return err
-	}
+	// err = v.Schedule.RunPhase(v.WaitForAllPodStatusOK, schedule.Desc("Check if All Service pods contaniers ready"))
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = v.Schedule.RunPhase(v.WaitForEtcdOK, schedule.Desc("Check if etcd members stared >=3"))
-	if err != nil {
-		return err
-	}
+	// err = v.Schedule.RunPhase(v.WaitForEtcdOK, schedule.Desc("Check if etcd members stared >=3"))
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = v.Schedule.RunPhase(v.WaitForCassOK, schedule.Desc("Check if cassandra 'nodetool status' all UN"))
-	if err != nil {
-		return err
-	}
+	// err = v.Schedule.RunPhase(v.WaitForCassOK, schedule.Desc("Check if cassandra 'nodetool status' all UN"))
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = v.Schedule.RunPhase(v.WaitForMysqlOK, schedule.Desc("Check if Mysql members all ONLINE && PRIMARY >=1"))
-	if err != nil {
-		return err
-	}
+	// err = v.Schedule.RunPhase(v.WaitForMysqlOK, schedule.Desc("Check if Mysql members all ONLINE && PRIMARY >=1"))
+	// if err != nil {
+	// 	return err
+	// }
 
 	err = v.Schedule.RunPhase(v.WaitForDplHeloOK, schedule.Desc("Check if 'dplmanager -mdpl helo' OK"))
 	if err != nil {

@@ -32,8 +32,6 @@ func newClusterConfig(cf *CassConfig) *gocql.ClusterConfig {
 	cluster := gocql.NewCluster(cf.Hosts...)
 	cluster.Port = cf.Port
 	cluster.Keyspace = cf.Keyspace
-	// cluster.CQLVersion = "3.4.4"
-	cluster.ProtoVersion = 4
 	cluster.Timeout = time.Duration(cassTimeout) * time.Second
 	cluster.ConnectTimeout = time.Duration(cassConnectTimeout) * time.Second
 	cluster.Authenticator = gocql.PasswordAuthenticator{
@@ -42,6 +40,8 @@ func newClusterConfig(cf *CassConfig) *gocql.ClusterConfig {
 	}
 	cluster.Consistency = gocql.LocalQuorum
 	cluster.NumConns = 3 // set connection pool num
+	// cluster.CQLVersion = "3.4.4"
+	// cluster.ProtoVersion = 4
 	logger.Debug("Connect cassandra cluster success")
 	return cluster
 }
