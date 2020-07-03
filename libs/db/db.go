@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"putt/libs/utils"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -25,13 +26,13 @@ type CassConfig struct {
 	Port     int
 }
 
-func connectCluster(cf *CassConfig) *gocql.ClusterConfig {
+func newClusterConfig(cf *CassConfig) *gocql.ClusterConfig {
 	// connect to the cluster
 	logger.Infof("Connect cassandra cluster:%+v", *cf)
 	cluster := gocql.NewCluster(cf.Hosts...)
 	cluster.Port = cf.Port
 	cluster.Keyspace = cf.Keyspace
-	cluster.CQLVersion = "3.4.4"
+	// cluster.CQLVersion = "3.4.4"
 	cluster.ProtoVersion = 4
 	cluster.Timeout = time.Duration(cassTimeout) * time.Second
 	cluster.ConnectTimeout = time.Duration(cassConnectTimeout) * time.Second
@@ -47,8 +48,9 @@ func connectCluster(cf *CassConfig) *gocql.ClusterConfig {
 
 // NewSession return the cassandra session
 func NewSession(cf *CassConfig) (*gocql.Session, error) {
-	cassCluster := connectCluster(cf)
-	return cassCluster.CreateSession()
+	cfg := newClusterConfig(cf)
+	logger.Debugf("Cassandra ClusterConfig:%s", utils.Prettify(cfg))
+	return cfg.CreateSession()
 }
 
 // NewSessionWithRetry return the cassandra session
