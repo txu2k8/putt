@@ -95,10 +95,10 @@ func (v *Vizion) GetK8sClient() k8s.Client {
 
 // GetCassConfig returns cassandra cluster configs
 func (v *Vizion) GetCassConfig() map[string]cql.CassConfig {
-	// Get once TODO
-	// if v.CassConfig != nil {
-	// 	return v.CassConfig
-	// }
+	// Get once
+	if v.CassConfig != nil {
+		return v.CassConfig
+	}
 
 	cf := map[string]cql.CassConfig{}
 	vk8s := v.Service()

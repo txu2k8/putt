@@ -29,6 +29,9 @@ type CassConfig struct {
 func newClusterConfig(cf *CassConfig) *gocql.ClusterConfig {
 	// connect to the cluster
 	logger.Infof("Connect cassandra cluster:%+v", *cf)
+	if len(cf.Hosts) == 0 {
+		panic("no hosts provided")
+	}
 	cluster := gocql.NewCluster(cf.Hosts...)
 	cluster.Port = cf.Port
 	cluster.Keyspace = cf.Keyspace

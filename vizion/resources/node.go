@@ -285,7 +285,7 @@ func (n *node) DeleteFiles(topPath string) error {
 		topPath += "/"
 	}
 
-	cmdSpec1 := fmt.Sprintf("ls -1 %s | awk '{print i$0}' i='%s' | grep -v lost+found | xargs rm -rf", topPath, topPath)
+	cmdSpec1 := fmt.Sprintf("ls -1 %s | awk '{print i$0}' i='%s' | grep -v lost+found | xargs sudo rm -rf", topPath, topPath)
 	_, output := n.RunCmd(cmdSpec1)
 	logger.Debug(output)
 

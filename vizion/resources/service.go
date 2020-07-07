@@ -378,7 +378,7 @@ func (s *svManager) DeletePodsByLabel(podLabel string) (err error) {
 }
 
 func (s *svManager) DeleteFilesInPod(fPath, podName, containerName string) error {
-	rmCmd := fmt.Sprintf("find %s* | grep -v lost+found | xargs sudo rm -rf", fPath)
+	rmCmd := fmt.Sprintf("find %s* | grep -v lost+found | xargs rm -rf", fPath)
 	lsCmd := fmt.Sprintf("ls -l %s", fPath)
 
 	rmInput := k8s.ExecInput{

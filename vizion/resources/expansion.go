@@ -378,6 +378,7 @@ func (v *Vizion) CleanLog(svArr []config.Service) error {
 
 // CleanEtcd .
 func (v *Vizion) CleanEtcd(prefixArr []string) error {
+	logger.Info("> Clean etcd data ...")
 	// etcdctlv3 del --prefix /vizion/dpl/add_vol
 	cmdArr := []string{}
 	for _, prefix := range prefixArr {
@@ -407,7 +408,7 @@ func (v *Vizion) FormatJdevice(nodeIP, jdev, jdPodName string) error {
 
 // CleanJdevice . Format Journal device on vsphere/aws env
 func (v *Vizion) CleanJdevice() error {
-	logger.Info("Format journal ...")
+	logger.Info("> Clean journal device ...")
 	_, nodeLabelArr := config.Jddpl.GetNodeLabelArr(v.Base)
 	// podLabel := config.Jddpl.GetPodLabel(v.Base)
 	k8sSv := v.Service()
@@ -629,9 +630,10 @@ func (v *Vizion) CleanStorageCache(scPath string, podBash bool) error {
 
 // CleanSubCassTables .
 func (v *Vizion) CleanSubCassTables(tableNameArr []string) error {
+	logger.Info("> Clean sub-cassandra tables ...")
 	cass := v.Cass()
 	for _, vsetID := range v.Base.VsetIDs {
-		subCass := cass.SetIndex(string(vsetID))
+		subCass := cass.SetIndex(strconv.Itoa(vsetID))
 		for _, tableName := range tableNameArr {
 			err := subCass.TruncateTable(tableName)
 			if err != nil {
@@ -644,6 +646,7 @@ func (v *Vizion) CleanSubCassTables(tableNameArr []string) error {
 
 // UpdateMasterCassTables .
 func (v *Vizion) UpdateMasterCassTables() error {
+	logger.Info("> Update Master Cassandra Tables ...")
 	var err error
 	masterCass := v.Cass().SetIndex("0")
 	logger.Info("> Updata VPM ...")
@@ -765,6 +768,7 @@ func (v *Vizion) CleanCdcCassMonitor() error {
 4. restart cassandra-monitor-xxx pod
 */
 func (v *Vizion) CleanCdcgc() error {
+	logger.Info("> Clean cdcgc data on gc/cassandra-monitor pods ...")
 	var err error
 	var base types.BaseInput
 	vk8s := v.Service()

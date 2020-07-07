@@ -57,7 +57,7 @@ type sessCluster struct {
 func newSessCluster(v *Vizion) *sessCluster {
 	return &sessCluster{
 		ConfigMap:  v.GetCassConfig(),
-		SessionMap: map[string]*gocql.Session{"0": nil},
+		SessionMap: make(map[string]*gocql.Session, len(v.Base.VsetIDs)+1),
 		VsetIDs:    v.Base.VsetIDs,
 	}
 }
