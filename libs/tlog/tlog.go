@@ -44,8 +44,8 @@ func NewOptions(options ...Option) *Config {
 		FileLogPath:     path.Join(dir, "log", "test1.log"),
 		FileLogLevel:    logging.DEBUG,
 		ConsoleLogLevel: logging.INFO,
-		InfoFormat:      `%{color}%{time:2006-01-02T15:04:05} %{module} %{level:.4s}: %{color:reset}%{message}`,
-		DebugFormat:     `%{color}%{time:2006-01-02T15:04:05} %{module} %{level:.4s}: (%{shortfile}) %{color:reset}%{message}`,
+		InfoFormat:      `%{color}%{time:2006-01-02T15:04:05} %{module} %{level:.4s}: %{message}%{color:reset}`,
+		DebugFormat:     `%{color}%{time:2006-01-02T15:04:05} %{module} %{level:.4s}: (%{shortfile}) %{message}%{color:reset}`,
 		FileFormat:      `%{time:2006-01-02T15:04:05} %{module} %{level:.4s}: (%{shortfile}) %{message}`,
 	}
 	for _, o := range options {
