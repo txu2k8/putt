@@ -626,8 +626,9 @@ func (v *Vizion) CleanStorageCache(scPath string, podBash bool) error {
 
 // CleanSubCassTables .
 func (v *Vizion) CleanSubCassTables(tableNameArr []string) error {
+	cass := v.Cass()
 	for _, vsetID := range v.Base.VsetIDs {
-		subCass := v.Cass().SetIndex(string(vsetID))
+		subCass := cass.SetIndex(string(vsetID))
 		for _, tableName := range tableNameArr {
 			err := subCass.TruncateTable(tableName)
 			if err != nil {
@@ -816,7 +817,8 @@ func (v *Vizion) RmmodDplOnBD() error {
 // SetBdVolumeKV . TODO Ctime
 func (v *Vizion) SetBdVolumeKV(kvArr []string) error {
 	var err error
-	bdServiceArr, err := v.Cass().SetIndex("0").GetServiceByType(config.Dpldagent.Type)
+	cass := v.Cass()
+	bdServiceArr, err := cass.SetIndex("0").GetServiceByType(config.Dpldagent.Type)
 	if err != nil {
 		return err
 	}
@@ -825,7 +827,7 @@ func (v *Vizion) SetBdVolumeKV(kvArr []string) error {
 		bdIDs = append(bdIDs, bdSv.ID)
 	}
 	for _, vsetID := range v.Base.VsetIDs {
-		subCass := v.Cass().SetIndex(string(vsetID))
+		subCass := cass.SetIndex(string(vsetID))
 		volumeArr, err := subCass.GetVolume()
 		if err != nil {
 			return err
