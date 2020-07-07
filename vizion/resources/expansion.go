@@ -257,7 +257,9 @@ func (v *Vizion) StartServices(svArr []config.Service, cleanJdevice, cleanSC boo
 					svMgr.SetStatefulSetsReplicas(k8sName, replicas)
 					// svMgr.WaitForPodReady(k8s.IsPodReadyInput{PodNamePrefix: k8sName}, 60)
 				}
-				svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 60)
+				if len(k8sNameArr) > 0 {
+					svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 60)
+				}
 			}
 		case config.K8sDeployment: // set replicas
 			if replicas == 0 {
@@ -267,7 +269,9 @@ func (v *Vizion) StartServices(svArr []config.Service, cleanJdevice, cleanSC boo
 			for _, k8sName := range k8sNameArr {
 				svMgr.SetDeploymentsReplicas(k8sName, replicas)
 			}
-			svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 60)
+			if len(k8sNameArr) > 0 {
+				svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 60)
+			}
 		default: // disable label
 			svMgr.EnableNodeLabels(nodeLabelArr)
 			svMgr.WaitForAllPodReady(k8s.IsAllPodReadyInput{PodLabel: podLabel}, 60)
@@ -303,9 +307,13 @@ func (v *Vizion) StartServices(svArr []config.Service, cleanJdevice, cleanSC boo
 
 // ApplyServicesImage .
 func (v *Vizion) ApplyServicesImage(svArr []config.Service, image string) error {
+	defaultDplSvTypeArr := []int{}
+	for _, dplSv := range config.DefaultDplServiceArray {
+		defaultDplSvTypeArr = append(defaultDplSvTypeArr, dplSv.Type)
+	}
 	svMgr := v.Service()
 	for _, sv := range svArr {
-		if !collection.Collect(config.DefaultDplServiceArray).Contains(sv) {
+		if !collection.Collect(defaultDplSvTypeArr).Contains(sv.Type) {
 			continue
 		}
 		svContainer := sv.Container

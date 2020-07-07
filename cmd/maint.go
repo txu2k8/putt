@@ -264,6 +264,11 @@ func AddFlagsMaintCheck(cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolVar(&maintConf.Check, "check", false, "check->stop|start->check if true")
 }
 
+// AddFlagsMaintSkipSteps SkipSteps
+func AddFlagsMaintSkipSteps(cmd *cobra.Command) {
+	cmd.PersistentFlags().StringArrayVar(&maintConf.SkipSteps, "skip", []string{}, "Skip steps 'stop|cleanup|start' for apply_image and upgradecore (default [])")
+}
+
 func init() {
 	rootCmd.AddCommand(maintCmd)
 	maintCmd.AddCommand(checkCmd)
@@ -302,10 +307,12 @@ func init() {
 	AddFlagsMaintService(applyImageCmd)
 	AddFlagsMaintClean(applyImageCmd)
 	AddFlagsMaintCheck(applyImageCmd)
+	AddFlagsMaintSkipSteps(applyImageCmd)
 	// make image && upgrade Core
 	AddFlagsMaintGit(upgradeCoreCmd)
 	AddFlagsMaintService(upgradeCoreCmd)
 	AddFlagsMaintClean(upgradeCoreCmd)
 	AddFlagsMaintCheck(upgradeCoreCmd)
+	AddFlagsMaintSkipSteps(upgradeCoreCmd)
 
 }

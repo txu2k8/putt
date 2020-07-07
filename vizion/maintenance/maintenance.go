@@ -47,6 +47,7 @@ type Maint struct {
 	ServiceNameArr    []string
 	BinaryNameArr     []string
 	CleanNameArr      []string
+	SkipSteps         []string
 }
 
 // GitInput ...
@@ -73,6 +74,7 @@ type MaintTestInput struct {
 	Image             string   // eg: registry.ai/stable:tag
 	GitCfg            GitInput // The build number for image tag name, used in JENKINS
 	Check             bool     // check health before stop and after start services
+	SkipSteps         []string // Skip steps "stop | cleanup | start" for apply_image and upgradecore
 }
 
 // NewMaint returns a Nodes
@@ -152,6 +154,7 @@ func NewMaint(base types.BaseInput, mt MaintTestInput) *Maint {
 		ServiceNameArr: svNameArr,
 		BinaryNameArr:  binNameArr,
 		CleanNameArr:   cleanNameArr,
+		SkipSteps:      mt.SkipSteps,
 	}
 }
 
@@ -175,6 +178,40 @@ func (maint *Maint) isImageOK() error {
 		return err
 	}
 	logger.Infof("Image Availabel: %s", maint.Image)
+	return nil
+}
+
+// tagImageLocal - tag the image to local
+func (maint *Maint) tagImageLocal() error {
+	if config.LocalDplRegistry == "" {
+		return nil
+	}
+
+	localImage := strings.Replace(maint.Image, config.RemoteDplRegistry, config.LocalDplRegistry, 1)
+	logger.Infof("Tag Image local: %s -> %s", maint.Image, localImage)
+
+	// docker pull
+	node := maint.Vizion.MasterNode()
+	_, output := node.RunCmd("docker pull " + maint.Image)
+	if strings.Contains(output, "Error") {
+		return fmt.Errorf(output)
+	}
+
+	// docker tag -> push
+	if localImage != maint.Image {
+		_, output = node.RunCmd(fmt.Sprintf("docker tag %s %s", maint.Image, localImage))
+		if strings.Contains(output, "Error") {
+			return fmt.Errorf(output)
+		}
+
+		_, output = node.RunCmd(fmt.Sprintf("docker push %s", localImage))
+		if strings.Contains(output, "Error") {
+			return fmt.Errorf(output)
+		}
+		maint.Image = localImage
+		logger.Infof("Local Image Availabel: %s", maint.Image)
+	}
+
 	return nil
 }
 
@@ -389,7 +426,6 @@ func (maint *Maint) Cleanup() error {
 			return err
 		}
 	}
-	return maint.Vizion.FormatBdVolume()
 	return nil
 }
 
@@ -507,23 +543,32 @@ func (maint *Maint) ApplyImage() error {
 	}
 
 	// Stop
-	stopSvNameArr := strings.Join(convert.ReverseStringArr(maint.ServiceNameArr), ",")
-	err = maint.Vizion.Schedule.RunPhase(maint.Stop, schedule.Desc(stopSvNameArr))
-	if err != nil {
-		return err
+	if !collection.Collect(maint.SkipSteps).Contains("stop") {
+		stopSvNameArr := strings.Join(convert.ReverseStringArr(maint.ServiceNameArr), ",")
+		err = maint.Vizion.Schedule.RunPhase(maint.Stop, schedule.Desc(stopSvNameArr))
+		if err != nil {
+			return err
+		}
 	}
 
 	// Cleanup
-	strClNameArr := strings.Join(maint.CleanNameArr, ",")
-	skipCleanup := false
-	if len(maint.CleanNameArr) == 0 {
-		skipCleanup = true
+	if !collection.Collect(maint.SkipSteps).Contains("cleanup") {
+		strClNameArr := strings.Join(maint.CleanNameArr, ",")
+		skipCleanup := false
+		if len(maint.CleanNameArr) == 0 {
+			skipCleanup = true
+		}
+		err = maint.Vizion.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr), schedule.Skip(skipCleanup))
+		if err != nil {
+			return err
+		}
 	}
-	err = maint.Vizion.Schedule.RunPhase(maint.Cleanup, schedule.Desc(strClNameArr), schedule.Skip(skipCleanup))
+
+	// tagImageLocal
+	err = maint.Vizion.Schedule.RunPhase(maint.tagImageLocal, schedule.Desc(maint.Image))
 	if err != nil {
 		return err
 	}
-
 	// setImage
 	err = maint.Vizion.Schedule.RunPhase(maint.setImage, schedule.Desc(maint.Image))
 	if err != nil {
