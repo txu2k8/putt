@@ -387,7 +387,7 @@ func (v *Vizion) CleanEtcd(prefixArr []string) error {
 	masterNode := v.MasterNode()
 	for _, cmd := range cmdArr {
 		rc, output := masterNode.RunCmd(cmd)
-		logger.Infof("%s, %s", rc, output)
+		logger.Infof("%d, %s", rc, output)
 	}
 	return nil
 }
@@ -573,7 +573,7 @@ func (v *Vizion) IsJnlFormatSuccess() error {
 
 // CleanStorageCache .
 func (v *Vizion) CleanStorageCache(scPath string, podBash bool) error {
-	logger.Infof("Delete %s* on servicedpl nodes ...", scPath)
+	logger.Infof("> Delete %s* on servicedpl nodes ...", scPath)
 	_, nodeLabelArr := config.Servicedpl.GetNodeLabelArr(v.Base)
 	vk8s := v.Service()
 	servicedplNodeIPs := vk8s.GetNodeIPArrByLabels(nodeLabelArr)
@@ -596,7 +596,7 @@ func (v *Vizion) CleanStorageCache(scPath string, podBash bool) error {
 					podHostIP := pod.Status.HostIP
 					if podHostIP == nodeIP {
 						podName = pod.ObjectMeta.Name
-						logger.Infof("Delete storage cache files on pod %s ...", podName)
+						logger.Infof("> Delete storage cache files on pod %s ...", podName)
 						break
 					}
 				}
@@ -617,7 +617,10 @@ func (v *Vizion) CleanStorageCache(scPath string, podBash bool) error {
 			if podBash == true {
 				logger.Warningf("Already deleted %s on local, Skip delete %s in pod ...", scPath)
 			} else {
-				n.DeleteFiles(scPath)
+				err := n.DeleteFiles(scPath)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
