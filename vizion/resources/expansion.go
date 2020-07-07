@@ -700,6 +700,7 @@ func (v *Vizion) CleanCdcSubCassCdc(vsetIDs []int) error {
 				return err
 			}
 		}
+		utils.SleepProgressBar(5)
 		k8sSv.DeletePod(pod.Name)
 		utils.SleepProgressBar(20 * time.Second)
 		isReadyInput := k8s.IsPodReadyInput{
@@ -710,7 +711,7 @@ func (v *Vizion) CleanCdcSubCassCdc(vsetIDs []int) error {
 	return nil
 }
 
-// CleanCdcCassMonitor . TODO
+// CleanCdcCassMonitor .
 func (v *Vizion) CleanCdcCassMonitor() error {
 	var err error
 	cdcPath := "/var/cassandra/monitor/cdc/updated_volume"
@@ -833,20 +834,21 @@ func (v *Vizion) SetBdVolumeKV(kvArr []string) error {
 	for _, bdSv := range bdServiceArr {
 		bdIDs = append(bdIDs, bdSv.ID)
 	}
+
 	for _, vsetID := range v.Base.VsetIDs {
-		subCass := cass.SetIndex(string(vsetID))
+		subCass := cass.SetIndex(strconv.Itoa(vsetID))
 		volumeArr, err := subCass.GetVolume()
 		if err != nil {
 			return err
 		}
-		for _, vol := range volumeArr {
-			if vol.Status == 0 || (vol.BlockDeviceService != "" && collection.Collect(bdIDs).Contains(vol.BlockDeviceService)) {
-				continue
-			} else {
-				ctime := vol.Ctime // TODO
-				for _, kv := range kvArr {
-					logger.Infof("> Set vizion.volume: %s ...", kv)
-					cmdSpec := fmt.Sprintf("UPDATE vizion.volume SET %s WHERE type=0 AND name=%s AND c_time=%s", kv, vol.Name, ctime)
+		for _, kv := range kvArr {
+			logger.Infof("> Set vizion.volume: %s ...", kv)
+			for _, vol := range volumeArr {
+				if vol.Status == 0 || (vol.BlockDeviceService != "" && collection.Collect(bdIDs).Contains(vol.BlockDeviceService)) {
+					continue
+				} else {
+					ctimeZ := fmt.Sprintf("%sZ", vol.Ctime.Format("2006-01-02 15:04:05.999"))
+					cmdSpec := fmt.Sprintf("UPDATE vizion.volume SET %s WHERE type=0 AND name='%s' AND c_time='%s'", kv, vol.Name, ctimeZ)
 					err = subCass.Execute(cmdSpec)
 					if err != nil {
 						return err
@@ -854,6 +856,7 @@ func (v *Vizion) SetBdVolumeKV(kvArr []string) error {
 				}
 			}
 		}
+
 	}
 	return nil
 }

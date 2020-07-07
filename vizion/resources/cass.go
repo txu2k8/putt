@@ -134,13 +134,13 @@ func SelectService() (stmt string, names []string) {
 
 // SelectServiceByType ...
 func SelectServiceByType(serviceType int) (stmt string, names []string) {
-	return qb.Select("service").Where(qb.EqLit("type", fmt.Sprintf("%d", serviceType))).ToCql()
+	return qb.Select("service").Where(qb.EqLit("type", fmt.Sprintf("%d", serviceType))).AllowFiltering().ToCql()
 
 }
 
 // SelectServiceByTypeID ...
 func SelectServiceByTypeID(serviceType int, serviceUUID string) (stmt string, names []string) {
-	return qb.Select("service").Where(qb.EqLit("type", fmt.Sprintf("%d", serviceType))).Where(qb.EqLit("id", serviceUUID)).ToCql()
+	return qb.Select("service").Where(qb.EqLit("type", fmt.Sprintf("%d", serviceType))).Where(qb.EqLit("id", serviceUUID)).AllowFiltering().ToCql()
 }
 
 // SelectServiceByTypeVsetID ...

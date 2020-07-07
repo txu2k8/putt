@@ -389,6 +389,7 @@ func (maint *Maint) Cleanup() error {
 			return err
 		}
 	}
+	return maint.Vizion.FormatBdVolume()
 	return nil
 }
 

@@ -618,7 +618,7 @@ var (
 		TypeName:  "CassandraMonitor",
 		NameSpace: "vizion",
 		K8sKind:   K8sDeployment,
-		PodLabel:  "app=cassandra-monitor",  // k=v
+		PodLabel:  "name=cassandra-monitor", // k=v
 		NodeLabel: "cassandra-monitor=true", // k=v
 		Container: "cassandra",
 		Replicas:  1,

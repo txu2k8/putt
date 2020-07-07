@@ -2,7 +2,6 @@ package cql
 
 import (
 	"fmt"
-	"putt/libs/utils"
 	"time"
 
 	"github.com/gocql/gocql"
@@ -47,7 +46,7 @@ func newClusterConfig(cf *CassConfig) *gocql.ClusterConfig {
 	// cluster.CQLVersion = "3.4.4"
 	// cluster.ProtoVersion = 4
 	cluster.DisableInitialHostLookup = true
-	logger.Debugf("New Cassandra ClusterConfig:%s", utils.Prettify(cluster))
+	// logger.Debugf("New Cassandra ClusterConfig:%s", utils.Prettify(cluster))
 	return cluster
 }
 
