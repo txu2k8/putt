@@ -80,6 +80,7 @@ func (c *sessCluster) SetIndex(index string) CassCluster {
 
 // Execute ...
 func (c *sessCluster) Execute(cmd string) error {
+	logger.Info(cmd)
 	if err := c.Session.Query(cmd).Exec(); err != nil {
 		logger.Error(err)
 		return err

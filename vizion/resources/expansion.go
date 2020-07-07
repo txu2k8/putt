@@ -576,8 +576,8 @@ func (v *Vizion) IsJnlFormatSuccess() error {
 func (v *Vizion) CleanStorageCache(scPath string, podBash bool) error {
 	logger.Infof("> Delete %s* on servicedpl nodes ...", scPath)
 	_, nodeLabelArr := config.Servicedpl.GetNodeLabelArr(v.Base)
-	vk8s := v.Service()
-	servicedplNodeIPs := vk8s.GetNodeIPArrByLabels(nodeLabelArr)
+	k8sSv := v.Service()
+	servicedplNodeIPs := k8sSv.GetNodeIPArrByLabels(nodeLabelArr)
 	if len(servicedplNodeIPs) <= 1 {
 		return fmt.Errorf("Find servicedpl Nodes <= 1")
 	}
@@ -592,7 +592,7 @@ func (v *Vizion) CleanStorageCache(scPath string, podBash bool) error {
 			if podBash == true {
 				podName := ""
 				podLabel := config.Servicedpl.GetPodLabel(v.Base)
-				pods, _ := vk8s.GetPodListByLabel(podLabel)
+				pods, _ := k8sSv.GetPodListByLabel(podLabel)
 				for _, pod := range pods.Items {
 					podHostIP := pod.Status.HostIP
 					if podHostIP == nodeIP {
@@ -605,7 +605,7 @@ func (v *Vizion) CleanStorageCache(scPath string, podBash bool) error {
 					return fmt.Errorf("None servicedpl pods on node %s", nodeIP)
 				}
 				containerName := config.Servicedpl.Container
-				err := vk8s.DeleteFilesInPod(scPath, podName, containerName)
+				err := k8sSv.DeleteFilesInPod(scPath, podName, containerName)
 				if err != nil {
 					return err
 				}
@@ -681,8 +681,8 @@ func (v *Vizion) CleanCdcSubCassCdc(vsetIDs []int) error {
 	subCassContainer := config.SubCass.Container
 	subCassPodLabel := config.SubCass.GetPodLabel(v.Base)
 
-	vk8s := v.Service()
-	subCassPods, err := vk8s.GetPodListByLabel(subCassPodLabel)
+	k8sSv := v.Service()
+	subCassPods, err := k8sSv.GetPodListByLabel(subCassPodLabel)
 	if err != nil {
 		return err
 	}
@@ -694,18 +694,18 @@ func (v *Vizion) CleanCdcSubCassCdc(vsetIDs []int) error {
 				ContainerName: subCassContainer,
 				Command:       cmdSpec,
 			}
-			output, err := vk8s.Exec(execInput)
+			output, err := k8sSv.Exec(execInput)
 			logger.Info(utils.Prettify(output))
 			if err != nil {
 				return err
 			}
 		}
-		vk8s.DeletePod(pod.Name)
+		k8sSv.DeletePod(pod.Name)
 		utils.SleepProgressBar(20 * time.Second)
 		isReadyInput := k8s.IsPodReadyInput{
 			PodName: pod.Name,
 		}
-		vk8s.WaitForPodReady(isReadyInput, 60)
+		k8sSv.WaitForPodReady(isReadyInput, 60)
 	}
 	return nil
 }
@@ -717,8 +717,8 @@ func (v *Vizion) CleanCdcCassMonitor() error {
 	logger.Infof("Clean cdc data on Cassandra Monitor, path:%s", cdcPath)
 	cassMonitorPodLabel := config.CassMonitor.GetPodLabel(v.Base)
 	cassMonitorContainer := config.CassMonitor.Container
-	vk8s := v.Service()
-	cassMonitorPods, err := vk8s.GetPodListByLabel(cassMonitorPodLabel)
+	k8sSv := v.Service()
+	cassMonitorPods, err := k8sSv.GetPodListByLabel(cassMonitorPodLabel)
 	if err != nil {
 		return err
 	}
@@ -734,7 +734,7 @@ func (v *Vizion) CleanCdcCassMonitor() error {
 			ContainerName: cassMonitorContainer,
 			Command:       cmdRm,
 		}
-		output, err := vk8s.Exec(rmInput)
+		output, err := k8sSv.Exec(rmInput)
 		logger.Info(utils.Prettify(output))
 		if err != nil {
 			return err
@@ -745,10 +745,10 @@ func (v *Vizion) CleanCdcCassMonitor() error {
 			ContainerName: cassMonitorContainer,
 			Command:       cmdLs,
 		}
-		output, _ = vk8s.Exec(lsInput)
+		output, _ = k8sSv.Exec(lsInput)
 		logger.Info(utils.Prettify(output))
 
-		vk8s.DeletePod(pod.Name)
+		k8sSv.DeletePod(pod.Name)
 		// Wait For Pod Ready  -- SKIP
 	}
 	return nil
@@ -771,18 +771,18 @@ func (v *Vizion) CleanCdcgc() error {
 	logger.Info("> Clean cdcgc data on gc/cassandra-monitor pods ...")
 	var err error
 	var base types.BaseInput
-	vk8s := v.Service()
+	k8sSv := v.Service()
 	cdcgcVsetIDs := []int{}
 	for _, vsetID := range v.Base.VsetIDs {
 		utils.DeepCopy(v.Base, base)
 		base.VsetIDs = []int{vsetID}
 		cdcgcBdPodLabel := config.Cdcgcbd.GetPodLabel(base)
 		cdcgcS3PodLabel := config.Cdcgcs3.GetPodLabel(base)
-		cdcgcBdK8sArr, err := vk8s.GetDeploymentsNameArrByLabel(cdcgcBdPodLabel)
+		cdcgcBdK8sArr, err := k8sSv.GetDeploymentsNameArrByLabel(cdcgcBdPodLabel)
 		if err != nil {
 			return err
 		}
-		cdcgcS3K8sArr, err := vk8s.GetDeploymentsNameArrByLabel(cdcgcS3PodLabel)
+		cdcgcS3K8sArr, err := k8sSv.GetDeploymentsNameArrByLabel(cdcgcS3PodLabel)
 		if err != nil {
 			return err
 		}

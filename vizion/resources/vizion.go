@@ -101,11 +101,11 @@ func (v *Vizion) GetCassConfig() map[string]cql.CassConfig {
 	}
 
 	cf := map[string]cql.CassConfig{}
-	vk8s := v.Service()
+	k8sSv := v.Service()
 	/* // masterCass -> SubCass-1
-	masterCassIPs := vk8s.GetMasterCassIPs()
-	masterUser, masterPwd := vk8s.GetMasterCassUserPwd()
-	masterPort := vk8s.GetMasterCassPort()
+	masterCassIPs := k8sSv.GetMasterCassIPs()
+	masterUser, masterPwd := k8sSv.GetMasterCassUserPwd()
+	masterPort := k8sSv.GetMasterCassPort()
 	cf["0"] = cql.CassConfig{
 		Hosts:    masterCassIPs,
 		Username: masterUser,
@@ -115,9 +115,9 @@ func (v *Vizion) GetCassConfig() map[string]cql.CassConfig {
 	}
 	*/
 	for _, vsetID := range v.Base.VsetIDs {
-		vsetCassIPs := vk8s.GetSubCassIPs(vsetID)
-		vsetUser, vsetPwd := vk8s.GetSubCassUserPwd(vsetID)
-		vsetPort := vk8s.GetSubCassPort(vsetID)
+		vsetCassIPs := k8sSv.GetSubCassIPs(vsetID)
+		vsetUser, vsetPwd := k8sSv.GetSubCassUserPwd(vsetID)
+		vsetPort := k8sSv.GetSubCassPort(vsetID)
 		cf[strconv.Itoa(vsetID)] = cql.CassConfig{
 			Hosts:    vsetCassIPs,
 			Username: vsetUser,

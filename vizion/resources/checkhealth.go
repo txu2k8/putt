@@ -175,7 +175,7 @@ func (v *Vizion) IsServiceCoreDump() error {
 
 // WaitForAllPodStatusOK .
 func (v *Vizion) WaitForAllPodStatusOK() error {
-	vk8s := v.Service()
+	k8sSv := v.Service()
 	for _, sv := range config.DefaultServiceArray {
 		if collection.Collect([]int{config.Dcmapdpl.Type, config.Mcmapdpl.Type}).Contains(sv.Type) {
 			continue // skip check cmap pods
@@ -193,7 +193,7 @@ func (v *Vizion) WaitForAllPodStatusOK() error {
 			PodLabel:    sv.GetPodLabel(v.Base),
 			IgnoreEmpty: true,
 		}
-		err := vk8s.WaitForAllPodReady(input, tries)
+		err := k8sSv.WaitForAllPodReady(input, tries)
 		if err != nil {
 			return err
 		}
@@ -231,7 +231,7 @@ func (v *Vizion) IsCassOK() error {
 
 	cmdSpec := "/usr/bin/nodetool status | grep rack1"
 	pattern := regexp.MustCompile(`(\S+)\s+(\d+.+rack\d)`)
-	vk8s := v.Service()
+	k8sSv := v.Service()
 	downCassNum := 0
 	for _, podName := range podNameArr {
 		execInput := k8s.ExecInput{
@@ -239,7 +239,7 @@ func (v *Vizion) IsCassOK() error {
 			ContainerName: "cassandra",
 			Command:       cmdSpec,
 		}
-		output, err := vk8s.Exec(execInput)
+		output, err := k8sSv.Exec(execInput)
 		logger.Debug(utils.Prettify(output))
 		if err != nil {
 			return err
@@ -267,8 +267,8 @@ func (v *Vizion) WaitForCassOK() error {
 // IsMysqlOK . Check if Mysql members ONLINE>= 3 && PRIMARY >=1 TODO
 func (v *Vizion) IsMysqlOK() error {
 	podNameArr := []string{"mysql-cluster-0"}
-	vk8s := v.Service()
-	_, mysqlPwd := vk8s.GetMysqlUserPassword()
+	k8sSv := v.Service()
+	_, mysqlPwd := k8sSv.GetMysqlUserPassword()
 	cmdSpec := fmt.Sprintf("mysql -p%s -e \"select * from performance_schema.replication_group_members;\"", mysqlPwd)
 
 	patternOnline := regexp.MustCompile(`ONLINE`)
@@ -282,7 +282,7 @@ func (v *Vizion) IsMysqlOK() error {
 			ContainerName: "mysql",
 			Command:       cmdSpec,
 		}
-		output, err := vk8s.Exec(execInput)
+		output, err := k8sSv.Exec(execInput)
 		if err != nil {
 			logger.Debug(utils.Prettify(output))
 			return err

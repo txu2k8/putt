@@ -78,7 +78,8 @@ func (sv *Service) GetPodLabel(base types.BaseInput) (podLabel string) {
 	var podLabelValueArr []string
 	var podLabelValueStr string
 	switch sv.Type {
-	case MasterCass.Type, MysqlCluster.Type, MysqlOperator.Type, MysqlRouter.Type, ETCD.Type,
+	case MasterCass.Type, CassMonitor.Type, ETCD.Type,
+		MysqlCluster.Type, MysqlOperator.Type, MysqlRouter.Type,
 		Dplexporter.Type, Dplmanager.Type, Nfsprovisioner.Type:
 		podLabelValueArr = []string{labelValue} // fixed label key=Value
 	case SubCass.Type:
