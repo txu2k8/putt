@@ -353,10 +353,6 @@ func (maint *Maint) Cleanup() error {
 			if err != nil {
 				return err
 			}
-			err = maint.Vizion.IsJnlFormatSuccess()
-			if err != nil {
-				return err
-			}
 		case "etcd":
 			err = maint.Vizion.CleanEtcd(clean.Arg)
 			if err != nil {

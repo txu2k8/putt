@@ -277,12 +277,13 @@ func (v *Vizion) StartServices(svArr []config.Service, cleanJdevice, cleanSC boo
 		switch sv.Type {
 		case config.Jddpl.Type: // Check stg_unit status and number
 			if cleanJdevice == true {
-				// v.IsStgUnitStatusOK()
+				// err = v.IsStgUnitStatusOK()
 				err = v.Schedule.RunPhase(v.IsStgUnitStatusOK, schedule.Desc("Check etcd if all stg_unit status=0"))
 				if err != nil {
 					return err
 				}
 			}
+			// err = v.IsJnlFormatSuccess()
 			err = v.Schedule.RunPhase(v.IsJnlFormatSuccess, schedule.Desc("Check if (jdevice_GB/2 -1)=len(etcd stg_unit)"))
 			if err != nil {
 				return err
@@ -513,6 +514,7 @@ func (v *Vizion) GetJdeviceStgUnitNumber(jdPodName, nodeIP, jdevice string) (stg
 
 // IsStgUnitStatusOK Check if etcd all stg_unit status=0
 func (v *Vizion) IsStgUnitStatusOK() error {
+	logger.Info("> Check etcd if all stg_unit status=0 ...")
 	etcd := v.Etcd()
 	stgUnitArr, _ := etcd.GetStgUnitArr()
 	stgUnitNum := 0
@@ -529,6 +531,7 @@ func (v *Vizion) IsStgUnitStatusOK() error {
 
 // IsJnlFormatSuccess Check if etcd len(stg_unit) == (jdevice_GB/2 -1)
 func (v *Vizion) IsJnlFormatSuccess() error {
+	logger.Info("> Check if (jdevice_GB/2 -1)=len(etcd stg_unit) ...")
 	jdeviceLsCmd := fmt.Sprintf("ls -lh %s*", config.JDevicePath)
 	jdevicePattern := regexp.MustCompile(`/dev/j_device\d*`)
 	jdPodLabel := config.Jddpl.GetPodLabel(v.Base)
