@@ -35,6 +35,7 @@ type NodeInterface interface {
 	GetEtcdCerts(localPath string) (localCertsPathArr []string, err error)
 	PutEtcdCerts(localCertsPathArr []string) error
 	GetEtcdMembers() []string
+	GetEtcdEndpoints() []string
 	PrintDplBalance() error
 	// logs/path
 	GetCrashDirs() (crashArr []string)
@@ -48,6 +49,7 @@ type NodeInterface interface {
 	RmModDpl() error
 	IsDplDeviceExist(devName string) bool
 	WaitDplDeviceRemoved(devName string) error
+	GetJdeviceStgUnitNumber(jdevice string) (stgUnitNum int64)
 	GetZpoolStatus() (zs *ZpoolStatus)
 	IsZpoolStatusOK() error
 }
@@ -175,6 +177,19 @@ func (n *node) GetEtcdMembers() []string {
 	logger.Infof("\n%s", output)
 	members := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
 	return members
+}
+
+func (n *node) GetEtcdEndpoints() []string {
+	endPoints := []string{}
+	members := n.GetEtcdMembers()
+	pattern := regexp.MustCompile(`https://(\S+:2379)`)
+	for _, member := range members {
+		matched := pattern.FindAllStringSubmatch(member, -1)
+		if len(matched) > 0 {
+			endPoints = append(endPoints, matched[0][1])
+		}
+	}
+	return endPoints
 }
 
 func (n *node) PrintDplBalance() error {
@@ -356,6 +371,14 @@ func (n *node) WaitDplDeviceRemoved(devName string) error {
 		strategy.Wait(30*time.Second),
 	)
 	return err
+}
+
+func (n *node) GetJdeviceStgUnitNumber(jdevice string) (stgUnitNum int64) {
+	cmdSpec := fmt.Sprintf("fdisk -l %s | grep Disk | awk -F ',' '{print $2}' | awk '{print $1}'", jdevice)
+	_, output := n.RunCmd(cmdSpec)
+	sBytes, _ := strconv.ParseInt(strings.TrimSpace(strings.TrimRight(output, "\n")), 10, 64)
+	stgUnitNum = sBytes/1024/1024/1024/2 - 1
+	return
 }
 
 type zpoolStatusConfig struct {

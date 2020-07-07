@@ -348,17 +348,17 @@ func (maint *Maint) Cleanup() error {
 			if err != nil {
 				return err
 			}
-		case "etcd":
-			err = maint.Vizion.CleanEtcd(clean.Arg)
-			if err != nil {
-				return err
-			}
 		case "j_device":
 			err = maint.Vizion.CleanJdevice()
 			if err != nil {
 				return err
 			}
 			err = maint.Vizion.IsJnlFormatSuccess()
+			if err != nil {
+				return err
+			}
+		case "etcd":
+			err = maint.Vizion.CleanEtcd(clean.Arg)
 			if err != nil {
 				return err
 			}
@@ -406,7 +406,18 @@ func (maint *Maint) Stop() error {
 // Start - maint
 func (maint *Maint) Start() error {
 	// logger.Info(utils.Prettify(maint))
-	return maint.Vizion.StartServices(maint.ServiceArr)
+	cleanJdevice, cleanSC := false, false
+	for _, clean := range maint.CleanArr {
+		switch clean.Name {
+		case "j_device":
+			cleanJdevice = true
+		case "storage_cache":
+			cleanSC = true
+		default:
+			continue
+		}
+	}
+	return maint.Vizion.StartServices(maint.ServiceArr, cleanJdevice, cleanSC)
 }
 
 // StopC - maint: Stop -> Cleanup

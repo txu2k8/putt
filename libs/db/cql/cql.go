@@ -1,4 +1,4 @@
-package db
+package cql
 
 import (
 	"fmt"

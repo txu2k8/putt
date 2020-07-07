@@ -197,8 +197,8 @@ func (c *Client) Exec(input ExecInput) (ExecOutPut, error) {
 			TTY:       true,
 		}, scheme.ParameterCodec)
 
-	logger.Infof("%+v", utils.Prettify(cmd))
-	logger.Infof("%+v", req.URL())
+	logger.Infof("Exec cmd in pod: %+v", utils.Prettify(cmd))
+	logger.Debugf("%+v", req.URL())
 	executor, err := remotecommand.NewSPDYExecutor(c.Config, "POST", req.URL())
 	if err != nil {
 		panic(err)

@@ -44,7 +44,7 @@ func NewClient(cfg Config) (*clientv3.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	logger.Infof("Connect to etcd clientv3:%v ...", cfg.Endpoints)
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   cfg.Endpoints,
 		DialTimeout: time.Duration(ConnectTimeout) * time.Second,
@@ -88,7 +88,7 @@ loop:
 // GetPrefix .
 func (cli *Client) GetPrefix(prefix string) (resp *clientv3.GetResponse, err error) {
 	resp, err = cli.Get(context.TODO(), prefix, clientv3.WithPrefix())
-	logger.Info(resp.Count)
+	// logger.Info(resp.Count)
 	return
 }
 

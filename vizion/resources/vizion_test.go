@@ -2,18 +2,20 @@ package resources
 
 import (
 	"putt/libs/sshmgr"
+	"putt/libs/utils"
 	"putt/types"
 	"testing"
 )
 
 func TestVizion(t *testing.T) {
-	host := "10.25.119.77"
+	host := "10.25.119.71"
 	sshKey := sshmgr.SSHKey{
 		UserName: "root",
 		Password: "password",
 		Port:     22,
 	}
 	v := Vizion{Base: types.BaseInput{SSHKey: sshKey}}
-	exist := v.Node(host).IsDplmodExist()
-	logger.Info(exist)
+	n := v.Node(host)
+	rsp := n.GetEtcdEndpoints()
+	logger.Info(utils.Prettify(rsp))
 }

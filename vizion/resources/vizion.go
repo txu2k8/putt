@@ -3,7 +3,7 @@ package resources
 import (
 	"fmt"
 	"putt/config"
-	"putt/libs/db"
+	"putt/libs/db/cql"
 	"putt/libs/k8s"
 	"putt/libs/runner/schedule"
 	"putt/libs/utils"
@@ -21,15 +21,17 @@ type BaseInterface interface {
 	DplmanagerGetter
 	ServiceManagerGetter
 	CassClusterGetter
+	EtcdGetter
 }
 
 // Vizion is used to interact with features provided by the  group.
 type Vizion struct {
-	Base         types.BaseInput          // command/args input
-	CassConfig   map[string]db.CassConfig // cassandra configs map
-	KubeConfig   string                   // kubeconfig file path
-	K8sNameSpace string                   // k8s namespace
-	Schedule     schedule.Schedule        // Schedule
+	Base         types.BaseInput           // command/args input
+	CassConfig   map[string]cql.CassConfig // cassandra configs map
+	KubeConfig   string                    // kubeconfig file path
+	EtcdCrt      string                    // EtcdCrt files path
+	K8sNameSpace string                    // k8s namespace
+	Schedule     schedule.Schedule         // Schedule
 }
 
 // Node returns NodeInterface
@@ -74,6 +76,11 @@ func (v *Vizion) Cass() CassCluster {
 	return newSessCluster(v)
 }
 
+// Etcd returns CassCluster
+func (v *Vizion) Etcd() EtcdInterface {
+	return newEtcd(v)
+}
+
 // GetK8sClient returns a k8s.Client that is used to communicate
 // with K8S API server by this client implementation.
 func (v *Vizion) GetK8sClient() k8s.Client {
@@ -87,19 +94,19 @@ func (v *Vizion) GetK8sClient() k8s.Client {
 }
 
 // GetCassConfig returns cassandra cluster configs
-func (v *Vizion) GetCassConfig() map[string]db.CassConfig {
+func (v *Vizion) GetCassConfig() map[string]cql.CassConfig {
 	// Get once
 	if v.CassConfig != nil {
 		return v.CassConfig
 	}
 
-	cf := map[string]db.CassConfig{}
+	cf := map[string]cql.CassConfig{}
 	vk8s := v.Service()
 	/* // masterCass -> SubCass-1
 	masterCassIPs := vk8s.GetMasterCassIPs()
 	masterUser, masterPwd := vk8s.GetMasterCassUserPwd()
 	masterPort := vk8s.GetMasterCassPort()
-	cf["0"] = db.CassConfig{
+	cf["0"] = cql.CassConfig{
 		Hosts:    masterCassIPs,
 		Username: masterUser,
 		Password: masterPwd,
@@ -111,7 +118,7 @@ func (v *Vizion) GetCassConfig() map[string]db.CassConfig {
 		vsetCassIPs := vk8s.GetSubCassIPs(vsetID)
 		vsetUser, vsetPwd := vk8s.GetSubCassUserPwd(vsetID)
 		vsetPort := vk8s.GetSubCassPort(vsetID)
-		cf[strconv.Itoa(vsetID)] = db.CassConfig{
+		cf[strconv.Itoa(vsetID)] = cql.CassConfig{
 			Hosts:    vsetCassIPs,
 			Username: vsetUser,
 			Password: vsetPwd,

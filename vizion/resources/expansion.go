@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"putt/config"
 	"putt/libs/k8s"
+	"putt/libs/runner/schedule"
 	"putt/libs/utils"
 	"putt/types"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -63,7 +66,7 @@ func (v *Vizion) GetKubeConfig() {
 	}
 	fqdn := "kubernetes.vizion.local"
 	dir, _ := os.Getwd()
-	kubePath := path.Join(dir, "kube")
+	kubePath := path.Join(dir, "tmp", "kube")
 	_, err := os.Stat(kubePath)
 	if os.IsNotExist(err) {
 		err := os.MkdirAll(kubePath, os.ModePerm)
@@ -93,12 +96,58 @@ func (v *Vizion) GetKubeConfig() {
 		}
 
 		localIP := utils.GetLocalIP()
-		if !collection.Collect(v.Base.MasterIPs).Contains(localIP) {
+		if !collection.Collect(v.Base.MasterIPs).Contains(localIP) &&
+			v.Base.UserName != "centos" {
 			server := n.GetKubeVipIP(fqdn)
 			ReplaceKubeServer(cfPath, server)
 		}
 	}
 	v.KubeConfig = cfPath
+}
+
+// ============ Get etcd cert files ============
+
+// GetEtcdConfig ...
+func (v *Vizion) GetEtcdConfig() (crtArr []string) {
+	var err error
+	// Get once
+	if v.EtcdCrt != "" {
+		crtArr, err = filepath.Glob(filepath.Join(v.EtcdCrt, "*"))
+		if err != nil {
+			panic(err)
+		}
+		return
+	}
+
+	dir, _ := os.Getwd()
+	tmpPath := path.Join(dir, "tmp")
+
+	// use exist .etcd/config if exist with MasterIPs
+	for _, masterIP := range v.Base.MasterIPs {
+		tmpCrtPath := path.Join(tmpPath, "etcd", masterIP)
+		_, err = os.Stat(tmpCrtPath)
+		if err == nil || os.IsExist(err) {
+			v.EtcdCrt = tmpCrtPath
+			crtArr, err = filepath.Glob(filepath.Join(tmpCrtPath, "*"))
+			if err != nil {
+				panic(err)
+			}
+			return
+		}
+	}
+
+	masterIP := v.VaildMasterIP()
+	crtPath := path.Join(tmpPath, "etcd", masterIP)
+	_, err = os.Stat(crtPath)
+	if os.IsNotExist(err) {
+		n := v.Node(masterIP)
+		crtArr, err = n.GetEtcdCerts(tmpPath)
+		if err != nil {
+			panic(err)
+		}
+	}
+	v.EtcdCrt = crtPath
+	return
 }
 
 // ============ Stop/Start/Apply Services ============
@@ -165,7 +214,8 @@ func (v *Vizion) StopServices(svArr []config.Service) error {
 }
 
 // StartServices .
-func (v *Vizion) StartServices(svArr []config.Service) error {
+func (v *Vizion) StartServices(svArr []config.Service, cleanJdevice, cleanSC bool) error {
+	var err error
 	svMgr := v.Service()
 	for _, sv := range svArr {
 		logger.Infof(">> Start service %s:%d ...", sv.TypeName, sv.Type)
@@ -225,11 +275,23 @@ func (v *Vizion) StartServices(svArr []config.Service) error {
 
 		// Check after start
 		switch sv.Type {
-		case config.Servicedpl.Type:
-			// Try clean storage_cache in pod  --aws
-			v.CleanStorageCache(config.CleanSC.Arg[0], true)
-		case config.ES.Type:
-			// wait for volume status=1
+		case config.Jddpl.Type: // Check stg_unit status and number
+			if cleanJdevice == true {
+				// v.IsStgUnitStatusOK()
+				err = v.Schedule.RunPhase(v.IsStgUnitStatusOK, schedule.Desc("Check etcd if all stg_unit status=0"))
+				if err != nil {
+					return err
+				}
+			}
+			err = v.Schedule.RunPhase(v.IsJnlFormatSuccess, schedule.Desc("Check if (jdevice_GB/2 -1)=len(etcd stg_unit)"))
+			if err != nil {
+				return err
+			}
+		case config.Servicedpl.Type: // Try clean storage_cache in pod  -- aws
+			if cleanSC == true {
+				v.CleanStorageCache(config.CleanSC.Arg[0], true)
+			}
+		case config.ES.Type: // wait for volume status=1
 			v.WaitBdVolumeStatusExpected(1, "", "", []string{})
 		}
 
@@ -275,11 +337,16 @@ func (v *Vizion) ApplyServicesImage(svArr []config.Service, image string) error 
 // ApplyDplmanagerShellImage .
 func (v *Vizion) ApplyDplmanagerShellImage(image string) error {
 	dplmgrPath := config.DplmanagerLocalPath
+	lsCmd := fmt.Sprintf("ls %s", dplmgrPath)
 	svMgr := v.Service()
 	nodeIPs := svMgr.GetAllNodeIPs()
 
 	for _, nodeIP := range nodeIPs {
 		node := v.Node(nodeIP)
+		_, output := node.RunCmd(lsCmd)
+		if strings.Contains(output, "No such file or directory") {
+			continue
+		}
 		err := node.ChangeDplmanagerShellImage(image, dplmgrPath)
 		if err != nil {
 			return err
@@ -348,7 +415,7 @@ func (v *Vizion) CleanJdevice() error {
 		return fmt.Errorf("Find jddpl Nodes <= 1")
 	}
 
-	jdeviceLsCmd := "ls -lh " + config.JDevicePath
+	jdeviceLsCmd := fmt.Sprintf("ls -lh %s*", config.JDevicePath)
 	jdevicePattern := regexp.MustCompile(`/dev/j_device\d*`)
 	awsEnv := false
 	jdevArr := []string{}
@@ -386,7 +453,7 @@ func (v *Vizion) CleanJdevice() error {
 			return nil
 		}
 		// aws env, support format_jdevice on jddpl pods
-		v.StartServices([]config.Service{config.Jddpl})
+		v.StartServices([]config.Service{config.Jddpl}, false, false)
 		jdPodLabel := config.Jddpl.GetPodLabel(v.Base)
 		jdPods, _ := k8sSv.GetPodListByLabel(jdPodLabel)
 		if len(jdPods.Items) == 0 {
@@ -420,8 +487,84 @@ func (v *Vizion) CleanJdevice() error {
 	return nil
 }
 
-// IsJnlFormatSuccess Check if etcd all storage_units status=0 TODO
+// GetJdeviceStgUnitNumber .
+func (v *Vizion) GetJdeviceStgUnitNumber(jdPodName, nodeIP, jdevice string) (stgUnitNum int64) {
+	if jdPodName != "" { // Get from pod j_device
+		cmdSpec := fmt.Sprintf("fdisk -l %s | grep Disk | awk -F ',' '{print $2}' | awk '{print $1}'", jdevice)
+		execInput := k8s.ExecInput{
+			PodName:       jdPodName,
+			ContainerName: config.Jddpl.Container,
+			Command:       cmdSpec,
+		}
+		output, err := v.Service().Exec(execInput)
+		if err != nil {
+			panic(err)
+		}
+		sBytes, _ := strconv.ParseInt(strings.TrimSpace(strings.TrimRight(output.Stdout, "\n")), 10, 64)
+		stgUnitNum = sBytes/1024/1024/1024/2 - 1
+	} else if nodeIP != "" {
+		n := v.Node(nodeIP)
+		stgUnitNum = n.GetJdeviceStgUnitNumber(jdevice)
+	} else {
+		panic("Need args jdPodName or nodeIP")
+	}
+	return
+}
+
+// IsStgUnitStatusOK Check if etcd all stg_unit status=0
+func (v *Vizion) IsStgUnitStatusOK() error {
+	etcd := v.Etcd()
+	stgUnitArr, _ := etcd.GetStgUnitArr()
+	stgUnitNum := 0
+	for _, stgUnit := range stgUnitArr {
+		if stgUnit.Status != 0 {
+			logger.Error(utils.Prettify(stgUnit))
+			return fmt.Errorf("stg_unit status!=0")
+		}
+		stgUnitNum++
+	}
+	logger.Infof("All %d stg_unit status=0", stgUnitNum)
+	return nil
+}
+
+// IsJnlFormatSuccess Check if etcd len(stg_unit) == (jdevice_GB/2 -1)
 func (v *Vizion) IsJnlFormatSuccess() error {
+	jdeviceLsCmd := fmt.Sprintf("ls -lh %s*", config.JDevicePath)
+	jdevicePattern := regexp.MustCompile(`/dev/j_device\d*`)
+	jdPodLabel := config.Jddpl.GetPodLabel(v.Base)
+	k8sSv := v.Service()
+	jdPods, _ := k8sSv.GetPodListByLabel(jdPodLabel)
+	if len(jdPods.Items) == 0 {
+		panic("None jddpl pods found")
+	}
+	var expectStgUnit int64
+	for _, pod := range jdPods.Items {
+		jdevArr := []string{}
+		jdPodName := pod.ObjectMeta.Name
+		// nodeIP := pod.Status.HostIP
+		logger.Infof("Get j_device size on pod %s..", jdPodName)
+		containerName := config.Jddpl.Container
+		output, _ := k8sSv.Exec(k8s.ExecInput{
+			PodName:       jdPodName,
+			ContainerName: containerName,
+			Command:       jdeviceLsCmd,
+		})
+		matched := jdevicePattern.FindAllStringSubmatch(output.Stdout, -1)
+		for _, match := range matched {
+			jdevArr = append(jdevArr, match[0])
+		}
+		logger.Info(jdevArr)
+		for _, jdev := range jdevArr {
+			jdevStgUnit := v.GetJdeviceStgUnitNumber(jdPodName, "", jdev)
+			logger.Infof("%s:%s stg_unit=%d", jdPodName, jdev, jdevStgUnit)
+			expectStgUnit += jdevStgUnit
+		}
+	}
+	etcdStgUnit, _ := v.Etcd().GetStgUnitNumber()
+	logger.Infof("Total expect_stg_unit/etcd_stg_unit: %d/%d", expectStgUnit, etcdStgUnit)
+	if etcdStgUnit != expectStgUnit {
+		return fmt.Errorf("etcdStgUnit != jdeviceStgUnit, IsJnlFormatSuccess Fail")
+	}
 	return nil
 }
 

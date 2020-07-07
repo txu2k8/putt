@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"putt/config"
-	"putt/libs/db"
+	"putt/libs/db/cql"
 
 	"github.com/chenhg5/collection"
 	"github.com/gocql/gocql"
@@ -49,7 +49,7 @@ type CassCluster interface {
 
 type sessCluster struct {
 	Session    *gocql.Session
-	ConfigMap  map[string]db.CassConfig  // {"0": db.CassConfig}
+	ConfigMap  map[string]cql.CassConfig // {"0": cql.CassConfig}
 	SessionMap map[string]*gocql.Session // {"0": *gocql.Session}
 	VsetIDs    []int                     // base.VsetIDs
 }
@@ -71,8 +71,8 @@ func (c *sessCluster) SetIndex(index string) CassCluster {
 		}
 	}
 
-	dbConfig := c.ConfigMap[index]
-	session, _ := db.NewSessionWithRetry(&dbConfig)
+	cqlConfig := c.ConfigMap[index]
+	session, _ := cql.NewSessionWithRetry(&cqlConfig)
 	c.SessionMap[index] = session
 	c.Session = c.SessionMap[index]
 	return c

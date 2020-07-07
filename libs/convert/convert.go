@@ -3,9 +3,11 @@ package convert
 import (
 	"encoding/base64"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+	"unsafe"
 
 	"github.com/op/go-logging"
 )
@@ -103,6 +105,18 @@ func String2Byte(s string) int64 {
 	n, _ := strconv.ParseFloat(matched[1], 64)
 	b := int64(n * div)
 	return b
+}
+
+// BytesToStringFast .
+func BytesToStringFast(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
+}
+
+// StringToBytes .
+func StringToBytes(s string) []byte {
+	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	bh := reflect.SliceHeader{Data: sh.Data, Len: sh.Len, Cap: 0}
+	return *(*[]byte)(unsafe.Pointer(&bh))
 }
 
 // EscapeString convert string with "\\" to "\\\\"

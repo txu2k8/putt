@@ -1,7 +1,7 @@
 package resources
 
 import (
-	"putt/libs/db"
+	"putt/libs/db/cql"
 	"testing"
 
 	"github.com/gocql/gocql"
@@ -9,7 +9,7 @@ import (
 
 func TestGetService(t *testing.T) {
 	sessC := sessCluster{
-		ConfigMap: map[string]db.CassConfig{
+		ConfigMap: map[string]cql.CassConfig{
 			"0": {
 				Hosts:    []string{"10.25.119.87"},
 				Username: "caadmin",

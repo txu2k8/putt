@@ -16,4 +16,5 @@ vendor/
 
 # ignore test files
 __debug_bin
-*.log
+log/*
+tmp/*
