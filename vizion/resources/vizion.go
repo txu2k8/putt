@@ -129,7 +129,7 @@ func (v *Vizion) GetCassConfig() map[string]cql.CassConfig {
 			cf["0"] = cf["1"]
 		}
 	}
-	// logger.Infof("CassConfig:%s\n", utils.Prettify(cf))
+	logger.Debugf("CassConfig:%s\n", utils.Prettify(cf))
 	v.CassConfig = cf
 	return cf
 }

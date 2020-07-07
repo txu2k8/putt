@@ -556,7 +556,8 @@ func (v *Vizion) WaitBdVolumeStatusExpected(expectStatus int, nodeName, nodeIP s
 // WaitBlockDeviceRemoved ...
 func (v *Vizion) WaitBlockDeviceRemoved(nodeName, nodeIP string, pvcNameArr []string) error {
 	var err error
-	bdServiceArr, err := v.Cass().SetIndex("0").GetServiceByType(config.Dpldagent.Type)
+	cass := v.Cass()
+	bdServiceArr, err := cass.SetIndex("0").GetServiceByType(config.Dpldagent.Type)
 	if err != nil {
 		return err
 	}
@@ -566,7 +567,7 @@ func (v *Vizion) WaitBlockDeviceRemoved(nodeName, nodeIP string, pvcNameArr []st
 	}
 	expectedVol := 0
 	for _, vsetID := range v.Base.VsetIDs {
-		subCass := v.Cass().SetIndex(string(vsetID))
+		subCass := cass.SetIndex(string(vsetID))
 		volumeArr, err := subCass.GetVolume()
 		if err != nil {
 			return err
