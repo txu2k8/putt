@@ -786,8 +786,8 @@ var (
 	// DefaultCleanArray define the default cleanup item for maint/upgrade
 	DefaultCleanArray = []CleanItem{
 		CleanLog,
-		CleanEtcd,
 		CleanJdevice,
+		CleanEtcd,
 		CleanSC,
 		// CleanMasterCass,  // Not need clean master cass now
 		CleanSubCass,

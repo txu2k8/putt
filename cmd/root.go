@@ -126,7 +126,6 @@ func initLogging() {
 	)
 	conf.InitLogging()
 	logger.Infof("Args: putt %s", strings.Join(os.Args[1:], " "))
-	logger.Debug("sss")
 }
 
 // ========== Common functions ==========

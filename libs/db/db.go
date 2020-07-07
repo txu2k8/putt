@@ -40,16 +40,17 @@ func newClusterConfig(cf *CassConfig) *gocql.ClusterConfig {
 	}
 	cluster.Consistency = gocql.LocalQuorum
 	cluster.NumConns = 3 // set connection pool num
+	// cluster.SslOpts = &gocql.SslOptions{}
 	// cluster.CQLVersion = "3.4.4"
 	// cluster.ProtoVersion = 4
-	logger.Debug("Connect cassandra cluster success")
+	logger.Debug("New Cassandra Cluster success")
+	logger.Debugf("Cassandra ClusterConfig:%s", utils.Prettify(cluster))
 	return cluster
 }
 
 // NewSession return the cassandra session
 func NewSession(cf *CassConfig) (*gocql.Session, error) {
 	cfg := newClusterConfig(cf)
-	logger.Debugf("Cassandra ClusterConfig:%s", utils.Prettify(cfg))
 	return cfg.CreateSession()
 }
 
