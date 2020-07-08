@@ -582,6 +582,11 @@ func (v *Vizion) WaitBlockDeviceRemoved(nodeName, nodeIP string, pvcNameArr []st
 				continue
 			}
 
+			// Skip if vol.status in [-1, 0]
+			if collection.Collect([]int{-1, 0}).Contains(vol.Status) {
+				continue
+			}
+
 			// Get bd service IP from volume <-> service
 			bdServiceIP := ""
 			for _, bdSv := range bdServiceArr {

@@ -852,7 +852,12 @@ func (v *Vizion) SetBdVolumeKV(kvArr []string) error {
 		for _, kv := range kvArr {
 			logger.Infof("> Set vizion.volume: %s ...", kv)
 			for _, vol := range volumeArr {
-				if vol.Status == 0 || (vol.BlockDeviceService != "" && collection.Collect(bdIDs).Contains(vol.BlockDeviceService)) {
+				// Skip if vol.status in [-1, 0]
+				if collection.Collect([]int{-1, 0}).Contains(vol.Status) {
+					continue
+				}
+				// Filter by BlockDeviceService
+				if vol.BlockDeviceService != "" && collection.Collect(bdIDs).Contains(vol.BlockDeviceService) {
 					continue
 				} else {
 					ctimeZ := fmt.Sprintf("%sZ", vol.Ctime.Format("2006-01-02 15:04:05.999"))
