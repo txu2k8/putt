@@ -23,11 +23,12 @@ type Dplmanager interface {
 	DplHelo(dplIP string, dplPort int) error
 
 	// Jns stat
-	GetJnsStat(vsetID int, anchorUUID, dplUUID string) (jnsMapArr []map[string]string, err error)
-	IsJnsStatExpected(vsetID int, anchorUUID, dplUUID, expected string) error
-	IsJnsStatPrimary(vsetID int, anchorUUID, dplUUID string) error
-	IsJnsStatSecondary(vsetID int, anchorUUID, dplUUID string) error
-	IsJnsStatDisconnected(vsetID int, anchorUUID, dplUUID string) error
+	GetJnsStat(vsetID int, anchorUUID, jnlUUID string) (jnsMapArr []map[string]string, err error)
+	IsJnsStatExpected(vsetID int, anchorUUID, jnlUUID, expected string) error
+	IsJnsStatPrimary(vsetID int, anchorUUID, jnlUUID string) error
+	IsAnyJnsStatPrimary(vsetID int, anchorUUID, jnlUUID string) error
+	IsJnsStatSecondary(vsetID int, anchorUUID, jnlUUID string) error
+	IsJnsStatDisconnected(vsetID int, anchorUUID, jnlUUID string) error
 
 	// Channel
 	PrintDplChannels(dplIP string, dplPort int) error
@@ -92,10 +93,10 @@ func (d *dplMgr) DplHelo(dplIP string, dplPort int) error {
 
 // =============== JState: dplmanager -m jns stat ===============
 // GetJnsStat ... dplmanager -m jns stat
-func (d *dplMgr) GetJnsStat(vsetID int, anchorUUID, dplUUID string) (jnsMapArr []map[string]string, err error) {
+func (d *dplMgr) GetJnsStat(vsetID int, anchorUUID, jnlUUID string) (jnsMapArr []map[string]string, err error) {
 	cmdSpec := fmt.Sprintf("%s -m jns -x vset_id=%d -x anchor_uuid=%s stat", d.DplmgrPath, vsetID, anchorUUID)
-	if dplUUID != "" {
-		cmdSpec += fmt.Sprintf(" -e dpl_uuid=%s", dplUUID)
+	if jnlUUID != "" {
+		cmdSpec += fmt.Sprintf(" -e jnl_uuid=%s", jnlUUID)
 	}
 	rc, output := d.RunCmdInDocker(cmdSpec, d.DNSArgs, d.EtcdArgs)
 	logger.Info(output)
@@ -104,7 +105,7 @@ func (d *dplMgr) GetJnsStat(vsetID int, anchorUUID, dplUUID string) (jnsMapArr [
 		return
 	}
 	jnsStrArr := strings.Split(output, "\n")
-	pattern := regexp.MustCompile(`Anchor:\s+([^\s]+)\s+Dpl:\s+([^\s]+)\s+JState:\s+([^\s]+)\s+`)
+	pattern := regexp.MustCompile(`Anchor:\s+([^\s]+)\s+Jnl:\s+([^\s]+)\s+JState:\s+([^\s]+)\s+`)
 	for _, jnsStr := range jnsStrArr {
 		if !strings.HasPrefix(jnsStr, "Anchor:") {
 			continue
@@ -114,7 +115,7 @@ func (d *dplMgr) GetJnsStat(vsetID int, anchorUUID, dplUUID string) (jnsMapArr [
 		// logger.Info(utils.Prettify(matched))
 		if len(matched) > 0 {
 			jnsMap["Anchor"] = matched[0][1]
-			jnsMap["Dpl"] = matched[0][2]
+			jnsMap["Jnl"] = matched[0][2]
 			jnsMap["JState"] = matched[0][3]
 			jnsMapArr = append(jnsMapArr, jnsMap)
 		}
@@ -124,8 +125,8 @@ func (d *dplMgr) GetJnsStat(vsetID int, anchorUUID, dplUUID string) (jnsMapArr [
 }
 
 // IsJnsStatExpected status: PRIMARY | SECONDARY | DISCONNECTED
-func (d *dplMgr) IsJnsStatExpected(vsetID int, anchorUUID, dplUUID, expected string) error {
-	jnsStatArr, _ := d.GetJnsStat(vsetID, anchorUUID, dplUUID)
+func (d *dplMgr) IsJnsStatExpected(vsetID int, anchorUUID, jnlUUID, expected string) error {
+	jnsStatArr, _ := d.GetJnsStat(vsetID, anchorUUID, jnlUUID)
 	if len(jnsStatArr) == 0 {
 		if expected == "DISCONNECTED" {
 			return nil
@@ -144,16 +145,32 @@ func (d *dplMgr) IsJnsStatExpected(vsetID int, anchorUUID, dplUUID, expected str
 	return nil
 }
 
-func (d *dplMgr) IsJnsStatPrimary(vsetID int, anchorUUID, dplUUID string) error {
-	return d.IsJnsStatExpected(vsetID, anchorUUID, dplUUID, "PRIMARY")
+func (d *dplMgr) IsJnsStatPrimary(vsetID int, anchorUUID, jnlUUID string) error {
+	return d.IsJnsStatExpected(vsetID, anchorUUID, jnlUUID, "PRIMARY")
 }
 
-func (d *dplMgr) IsJnsStatSecondary(vsetID int, anchorUUID, dplUUID string) error {
-	return d.IsJnsStatExpected(vsetID, anchorUUID, dplUUID, "SECONDARY")
+func (d *dplMgr) IsAnyJnsStatPrimary(vsetID int, anchorUUID, jnlUUID string) error {
+	jnsStatArr, _ := d.GetJnsStat(vsetID, anchorUUID, jnlUUID)
+	if len(jnsStatArr) == 0 {
+		logger.Warning("Get None JNS info, ignore ...")
+		return nil
+	}
+	logger.Debugf("JNS Stats:%v", jnsStatArr)
+	for _, jnsStat := range jnsStatArr {
+		if jnsStat["JState"] == "PRIMARY" {
+			return nil
+		}
+		continue
+	}
+	return fmt.Errorf("None of JStat PRIMARY")
 }
 
-func (d *dplMgr) IsJnsStatDisconnected(vsetID int, anchorUUID, dplUUID string) error {
-	return d.IsJnsStatExpected(vsetID, anchorUUID, dplUUID, "DISCONNECTED")
+func (d *dplMgr) IsJnsStatSecondary(vsetID int, anchorUUID, jnlUUID string) error {
+	return d.IsJnsStatExpected(vsetID, anchorUUID, jnlUUID, "SECONDARY")
+}
+
+func (d *dplMgr) IsJnsStatDisconnected(vsetID int, anchorUUID, jnlUUID string) error {
+	return d.IsJnsStatExpected(vsetID, anchorUUID, jnlUUID, "DISCONNECTED")
 }
 
 // =============== Channel: dplmanager -m ch list ===============

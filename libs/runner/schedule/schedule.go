@@ -211,7 +211,7 @@ func (sc *Schedule) RunPhase(action Action, options ...OptionFunc) error {
 		sc.PhaseArr = append(sc.PhaseArr, phase)
 	} else {
 		lastPhase := sc.PhaseArr[idx-2]
-		if pName == "action" || (lastPhase.Name != pName && lastPhase.Status != status) {
+		if pName == "action" || lastPhase.Name != pName || lastPhase.Status != status {
 			sc.PhaseArr = append(sc.PhaseArr, phase)
 		} else {
 			idx--
@@ -225,7 +225,7 @@ func (sc *Schedule) RunPhase(action Action, options ...OptionFunc) error {
 		logger.Infof("Description: %s", description)
 	}
 	// Run func
-	if sc.Input.Skip == true {
+	if sc.Input.Skip == true || pName == "action" {
 		return nil
 	}
 	logger.Infof("Enter %s ...", fName)

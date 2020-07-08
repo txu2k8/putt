@@ -38,6 +38,7 @@ func (v *Vizion) RetryCheck(check Check) error {
 // CheckHealth .
 func (v *Vizion) CheckHealth() error {
 	var err error
+	defer v.Schedule.PrintPhase()
 	err = v.Schedule.RunPhase(v.WaitForPingOK, schedule.Desc("Check if nodes ping OK"))
 	if err != nil {
 		return err
@@ -47,7 +48,6 @@ func (v *Vizion) CheckHealth() error {
 	if err != nil {
 		return err
 	}
-
 	err = v.Schedule.RunPhase(v.IsServiceCoreDump, schedule.Desc("Check if service has core dump files"))
 	if err != nil {
 		return err
@@ -349,7 +349,7 @@ func (v *Vizion) WaitForDplHeloOK() error {
 	return v.RetryCheck(v.IsDplHeloOK)
 }
 
-// IsAllJnsPrimary .
+// IsAllJnsPrimary .  ----------- dplmanager -m jns stat -----------
 func (v *Vizion) IsAllJnsPrimary(anchordplArr []Service) error {
 	var err error
 	// mCass := v.Cass().SetIndex("0")
@@ -375,75 +375,94 @@ func (v *Vizion) WaitForAllJnsPrimary() error {
 	return v.RetryCheck(checkAction)
 }
 
-// IsAnyJnsPrimary .
-func (v *Vizion) IsAnyJnsPrimary(anchordplArr []Service) error {
+// IsAllVolumesJnsPrimary .
+func (v *Vizion) IsAllVolumesJnsPrimary(djcachedplArr []Service) error {
 	var err error
-	// mCass := v.Cass().SetIndex("0")
-	// anchordplArr := mCass.AnchordplServices()
 	dplmanager := v.DplMgr(v.VaildMasterIP())
-	for _, anchordpl := range anchordplArr {
+
+	for _, anchordpl := range djcachedplArr {
 		err = dplmanager.IsJnsStatPrimary(anchordpl.VsetID, anchordpl.ID, "")
-		if err != nil {
-			continue
-		}
-		return nil
-	}
-	return fmt.Errorf("None of JNS is OK")
-}
-
-// WaitForAnyJnsPrimary .
-func (v *Vizion) WaitForAnyJnsPrimary() error {
-	mCass := v.Cass().SetIndex("0")
-	anchordplArr := mCass.AnchordplServices()
-	checkAction := func() error {
-		return v.IsAnyJnsPrimary(anchordplArr)
-	}
-	return v.RetryCheck(checkAction)
-}
-
-// IsS3AnyJnsPrimary .
-func (v *Vizion) IsS3AnyJnsPrimary(anchordplArr, servicedplArr []Service) error {
-	var err error
-
-	dplmanager := v.DplMgr(v.VaildMasterIP())
-	s3dplIDs := []string{}
-	for _, servicedpl := range servicedplArr {
-		dplChArr, err := dplmanager.GetDplChannels(servicedpl.IP, servicedpl.Port)
 		if err != nil {
 			return err
 		}
-		for _, dplCh := range dplChArr {
-			if dplCh["Channel_type"] == config.CHTYPES3 {
-				s3dplIDs = append(s3dplIDs, servicedpl.ID)
-			}
-		}
-	}
-	if len(s3dplIDs) == 0 {
-		return fmt.Errorf("Got None s3 channel")
-	}
-
-	for _, s3dplID := range s3dplIDs {
-		for _, anchordpl := range anchordplArr {
-			err = dplmanager.IsJnsStatPrimary(anchordpl.VsetID, anchordpl.ID, s3dplID)
-			if err != nil {
-				continue
-			}
-			return nil
-		}
-		return fmt.Errorf("None of JNS is OK")
 	}
 	return nil
 }
 
-// WaitForS3JnsPrimary .
-func (v *Vizion) WaitForS3JnsPrimary() error {
+// WaitForAllVolumesJnsPrimary .
+func (v *Vizion) WaitForAllVolumesJnsPrimary() error {
 	mCass := v.Cass().SetIndex("0")
-	anchordplArr := mCass.AnchordplServices()
-	servicedplArr := mCass.ServicedplServices()
+	djcachedplArr := mCass.DjcachedplServices()
 	checkAction := func() error {
-		return v.IsS3AnyJnsPrimary(anchordplArr, servicedplArr)
+		return v.IsAllVolumesJnsPrimary(djcachedplArr)
 	}
 	return v.RetryCheck(checkAction)
+}
+
+// IsAllS3JnsPrimary .
+func (v *Vizion) IsAllS3JnsPrimary(anchordplArr []Service) error {
+	var err error
+	dplmanager := v.DplMgr(v.VaildMasterIP())
+	for _, anchordpl := range anchordplArr {
+		err = dplmanager.IsJnsStatPrimary(anchordpl.VsetID, anchordpl.ID, "S3")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// WaitForAllS3JnsPrimary .
+func (v *Vizion) WaitForAllS3JnsPrimary() error {
+	mCass := v.Cass().SetIndex("0")
+	anchordplArr := mCass.AnchordplServices()
+	checkAction := func() error {
+		return v.IsAllS3JnsPrimary(anchordplArr)
+	}
+	return v.RetryCheck(checkAction)
+}
+
+// IsAnyVolumesJnsPrimary . asert
+func (v *Vizion) IsAnyVolumesJnsPrimary(djcachedplArr []Service, volIDArr []string) error {
+	var err error
+	dplmanager := v.DplMgr(v.VaildMasterIP())
+	for _, volID := range volIDArr {
+		jnlUUID := volID + "-dvol"
+		primaryState := false
+		for _, anchordpl := range djcachedplArr {
+			err = dplmanager.IsAnyJnsStatPrimary(anchordpl.VsetID, anchordpl.ID, jnlUUID)
+			if err == nil {
+				primaryState = true
+				break
+			}
+		}
+		if primaryState == false {
+			return fmt.Errorf("Jnl %s is not PRIMARY", jnlUUID)
+		}
+	}
+	return nil
+}
+
+// IsAnyS3JnsPrimary . asert
+func (v *Vizion) IsAnyS3JnsPrimary(mjcachedplArr, djcachedplArr []Service) error {
+	var err error
+	dplmanager := v.DplMgr(v.VaildMasterIP())
+	for _, anchordpl := range mjcachedplArr {
+		err = dplmanager.IsAnyJnsStatPrimary(anchordpl.VsetID, anchordpl.ID, "S3")
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, anchordpl := range djcachedplArr {
+		err = dplmanager.IsAnyJnsStatPrimary(anchordpl.VsetID, anchordpl.ID, "S3")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // IsZpoolStatusOK .Check if zpool status ONLINE
@@ -567,7 +586,7 @@ func (v *Vizion) WaitBlockDeviceRemoved(nodeName, nodeIP string, pvcNameArr []st
 	}
 	expectedVol := 0
 	for _, vsetID := range v.Base.VsetIDs {
-		subCass := cass.SetIndex(string(vsetID))
+		subCass := cass.SetIndex(strconv.Itoa(vsetID))
 		volumeArr, err := subCass.GetVolume()
 		if err != nil {
 			return err

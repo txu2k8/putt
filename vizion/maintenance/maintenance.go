@@ -530,6 +530,7 @@ func (maint *Maint) Restart() error {
 // ApplyImage - maint: Stop -> Cleanup -> setImage -> Start
 func (maint *Maint) ApplyImage() error {
 	var err error
+	defer maint.Vizion.Schedule.PrintPhase()
 	// isImageOK: Wait for image OK on gitlab
 	err = maint.Vizion.Schedule.RunPhase(maint.isImageOK, schedule.Desc(maint.Image))
 	if err != nil {
@@ -594,7 +595,7 @@ func (maint *Maint) ApplyImage() error {
 // UpgradeCore - maint: MakeImage -> Stop -> Cleanup -> setImage -> Start
 func (maint *Maint) UpgradeCore() error {
 	var err error
-
+	defer maint.Vizion.Schedule.PrintPhase()
 	if maint.GitCfg.Tag == true {
 		// Make Image by git tag
 		err = maint.Vizion.Schedule.RunPhase(maint.MakeImage, schedule.Desc("Make Image by git tag"))
