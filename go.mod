@@ -29,6 +29,7 @@ require (
 	github.com/scylladb/gocqlx v1.5.0
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/cobra v1.0.0
+	github.com/vmware/govmomi v0.23.1
 	github.com/xanzy/go-gitlab v0.32.1
 	go.etcd.io/etcd v3.3.22+incompatible
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
