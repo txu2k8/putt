@@ -106,7 +106,10 @@ func (v *Vizion) WaitForPingOK() error {
 	logger.Info("Enter WaitForPingOK ...")
 	var err error
 	for _, nodeIP := range v.Service().GetAllNodeIPs() {
-		err = utils.IsPingOK(nodeIP)
+		pingAction := func() error {
+			return utils.IsPingOK(nodeIP)
+		}
+		err = v.RetryCheck(pingAction)
 		if err != nil {
 			return err
 		}

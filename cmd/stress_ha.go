@@ -37,7 +37,7 @@ var restartNodeCmd = &cobra.Command{
 			jobs := []stress.Job{}
 			switch tc {
 			case "restart_node":
-				haTester = testcase.NewHANode(RestartNodeTestConf)
+				haTester = testcase.NewHANode(baseConf, RestartNodeTestConf)
 				jobs = []stress.Job{
 					{
 						Fn:       haTester.Run,

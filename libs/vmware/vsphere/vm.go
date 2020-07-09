@@ -32,6 +32,48 @@ type OptVM struct {
 
 // =============== Get VM Properties ===============
 
+// VMGuestInfo .
+func VMGuestInfo(vm *object.VirtualMachine) *types.GuestInfo {
+	var o mo.VirtualMachine
+	ctx := context.Background()
+	err := vm.Properties(ctx, vm.Reference(), []string{"guest"}, &o)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	if o.Guest == nil {
+		logger.Fatal("Guest=nil")
+	}
+	return o.Guest
+}
+
+// VMConfigInfo .
+func VMConfigInfo(vm *object.VirtualMachine) *types.VirtualMachineConfigInfo {
+	var o mo.VirtualMachine
+	ctx := context.Background()
+	err := vm.Properties(ctx, vm.Reference(), []string{"config"}, &o)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	if o.Config == nil {
+		logger.Fatal("Config=nil")
+	}
+	return o.Config
+}
+
+// VMNetworkInfo .
+func VMNetworkInfo(vm *object.VirtualMachine) []types.ManagedObjectReference {
+	var o mo.VirtualMachine
+	ctx := context.Background()
+	err := vm.Properties(ctx, vm.Reference(), []string{"network"}, &o)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	if o.Network == nil {
+		logger.Fatal("Config=nil")
+	}
+	return o.Network
+}
+
 // GetVMUUID .
 func GetVMUUID(vm *object.VirtualMachine) string {
 	ctx := context.Background()
@@ -40,17 +82,26 @@ func GetVMUUID(vm *object.VirtualMachine) string {
 
 // GetVMName .
 func GetVMName(vm *object.VirtualMachine) string {
-	var o mo.VirtualMachine
-	ctx := context.Background()
-	err := vm.Properties(ctx, vm.Reference(), []string{"config.name"}, &o)
-	if err != nil {
-		return ""
-	}
-	if o.Config != nil {
-		return o.Config.Name
-	}
-	return ""
+	return VMConfigInfo(vm).Name
+
 }
+
+// GetVMIP .
+func GetVMIP(vm *object.VirtualMachine) string {
+	return VMGuestInfo(vm).IpAddress
+}
+
+// GetVMHostName .
+func GetVMHostName(vm *object.VirtualMachine) string {
+	return VMGuestInfo(vm).HostName
+}
+
+// GetVMNetworkName .TODO
+func GetVMNetworkName(vm *object.VirtualMachine) string {
+	return VMNetworkInfo(vm)[0].Reference().String()
+}
+
+// =============== Power VM ===============
 
 // IsVMPowerStateExpected .
 func IsVMPowerStateExpected(vm *object.VirtualMachine, state types.VirtualMachinePowerState) error {
@@ -85,8 +136,6 @@ func WaitForVMPowerState(vm *object.VirtualMachine, state types.VirtualMachinePo
 	logger.Infof("%s powerState(runtime/expected):%s/%s", vmName, curState, state)
 	return err
 }
-
-// =============== Power VM ===============
 
 // PowerOffVM .
 func PowerOffVM(vm *object.VirtualMachine) error {

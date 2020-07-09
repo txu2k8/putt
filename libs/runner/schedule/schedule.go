@@ -15,6 +15,9 @@ var logger = logging.MustGetLogger("test")
 // Action defines a callable function that package retry can handle.
 type Action func() error
 
+// Enter just for print enter step， do nothing
+func Enter() error { return nil }
+
 // Scheduler .
 type Scheduler interface {
 	SetUp(options ...OptionFunc) error
@@ -211,7 +214,7 @@ func (sc *Schedule) RunPhase(action Action, options ...OptionFunc) error {
 		sc.PhaseArr = append(sc.PhaseArr, phase)
 	} else {
 		lastPhase := sc.PhaseArr[idx-2]
-		if pName == "action" || lastPhase.Name != pName || lastPhase.Status != status {
+		if pName == "Enter" || lastPhase.Name != pName || lastPhase.Status != status {
 			sc.PhaseArr = append(sc.PhaseArr, phase)
 		} else {
 			idx--

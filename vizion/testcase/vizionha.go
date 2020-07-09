@@ -19,17 +19,15 @@ type HATester interface {
 
 // HABase ...
 type HABase struct {
-	PhaseList      []string
-	S3OK           bool         // S3 service status
-	DagentOK       bool         // dagent service status
-	ESOK           bool         // ES service status (DagentOK && ESOK)
-	NFSOK          bool         // NFS service status
-	SurviveS3Files []UploadFile // S3 upload files info after powerdown node/service/ch ...
-	SurviveBDFiles []UploadFile // BD write files info after powerdown node/service/ch ...
-	Schedule       schedule.Schedule
-}
+	Vizion         resources.Vizion // resources.Vizion base
+	S3OK           bool             // S3 service status
+	DagentOK       bool             // dagent service status
+	ESOK           bool             // ES service status (DagentOK && ESOK)
+	NFSOK          bool             // NFS service status
+	SurviveS3Files []UploadFile     // S3 upload files info after powerdown node/service/ch ...
+	SurviveBDFiles []UploadFile     // BD write files info after powerdown node/service/ch ...
 
-func action() error { return nil }
+}
 
 func (ha *HABase) diffPods() error {
 	logger.Info("HABase: diffPods")
@@ -65,33 +63,33 @@ func (ha *HABase) surviveStress() error {
 // HAWorkflow ...
 func (ha *HABase) HAWorkflow(fn func() error) error {
 	// logger.Info("Eneter HAWorkflow ...")
-	ha.Schedule.RunPhase(action, schedule.Desc("Eneter HAWorkflow ..."))
+	ha.Vizion.Schedule.RunPhase(schedule.Enter, schedule.Desc("Eneter HAWorkflow ..."))
 	// logger.Info(utils.Prettify(&ha))
 	// logger.Info("STEP1: Check health before HA test...")
 	// logger.Info("STEP2: S3 upload/download before HA test ...")
 	// logger.Info("STEP3: ES index before HA test ...")
 	// logger.Info("STEP4: BlockDevice Write/Read before HA test ...")
-	ha.Schedule.RunPhase(action, schedule.Desc("Check health before HA test ..."))
-	ha.Schedule.RunPhase(action, schedule.Desc("S3 upload/download before HA test ..."))
-	ha.Schedule.RunPhase(action, schedule.Desc("ES index before HA test ..."))
-	ha.Schedule.RunPhase(action, schedule.Desc("BlockDevice Write/Read before HA test ..."))
+	ha.Vizion.Schedule.RunPhase(ha.Vizion.CheckHealth, schedule.Desc("Check Health before HA test ..."))
+	ha.Vizion.Schedule.RunPhase(schedule.Enter, schedule.Desc("S3 upload/download before HA test ..."))
+	ha.Vizion.Schedule.RunPhase(schedule.Enter, schedule.Desc("ES index before HA test ..."))
+	ha.Vizion.Schedule.RunPhase(schedule.Enter, schedule.Desc("BlockDevice Write/Read before HA test ..."))
 
 	// logger.Info("STEP5: HA and Survive opt ...")
-	ha.Schedule.RunPhase(action, schedule.Desc("Eneter HA and Survive opt ..."))
-	ha.Schedule.RunPhase(ha.diffPods, schedule.Desc("diffPods ..."))
+	ha.Vizion.Schedule.RunPhase(schedule.Enter, schedule.Desc("Eneter HA and Survive opt ..."))
+	ha.Vizion.Schedule.RunPhase(ha.diffPods, schedule.Desc("diffPods ..."))
 	err := fn()
 	if err != nil {
 		return err
 	}
 	// logger.Info("STEP6: Check health after HA test ...")
-	ha.Schedule.RunPhase(action, schedule.Desc("Check health after HA test ..."))
-	ha.Schedule.RunPhase(ha.diffPods, schedule.Desc("diffPods ..."))
+	ha.Vizion.Schedule.RunPhase(schedule.Enter, schedule.Desc("Check health after HA test ..."))
+	ha.Vizion.Schedule.RunPhase(ha.diffPods, schedule.Desc("diffPods ..."))
 	// logger.Info("STEP7: Download and Check S3 original data(upload by STEP2) MD5 after HA test ...")
 	// logger.Info("STEP8: Read and Check block device data(write by STEP4) MD5 after HA test ...")
 	// logger.Info("STEP9: Check && Make sure es OK after HA test ...")
-	ha.Schedule.RunPhase(action, schedule.Desc("Download and Check S3 original data(upload by STEP2) MD5 after HA test ..."))
-	ha.Schedule.RunPhase(action, schedule.Desc("Read and Check block device data(write by STEP4) MD5 after HA test ..."))
-	ha.Schedule.RunPhase(action, schedule.Desc("Check && Make sure es OK after HA test ..."))
+	ha.Vizion.Schedule.RunPhase(schedule.Enter, schedule.Desc("Download and Check S3 original data(upload by STEP2) MD5 after HA test ..."))
+	ha.Vizion.Schedule.RunPhase(schedule.Enter, schedule.Desc("Read and Check block device data(write by STEP4) MD5 after HA test ..."))
+	ha.Vizion.Schedule.RunPhase(schedule.Enter, schedule.Desc("Check && Make sure es OK after HA test ..."))
 
 	return nil
 }
@@ -126,8 +124,11 @@ type HANode struct {
 }
 
 // NewHANode ...
-func NewHANode(input RestartNodeTestInput) *HANode {
+func NewHANode(base types.BaseInput, input RestartNodeTestInput) *HANode {
 	return &HANode{
+		HABase: HABase{
+			Vizion: resources.Vizion{Base: base},
+		},
 		RestartNodeTestInput: input,
 	}
 }
@@ -194,13 +195,11 @@ func (job *HANode) parseRestartNodes() error {
 
 func (job *HANode) powerDownNodes() error {
 	logger.Info("Run powerDownNodes")
-	job.PhaseList = append(job.PhaseList, "powerDownNodes")
 	return nil
 }
 
 func (job *HANode) powerOnNodes() error {
 	logger.Info("Run powerOnNodes")
-	job.PhaseList = append(job.PhaseList, "powerOnNodes")
 	return nil
 }
 
@@ -214,32 +213,32 @@ func (job *HANode) isSurviveOK() error {
 func (job *HANode) runJob() error {
 	var err error
 	logger.Info("Run RestartNodeJob")
-	if err = job.Schedule.RunPhase(job.parseRestartNodes, schedule.Desc("Parse Restart Nodes Input ...")); err != nil {
+	if err = job.Vizion.Schedule.RunPhase(job.parseRestartNodes, schedule.Desc("Parse Restart Nodes Input ...")); err != nil {
 		return err
 	}
-	if err = job.Schedule.RunPhase(job.powerDownNodes, schedule.Desc("Powerdown nodes ...")); err != nil {
+	if err = job.Vizion.Schedule.RunPhase(job.powerDownNodes, schedule.Desc("Powerdown nodes ...")); err != nil {
 		return err
 	}
-	if err = job.Schedule.RunPhase(job.isSurviveOK, schedule.Desc("Judge is Survived s3/bd/es/nfs shoudld OK ...")); err != nil {
+	if err = job.Vizion.Schedule.RunPhase(job.isSurviveOK, schedule.Desc("Judge is Survived s3/bd/es/nfs shoudld OK ...")); err != nil {
 		return err
 	}
 	if job.S3OK {
-		if err = job.Schedule.RunPhase(job.surviveS3Upload, schedule.Desc("Survived S3Upload ...")); err != nil {
+		if err = job.Vizion.Schedule.RunPhase(job.surviveS3Upload, schedule.Desc("Survived S3Upload ...")); err != nil {
 			return err
 		}
 	}
 	if job.ESOK {
-		if err = job.Schedule.RunPhase(job.surviveESIndex, schedule.Desc("Survived ESIndex ...")); err != nil {
+		if err = job.Vizion.Schedule.RunPhase(job.surviveESIndex, schedule.Desc("Survived ESIndex ...")); err != nil {
 			return err
 		}
 	}
 	if job.DagentOK {
-		if err = job.Schedule.RunPhase(job.surviveBDWrite, schedule.Desc("Survived BDWrite ...")); err != nil {
+		if err = job.Vizion.Schedule.RunPhase(job.surviveBDWrite, schedule.Desc("Survived BDWrite ...")); err != nil {
 			return err
 		}
 	}
 
-	if err = job.Schedule.RunPhase(job.powerOnNodes, schedule.Desc("PowerOn nodes ...")); err != nil {
+	if err = job.Vizion.Schedule.RunPhase(job.powerOnNodes, schedule.Desc("PowerOn nodes ...")); err != nil {
 		return err
 	}
 

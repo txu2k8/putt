@@ -250,3 +250,8 @@ func (c *VspClient) GetVMByNameTODO(vmName string) (*object.VirtualMachine, erro
 	}
 	return nil, fmt.Errorf("Got none VM with vm-name:%s", vmName)
 }
+
+// IsVMExist . TODO
+func (c *VspClient) IsVMExist(vmName string) error {
+	return nil
+}
