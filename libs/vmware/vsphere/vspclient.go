@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"putt/libs/retry"
-	"putt/libs/retry/strategy"
-	"putt/libs/utils"
 	"time"
 
 	"github.com/op/go-logging"
@@ -17,8 +14,9 @@ import (
 	"github.com/vmware/govmomi/vim25"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/soap"
-	"github.com/vmware/govmomi/vim25/types"
 )
+
+// A Go library for interacting with VMware vSphere APIs (ESXi and/or vCenter).
 
 var logger = logging.MustGetLogger("test")
 
@@ -42,6 +40,11 @@ type ByName []mo.VirtualMachine
 func (n ByName) Len() int           { return len(n) }
 func (n ByName) Swap(i, j int)      { n[i], n[j] = n[j], n[i] }
 func (n ByName) Less(i, j int) bool { return n[i].Name < n[j].Name }
+
+func intPtr(i int) *int       { return &i }
+func int32Ptr(i int32) *int32 { return &i }
+func int64Ptr(i int64) *int64 { return &i }
+func boolPtr(b bool) *bool    { return &b }
 
 // Override username and/or password as required
 func processOverride(u *url.URL, user, pwd string) {
@@ -155,6 +158,36 @@ func (c *VspClient) Logout(ctx context.Context) error {
 
 // =============== Client: Get VM-Object ===============
 
+// GetVMDetails .
+func (c *VspClient) GetVMDetails(vmName string) (*mo.VirtualMachine, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	// Create view of VirtualMachine objects
+	m := view.NewManager(c.Govmomi.Client)
+
+	v, err := m.CreateContainerView(ctx, c.Govmomi.ServiceContent.RootFolder, []string{"VirtualMachine"}, true)
+	if err != nil {
+		return nil, err
+	}
+
+	defer v.Destroy(ctx)
+
+	// Retrieve summary property for all machines
+	// Reference: http://pubs.vmware.com/vsphere-60/topic/com.vmware.wssdk.apiref.doc/vim.VirtualMachine.html
+	var vms []mo.VirtualMachine
+	err = v.Retrieve(ctx, []string{"VirtualMachine"}, []string{"summary"}, &vms)
+	if err != nil {
+		return nil, err
+	}
+	for _, vm := range vms {
+		if vm.Summary.Config.Name == vmName {
+			// logger.Debugf("%s: %s\n", vm.Summary.Config.Name, vm.Summary.Config.GuestFullName)
+			return &vm, nil
+		}
+	}
+	return nil, fmt.Errorf("Got none VM with vm-name:%s", vmName)
+}
+
 // GetVMByUUID .
 func (c *VspClient) GetVMByUUID(uuid string) (*object.VirtualMachine, error) {
 	ctx := context.Background()
@@ -193,6 +226,17 @@ func (c *VspClient) GetVMByDNSName(dnsName string) (*object.VirtualMachine, erro
 
 // GetVMByName .
 func (c *VspClient) GetVMByName(vmName string) (*object.VirtualMachine, error) {
+	var vm *object.VirtualMachine
+	moVM, err := c.GetVMDetails(vmName)
+	if err != nil {
+		return vm, err
+	}
+	vm = object.NewVirtualMachine(c.Govmomi.Client, moVM.Reference())
+	return vm, err
+}
+
+// GetVMByNameTODO .
+func (c *VspClient) GetVMByNameTODO(vmName string) (*object.VirtualMachine, error) {
 	ctx := context.Background()
 	searchIndex := object.NewSearchIndex(c.Govmomi.Client)
 	childEntity, _ := object.NewRootFolder(c.Govmomi.Client).Children(ctx)
@@ -205,131 +249,4 @@ func (c *VspClient) GetVMByName(vmName string) (*object.VirtualMachine, error) {
 		return vm, nil
 	}
 	return nil, fmt.Errorf("Got none VM with vm-name:%s", vmName)
-}
-
-// GetVMDetails .
-func (c *VspClient) GetVMDetails(vmName string) (*mo.VirtualMachine, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	// Create view of VirtualMachine objects
-	m := view.NewManager(c.Govmomi.Client)
-
-	v, err := m.CreateContainerView(ctx, c.Govmomi.ServiceContent.RootFolder, []string{"VirtualMachine"}, true)
-	if err != nil {
-		return nil, err
-	}
-
-	defer v.Destroy(ctx)
-
-	// Retrieve summary property for all machines
-	// Reference: http://pubs.vmware.com/vsphere-60/topic/com.vmware.wssdk.apiref.doc/vim.VirtualMachine.html
-	var vms []mo.VirtualMachine
-	err = v.Retrieve(ctx, []string{"VirtualMachine"}, []string{"summary"}, &vms)
-	if err != nil {
-		return nil, err
-	}
-
-	// Print summary per vm (see also: govc/vm/info.go)
-
-	for _, vm := range vms {
-		fmt.Printf("%s: %s\n", vm.Summary.Config.Name, vm.Summary.Config.GuestFullName)
-		if vm.Summary.Config.Name == vmName {
-			logger.Info(utils.Prettify(vm))
-			return &vm, nil
-		}
-	}
-	return nil, fmt.Errorf("Got none VM with vm-name:%s", vmName)
-}
-
-// =============== VM: Get VM Property ===============
-
-// GetVMUUID .
-func GetVMUUID(vm *object.VirtualMachine) string {
-	ctx := context.Background()
-	return vm.UUID(ctx)
-}
-
-// GetVMName .
-func GetVMName(vm *object.VirtualMachine) string {
-	var o mo.VirtualMachine
-	ctx := context.Background()
-	err := vm.Properties(ctx, vm.Reference(), []string{"config.name"}, &o)
-	if err != nil {
-		return ""
-	}
-	if o.Config != nil {
-		return o.Config.Name
-	}
-	return ""
-}
-
-// =============== VM: poweroff/poweron/shutdown ===============
-
-// WaitForVMPowerState .
-func WaitForVMPowerState(vm *object.VirtualMachine, state types.VirtualMachinePowerState, tries int) error {
-	ctx := context.Background()
-	logger.Infof("Wait For VM %s ...", state)
-	action := func(attempt uint) error {
-		return vm.WaitForPowerState(ctx, types.VirtualMachinePowerStatePoweredOff)
-	}
-	err := retry.Retry(
-		action,
-		strategy.Limit(uint(tries)),
-		strategy.Wait(20*time.Second),
-	)
-	curState, _ := vm.PowerState(ctx)
-	logger.Infof("powerState(runtime/expected):%s/%s", curState, state)
-	return err
-}
-
-// PowerOffVM .
-func PowerOffVM(vm *object.VirtualMachine) error {
-	ctx := context.Background()
-	vmName := GetVMName(vm)
-	state, err := vm.PowerState(ctx)
-	if err != nil {
-		return err
-	}
-	if state == types.VirtualMachinePowerStatePoweredOff {
-		logger.Infof("%s already poweredOff", vmName)
-	}
-	task, err := vm.PowerOff(ctx)
-	if err != nil {
-		return err
-	}
-	err = task.Wait(ctx)
-	if err != nil {
-		return err
-	}
-	err = WaitForVMPowerState(vm, types.VirtualMachinePowerStatePoweredOff, 30)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// PowerOnVM .
-func PowerOnVM(vm *object.VirtualMachine) error {
-	ctx := context.Background()
-	vmName := GetVMName(vm)
-	state, err := vm.PowerState(ctx)
-	if err != nil {
-		return err
-	}
-	if state == types.VirtualMachinePowerStatePoweredOn {
-		logger.Infof("%s already poweredOn", vmName)
-	}
-	task, err := vm.PowerOn(ctx)
-	if err != nil {
-		return err
-	}
-	err = task.Wait(ctx)
-	if err != nil {
-		return err
-	}
-	err = WaitForVMPowerState(vm, types.VirtualMachinePowerStatePoweredOn, 30)
-	if err != nil {
-		return err
-	}
-	return nil
 }
