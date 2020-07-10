@@ -64,11 +64,6 @@ func (ha *HABase) surviveStress() error {
 func (ha *HABase) HAWorkflow(fn func() error) error {
 	// logger.Info("Eneter HAWorkflow ...")
 	ha.Vizion.Schedule.RunPhase(schedule.Enter, schedule.Desc("Eneter HAWorkflow ..."))
-	// logger.Info(utils.Prettify(&ha))
-	// logger.Info("STEP1: Check health before HA test...")
-	// logger.Info("STEP2: S3 upload/download before HA test ...")
-	// logger.Info("STEP3: ES index before HA test ...")
-	// logger.Info("STEP4: BlockDevice Write/Read before HA test ...")
 	ha.Vizion.Schedule.RunPhase(ha.Vizion.CheckHealth, schedule.Desc("Check Health before HA test ..."))
 	ha.Vizion.Schedule.RunPhase(schedule.Enter, schedule.Desc("S3 upload/download before HA test ..."))
 	ha.Vizion.Schedule.RunPhase(schedule.Enter, schedule.Desc("ES index before HA test ..."))
