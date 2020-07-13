@@ -1,7 +1,7 @@
 package types
 
 import (
-	"putt/libs/sshmgr"
+	"platform/libs/sshmgr"
 )
 
 // BaseInput ...

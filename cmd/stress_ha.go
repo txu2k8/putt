@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"putt/libs/runner/stress"
-	"putt/vizion/testcase"
+	"platform/libs/runner/stress"
+	"platform/vizion/testcase"
 
 	"github.com/spf13/cobra"
 )

@@ -3,8 +3,8 @@ package resources
 import (
 	"errors"
 	"fmt"
-	"putt/config"
-	"putt/libs/db/cql"
+	"platform/config"
+	"platform/libs/db/cql"
 
 	"github.com/chenhg5/collection"
 	"github.com/gocql/gocql"

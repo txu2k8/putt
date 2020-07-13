@@ -2,8 +2,8 @@ package es
 
 import (
 	"context"
-	"putt/config"
-	"putt/libs/utils"
+	"platform/config"
+	"platform/libs/utils"
 	"strings"
 	"sync"
 	"time"

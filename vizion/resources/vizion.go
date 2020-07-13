@@ -2,12 +2,12 @@ package resources
 
 import (
 	"fmt"
-	"putt/config"
-	"putt/libs/db/cql"
-	"putt/libs/k8s"
-	"putt/libs/runner/schedule"
-	"putt/libs/utils"
-	"putt/types"
+	"platform/config"
+	"platform/libs/db/cql"
+	"platform/libs/k8s"
+	"platform/libs/runner/schedule"
+	"platform/libs/utils"
+	"platform/types"
 	"strconv"
 
 	"github.com/op/go-logging"

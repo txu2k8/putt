@@ -1,8 +1,8 @@
 package main
 
 import (
-	"putt/cmd"
-	_ "putt/config"
+	"platform/cmd"
+	_ "platform/config"
 )
 
 func main() {

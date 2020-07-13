@@ -1,4 +1,4 @@
-module putt
+module platform
 
 go 1.14
 

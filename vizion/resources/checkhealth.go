@@ -2,12 +2,12 @@ package resources
 
 import (
 	"fmt"
-	"putt/config"
-	"putt/libs/k8s"
-	"putt/libs/retry"
-	"putt/libs/retry/strategy"
-	"putt/libs/runner/schedule"
-	"putt/libs/utils"
+	"platform/config"
+	"platform/libs/k8s"
+	"platform/libs/retry"
+	"platform/libs/retry/strategy"
+	"platform/libs/runner/schedule"
+	"platform/libs/utils"
 	"regexp"
 	"strconv"
 	"strings"

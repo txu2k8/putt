@@ -6,7 +6,7 @@ If you have any questions or requirements, please let me know.
 ## Install
 
 ```shell
-go get -u gitlab.xxx.com/stress/putt
+go get -u gitlab.xxx.com/stress/platform
 ```
 
 ## Usage
@@ -15,8 +15,8 @@ go get -u gitlab.xxx.com/stress/putt
 
 ```shell
 # 1.1 Get source code from git
-git clone git@gitlab.xxx.com:stress/putt.git
-cd putt
+git clone git@gitlab.xxx.com:stress/platform.git
+cd platform
 
 # 1.2 set env GOPATH
 vi /etc/profile
@@ -34,34 +34,34 @@ go build
 
 # 1.5 run with source code
 go run main.go -h
-./putt -h
-putt.exe -h
+./platform -h
+platform.exe -h
 ```
 
 ### 2. Basic usage
 
 ```shell
-$ ./putt.exe -h
-2020-05-13T12:35:06 test INFO: Args: putt -h
-putt project for "Maintenance | DevOps | StressTest ..."
+$ ./platform.exe -h
+2020-05-13T12:35:06 test INFO: Args: platform -h
+platform project for "Maintenance | DevOps | StressTest ..."
 
 Usage:
-  putt [flags]
-  putt [command]
+  platform [flags]
+  platform [command]
 
 Available Commands:
   deploy      Deploy test envmaint
   maint       Maintaince mode tools
   tools       DevOps tools
   stress      Stress test
-  version     putt version
+  version     platform version
   help        Help about any command
 
 Flags:
       --case stringArray         Test Case Array (default value in sub-command)
       --cmap_group_ids ints      cmap group ids array (default [1])
       --dpl_group_ids ints       dpl group ids array (default [1])
-  -h, --help                     help for putt
+  -h, --help                     help for platform
       --jcache_group_ids ints    jcache group ids array (default [1])
       --jd_group_ids ints        jd group ids array (default [1])
       --k8s_namespace string     k8s namespace (default "vizion")
@@ -73,7 +73,7 @@ Flags:
       --ssh_user string          ssh login user (default "root")
       --vset_ids ints            vset IDs array
 
-Use "putt [command] --help" for more information about a command.
+Use "platform [command] --help" for more information about a command.
 ```
 
 ### 3. Module Details

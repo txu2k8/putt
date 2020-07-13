@@ -2,10 +2,10 @@ package resources
 
 import (
 	"fmt"
-	"putt/config"
-	"putt/libs/k8s"
-	"putt/libs/utils"
-	"putt/types"
+	"platform/config"
+	"platform/libs/k8s"
+	"platform/libs/utils"
+	"platform/types"
 	"strings"
 	"sync"
 	"time"

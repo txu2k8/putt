@@ -1,9 +1,9 @@
 package resources
 
 import (
-	"putt/libs/sshmgr"
-	"putt/libs/utils"
-	"putt/types"
+	"platform/libs/sshmgr"
+	"platform/libs/utils"
+	"platform/types"
 	"testing"
 )
 

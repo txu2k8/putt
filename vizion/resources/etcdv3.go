@@ -2,8 +2,8 @@ package resources
 
 import (
 	"encoding/json"
-	"putt/libs/db/etcd"
-	"putt/libs/utils"
+	"platform/libs/db/etcd"
+	"platform/libs/utils"
 	"strings"
 )
 

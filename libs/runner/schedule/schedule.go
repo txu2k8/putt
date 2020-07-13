@@ -1,7 +1,7 @@
 package schedule
 
 import (
-	"putt/libs/prettytable"
+	"platform/libs/prettytable"
 	"reflect"
 	"runtime"
 	"strconv"

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"putt/config"
-	"putt/libs/tlog"
-	"putt/libs/utils"
-	"putt/types"
+	"platform/config"
+	"platform/libs/tlog"
+	"platform/libs/utils"
+	"platform/types"
 	"strings"
 	"time"
 
@@ -27,9 +27,9 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "putt",
+	Use:   "platform",
 	Short: "The rootCmd of this test project",
-	Long:  `putt project for "Stress | DevOps | Maintenance | ..."`,
+	Long:  `platform project for "Stress | DevOps | Maintenance | ..."`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
@@ -125,7 +125,7 @@ func initLogging() {
 		tlog.OptionSetConsoleLogLevel(consoleLoglevel),
 	)
 	conf.InitLogging()
-	logger.Infof("Args: putt %s", strings.Join(os.Args[1:], " "))
+	logger.Infof("Args: platform %s", strings.Join(os.Args[1:], " "))
 }
 
 // ========== Common functions ==========

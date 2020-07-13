@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"putt/libs/utils"
+	"platform/libs/utils"
 	"time"
 )
 

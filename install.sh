@@ -11,7 +11,7 @@ export GOPATH="$CURDIR"
 
 gofmt -w src
 
-go install putt
+go install platform
 
 export GOPATH="$OLDGOPATH"
 

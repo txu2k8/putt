@@ -3,7 +3,7 @@ package git
 import (
 	"fmt"
 	"path"
-	"putt/libs/sshmgr"
+	"platform/libs/sshmgr"
 	"strings"
 
 	"github.com/op/go-logging"

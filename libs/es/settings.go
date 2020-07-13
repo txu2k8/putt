@@ -2,7 +2,7 @@ package es
 
 import (
 	"fmt"
-	"putt/libs/utils"
+	"platform/libs/utils"
 )
 
 // DocType ...

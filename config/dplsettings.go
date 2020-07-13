@@ -2,8 +2,8 @@ package config
 
 import (
 	"fmt"
-	"putt/libs/utils"
-	"putt/types"
+	"platform/libs/utils"
+	"platform/types"
 	"strings"
 
 	"github.com/op/go-logging"

@@ -1,7 +1,7 @@
 package resources
 
 import (
-	"putt/libs/sshmgr"
+	"platform/libs/sshmgr"
 	"testing"
 )
 

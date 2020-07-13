@@ -1,7 +1,7 @@
 package resources
 
 import (
-	"putt/libs/db/cql"
+	"platform/libs/db/cql"
 	"testing"
 
 	"github.com/gocql/gocql"

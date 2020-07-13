@@ -5,9 +5,9 @@ package vsphere
 import (
 	"context"
 	"fmt"
-	"putt/libs/convert"
-	"putt/libs/retry"
-	"putt/libs/retry/strategy"
+	"platform/libs/convert"
+	"platform/libs/retry"
+	"platform/libs/retry/strategy"
 	"sync"
 	"time"
 

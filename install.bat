@@ -13,7 +13,7 @@ set GOPATH=%cd%
 
 gofmt -w src
 
-go install putt
+go install platform
 
 set GOPATH=OLDGOPATH
 

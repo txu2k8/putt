@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"putt/config"
-	"putt/libs/runner/stress"
-	"putt/vizion/maintenance"
+	"platform/config"
+	"platform/libs/runner/stress"
+	"platform/vizion/maintenance"
 
 	"github.com/spf13/cobra"
 )
@@ -30,7 +30,7 @@ var checkCmd = &cobra.Command{
 	Use:     "check",
 	Short:   "Maintaince mode tools: check health",
 	Long:    "Check health",
-	Example: "putt maint check --master_ips 10.5.139.21 --vset_ids 1",
+	Example: "platform maint check --master_ips 10.5.139.21 --vset_ids 1",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint check health ...")
 		var maintainer maintenance.Maintainer
@@ -52,7 +52,7 @@ var stopCmd = &cobra.Command{
 	Use:     "stop",
 	Short:   "Maintaince mode tools: stop service",
 	Long:    "Stop specified services(default:All DPL+APP)",
-	Example: "putt maint stop --master_ips 10.5.139.21 --vset_ids 1 --clean all",
+	Example: "platform maint stop --master_ips 10.5.139.21 --vset_ids 1 --clean all",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint stop services ...")
 		var maintainer maintenance.Maintainer
@@ -73,7 +73,7 @@ var startCmd = &cobra.Command{
 	Use:     "start",
 	Short:   "Maintaince mode tools: start service",
 	Long:    `start specified services`,
-	Example: "putt maint start --master_ips 10.5.139.21 --vset_ids 1 --services es",
+	Example: "platform maint start --master_ips 10.5.139.21 --vset_ids 1 --services es",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint start services ...")
 		var maintainer maintenance.Maintainer
@@ -94,7 +94,7 @@ var restartCmd = &cobra.Command{
 	Use:     "restart",
 	Short:   "Maintaince mode tools: restart service",
 	Long:    `restart specified services`,
-	Example: "putt maint restart --master_ips 10.5.139.21 --vset_ids 1 --clean all",
+	Example: "platform maint restart --master_ips 10.5.139.21 --vset_ids 1 --clean all",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint restart services ...")
 		var maintainer maintenance.Maintainer
@@ -115,7 +115,7 @@ var cleanupCmd = &cobra.Command{
 	Use:     "cleanup",
 	Short:   "Maintaince mode tools: cleanup",
 	Long:    `cleanup specified items`,
-	Example: "putt maint cleanup --master_ips 10.5.139.21 --vset_ids 1 --clean all",
+	Example: "platform maint cleanup --master_ips 10.5.139.21 --vset_ids 1 --clean all",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint clean up ...")
 		var maintainer maintenance.Maintainer
@@ -136,7 +136,7 @@ var makeBinaryCmd = &cobra.Command{
 	Use:     "make_binary",
 	Short:   "Maintaince mode tools: make binary --TODO",
 	Long:    `make binary from git server`,
-	Example: "putt maint make_binary --build_server_ip 10.5.139.11 --build_path /project/git/ --local_bin_path /tmp/ --pull --make",
+	Example: "platform maint make_binary --build_server_ip 10.5.139.11 --build_path /project/git/ --local_bin_path /tmp/ --pull --make",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint Make Binary ...")
 		var maintainer maintenance.Maintainer
@@ -157,7 +157,7 @@ var makeImageCmd = &cobra.Command{
 	Use:     "make_image",
 	Short:   "Maintaince mode tools: make image",
 	Long:    `make image by push tag to gitlab server`,
-	Example: "putt maint make_image --build_server_ip 10.5.139.11 --build_path /project/git/ --pull --tag",
+	Example: "platform maint make_image --build_server_ip 10.5.139.11 --build_path /project/git/ --pull --tag",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint make image ...")
 		var maintainer maintenance.Maintainer
@@ -178,7 +178,7 @@ var applyImageCmd = &cobra.Command{
 	Use:     "apply_image",
 	Short:   "Maintaince mode tools: apply image to service",
 	Long:    `apply service container image`,
-	Example: "putt maint apply_image --master_ips 10.5.139.21 --vset_ids 1 --clean all --image xx.ai/build:latest",
+	Example: "platform maint apply_image --master_ips 10.5.139.21 --vset_ids 1 --clean all --image xx.ai/build:latest",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint apply service image ...")
 		var maintainer maintenance.Maintainer
@@ -199,7 +199,7 @@ var upgradeCoreCmd = &cobra.Command{
 	Use:     "upgradecore",
 	Short:   "Maintaince mode tools: make image && apply image to service",
 	Long:    `make image && upgrade core service`,
-	Example: "putt maint upgradecore --master_ips 10.5.139.21 --vset_ids 1 --clean all --build_server_ip 10.5.139.11 --build_path /project/git/ --pull --tag",
+	Example: "platform maint upgradecore --master_ips 10.5.139.21 --vset_ids 1 --clean all --build_server_ip 10.5.139.11 --build_path /project/git/ --pull --tag",
 	Run: func(cmd *cobra.Command, args []string) {
 		logger.Infof("maint make image && upgrade core service ...")
 		var maintainer maintenance.Maintainer

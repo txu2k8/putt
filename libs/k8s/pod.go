@@ -2,9 +2,9 @@ package k8s
 
 import (
 	"fmt"
-	"putt/libs/retry"
-	"putt/libs/retry/strategy"
-	"putt/libs/utils"
+	"platform/libs/retry"
+	"platform/libs/retry/strategy"
+	"platform/libs/utils"
 	"strings"
 	"time"
 

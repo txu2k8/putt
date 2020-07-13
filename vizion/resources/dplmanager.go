@@ -4,8 +4,8 @@ package resources
 
 import (
 	"fmt"
-	"putt/config"
-	"putt/libs/sshmgr"
+	"platform/config"
+	"platform/libs/sshmgr"
 	"regexp"
 	"strconv"
 	"strings"

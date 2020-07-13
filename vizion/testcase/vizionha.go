@@ -2,13 +2,13 @@ package testcase
 
 import (
 	"fmt"
-	"putt/config"
-	"putt/libs/convert"
-	"putt/libs/random"
-	"putt/libs/runner/schedule"
-	"putt/libs/utils"
-	"putt/types"
-	"putt/vizion/resources"
+	"platform/config"
+	"platform/libs/convert"
+	"platform/libs/random"
+	"platform/libs/runner/schedule"
+	"platform/libs/utils"
+	"platform/types"
+	"platform/vizion/resources"
 	"strings"
 )
 

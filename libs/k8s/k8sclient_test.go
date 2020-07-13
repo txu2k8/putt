@@ -5,7 +5,7 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
-	cfPath := "C:\\workspace\\go\\src\\putt\\kube\\10.25.119.71.config"
+	cfPath := "C:\\workspace\\go\\src\\platform\\kube\\10.25.119.71.config"
 	client, err := NewClientWithRetry(cfPath)
 	if err != nil {
 		logger.Error(err.Error())
